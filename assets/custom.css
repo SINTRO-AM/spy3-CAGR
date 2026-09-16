@@ -1,0 +1,90 @@
+/* In your custom.css file */
+
+.dashboard-container {
+    padding: 10px;
+    background-color: #17324f;
+    border-radius: 5px;
+    margin: 20px;
+    box-shadow: 0px 0px 10px #888888;
+}
+
+.dashboard-header {
+    text-align: center;
+    font-family: 'Segoe UI';
+    color: #FFFFFF;
+}
+
+.button-container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.time-filter-btn {
+    margin: 5px;
+    padding: 10px 15px;
+    background-color: #172b40; /* Light grey background for buttons */
+    color: rgb(221, 221, 221); /* Black text color for contrast */
+    border: 1px solid #b1b1b1; /* Slightly darker grey border */
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: 'Segoe UI';
+}
+
+.performance_container {
+    padding: 10px;
+    background-color: #233a53; /* Same as the header */
+    border-radius: 5px;
+    margin: 20px;
+    box-shadow: 0px 0px 10px #888888;
+    color: #FFFFFF; /* White text color */
+}
+
+/* In Ihrer custom.css Datei */
+
+/* ... (Rest Ihrer CSS-Stile) */
+
+.row-flex {
+    display: flex;
+    justify-content: space-between;
+}
+
+.column-flex {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+}
+
+.graph-container {
+    flex: 1;
+    margin-right: 20px; /* Abstand zwischen Graph und Tabelle */
+    background-color: #172b40; /* Dunkelblauer Hintergrund für die Tabelle */
+    overflow: hidden;
+    padding: 15px;
+    margin-bottom: 20px; 
+}
+
+
+.table-container {
+    flex: 1;
+    background-color: #172b40; /* Dunkelblauer Hintergrund für die Tabelle */
+    border-radius: 5px;
+    overflow: hidden; /* Verhindert das Überlaufen des Inhalts */
+    padding: 15px; /* Space inside the container around the tables */
+    margin-bottom: 20px; /* Space below the container */
+}
+
+.table-spacing {
+    margin-bottom: 20px; /* Adjust this value as needed */
+}
+
+/* Stile für die DataTable */
+.dash-table .dash-header {
+    background-color: #233a53; /* Dunkelblauer Hintergrund für den Kopfbereich */
+    color: #dce1e6; /* Weiße Schriftfarbe */
+}
+
+.dash-table .dash-cell {
+    background-color: #172b40; /* Dunkelblauer Hintergrund für Zellen */
+    color: #d9e0e8; /* Weiße Schriftfarbe */
+}
