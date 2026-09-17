@@ -59,13 +59,14 @@ def capture(r: pd.Series, bm: pd.Series, freq: str = "ME") -> tuple[float, float
 
 
 def summary(r: pd.Series, bm: pd.Series, rf: pd.Series | float = 0.0) -> dict:
+    """Sharpe Ratio mit rf = 0 %; rf wirkt nur auf Beta und Jensen's Alpha."""
     a, b = alpha_beta(r, bm, rf)
     upc, dnc = capture(r, bm)
     return {
         "Total Return": total_return(r),
         "CAGR": cagr(r),
         "Volatilität p.a.": ann_vol(r),
-        "Sharpe (ex rf)": sharpe(r, rf),
+        "Sharpe Ratio": sharpe(r),
         "Max. Drawdown": max_drawdown(r),
         "Calmar": cagr(r) / abs(max_drawdown(r)) if max_drawdown(r) < 0 else np.nan,
         "Beta": b,

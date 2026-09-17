@@ -29,12 +29,14 @@ class StrategyParams:
     dd_trigger: float = 1.3     # Preis < 200d-Hoch / 1.3  (≈ -23 %) -> Mean-Reversion
     dd_window: int = 200
     cost_bps: float = 10.0      # je Positionswechsel
+    mgmt_fee: float = 0.002     # Managementgebühr p.a., täglich abgegrenzt
 
 
 def compute_signal(price: pd.Series, p: StrategyParams = StrategyParams()) -> pd.DataFrame:
     """Signal am Tagesende t (1 = SPY, 0 = SHY). Gehandelt wird ab t+1."""
     logret = np.log(price / price.shift(1))
     out = pd.DataFrame(index=price.index)
+    out["price"] = price
     out["ma_fast"] = price.rolling(p.fast_ma).mean()
     out["ma_slow"] = price.rolling(p.slow_ma).mean()
     out["var_1d"] = logret.rolling(p.vol_window).std() * norm.ppf(p.var_conf)
@@ -60,6 +62,32 @@ def backtest(returns: pd.DataFrame, price: pd.Series,
     bt["ret_off"] = returns["risk_off"]
     bt["ret_pf"] = (bt["position"] * bt["ret_bm"]
                     + (1 - bt["position"]) * bt["ret_off"] - bt["cost"])
+    daily_fee = (1 + p.mgmt_fee) ** (1 / 252) - 1
+    bt["ret_pf_net"] = (1 + bt["ret_pf"]) / (1 + daily_fee) - 1
     bt["wealth_pf"] = (1 + bt["ret_pf"]).cumprod()
     bt["wealth_bm"] = (1 + bt["ret_bm"]).cumprod()
     return bt
+
+
+ON, NEUTRAL, OFF = "Risk On", "Neutral", "Risk Off"
+
+
+def factor_states(row: pd.Series, p: StrategyParams = StrategyParams()) -> dict[str, dict]:
+    """Zustand der drei Faktoren am Tagesende.
+
+    Risk (VaR):      > var_high -> Risk Off (Veto), < var_low -> Risk On, sonst Neutral
+    Momentum:        schneller MA über langsamem -> Risk On, sonst Risk Off
+    Mean-Reversion:  Kurs unter 200d-Hoch / dd_trigger -> Risk On, sonst Neutral
+    """
+    var = row["var_1d"]
+    risk = OFF if var >= p.var_high else ON if var < p.var_low else NEUTRAL
+    mom = ON if row["ma_fast"] > row["ma_slow"] else OFF
+    mr = ON if row["price"] < row["high_disc"] else NEUTRAL
+    return {
+        "Risk": {"state": risk, "detail": f"1-Tages-VaR {var:.2%}"},
+        "Momentum": {"state": mom,
+                     "detail": f"MA{p.fast_ma} / MA{p.slow_ma} = {row['ma_fast'] / row['ma_slow'] - 1:+.1%}"},
+        "Mean-Reversion": {"state": mr,
+                           "detail": f"Abstand zum {p.dd_window}d-Hoch "
+                                     f"{row['price'] / (row['high_disc'] * p.dd_trigger) - 1:+.1%}"},
+    }

@@ -14,7 +14,9 @@ INK = "#1B2638"
 SLATE = "#8C96A5"
 LINE = "#E4E8EE"
 MUTED = "#5E6B7D"
-RISK_OFF = "rgba(214, 150, 60, 0.13)"
+RISK_OFF = "rgba(206, 62, 52, 0.17)"
+NET = "#4F7FC0"
+START = 1_000
 MIX_COLORS = ["#6F9BD1", "#B7A07A"]
 FONT = "Jost, 'Segoe UI', Helvetica, Arial, sans-serif"
 
@@ -45,19 +47,25 @@ def _risk_off_shapes(position: pd.Series, yref="paper"):
 
 
 def wealth_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
-                 log: bool = True) -> go.Figure:
+                 log: bool = True, fee_label: str = "0,2 %") -> go.Figure:
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.74, 0.26],
                         vertical_spacing=0.05)
-    wf = (1 + bt.ret_pf).cumprod()
-    wb = (1 + bt.ret_bm).cumprod()
+    wf = START * (1 + bt.ret_pf).cumprod()
+    wb = START * (1 + bt.ret_bm).cumprod()
     for i, (k, s) in enumerate((extra or {}).items()):
-        fig.add_scatter(x=s.index, y=(1 + s).cumprod(), name=k, row=1, col=1,
+        fig.add_scatter(x=s.index, y=START * (1 + s).cumprod(), name=k, row=1, col=1,
                         line=dict(color=MIX_COLORS[i % 2], width=1.3, dash="dot"),
-                        visible="legendonly", hovertemplate="%{y:,.2f}")
+                        visible="legendonly", hovertemplate="%{y:,.0f} USD")
     fig.add_scatter(x=bt.index, y=wb, name="S&P 500", line=dict(color=SLATE, width=1.6),
-                    row=1, col=1, hovertemplate="%{y:,.2f}")
-    fig.add_scatter(x=bt.index, y=wf, name="SPY3", line=dict(color=NAVY, width=2.2),
-                    row=1, col=1, hovertemplate="%{y:,.2f}")
+                    row=1, col=1, hovertemplate="%{y:,.0f} USD")
+    if "ret_pf_net" in bt:
+        wn = START * (1 + bt.ret_pf_net).cumprod()
+        fig.add_scatter(x=bt.index, y=wn, name=f"SPY3 nach {fee_label} Managementgebühr",
+                        line=dict(color=NET, width=1.4, dash="dash"), row=1, col=1,
+                        hovertemplate="%{y:,.0f} USD")
+    fig.add_scatter(x=bt.index, y=wf, name="SPY3 vor Managementgebühr",
+                    line=dict(color=NAVY, width=2.2), row=1, col=1,
+                    hovertemplate="%{y:,.0f} USD")
     fig.add_scatter(x=bt.index, y=m.drawdown(bt.ret_bm), name="Drawdown S&P 500",
                     line=dict(color=SLATE, width=1), fill="tozeroy",
                     fillcolor="rgba(140,150,165,0.18)", showlegend=False, row=2, col=1,
@@ -67,7 +75,7 @@ def wealth_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
                     hovertemplate="%{y:.1%}")
     fig.add_scatter(x=[None], y=[None], mode="markers", name="Risk-Off (SHY)",
                     marker=dict(symbol="square", size=12, color=RISK_OFF), row=1, col=1)
-    fig.update_yaxes(type="log" if log else "linear", title=None, tickformat=",.1f",
+    fig.update_yaxes(type="log" if log else "linear", title=None, tickformat=",.0f",
                      dtick="D2" if log else None, row=1, col=1)
     fig.update_yaxes(tickformat=".0%", nticks=4, row=2, col=1)
     fig.update_layout(template=TEMPLATE, shapes=_risk_off_shapes(bt.position),

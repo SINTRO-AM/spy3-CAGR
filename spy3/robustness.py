@@ -123,7 +123,7 @@ def subperiods(r: pd.Series, bm: pd.Series, rf=0.0,
         label = f"{a.year}–{min(b.year - 1, r.index[-1].year)}"
         rows[label] = {
             "CAGR SPY3": m.cagr(r[sl]), "CAGR BM": m.cagr(bm[sl]),
-            "Sharpe SPY3": m.sharpe(r[sl], rf_s), "Sharpe BM": m.sharpe(bm[sl], rf_s),
+            "Sharpe SPY3": m.sharpe(r[sl]), "Sharpe BM": m.sharpe(bm[sl]),
             "MaxDD SPY3": m.max_drawdown(r[sl]), "MaxDD BM": m.max_drawdown(bm[sl]),
         }
     return pd.DataFrame(rows)

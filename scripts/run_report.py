@@ -44,7 +44,7 @@ def build(px: pd.DataFrame, cost_bps: float = 10.0):
         "hit_3y": rb.rolling_hit_rate(bt.ret_pf, bt.ret_bm, 3),
         "hit_5y": rb.rolling_hit_rate(bt.ret_pf, bt.ret_bm, 5),
         "conc_12m": rb.concentration(bt.ret_pf, bt.ret_bm, 12),
-        "timing": rb.timing_test(bt.position, bt.ret_bm, bt.ret_off, cost_bps, rf=rf),
+        "timing": rb.timing_test(bt.position, bt.ret_bm, bt.ret_off, cost_bps),
         "switches_pa": bt.position.diff().abs().sum() / (len(bt) / m.TD),
         "pre_shy_days": int(rets["risk_off_missing"].sum()),
     }

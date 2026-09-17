@@ -7,7 +7,8 @@ from dash import Dash, Input, Output, dcc, html
 from scripts.run_report import build
 from spy3 import metrics as m, plots, robustness as rb
 from spy3.data import load_prices
-from spy3.formatting import by_metric, dec, label, pct
+from spy3.formatting import _de, by_metric, dec, label, pct
+from spy3.strategy import OFF, ON, StrategyParams, factor_states
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600"
          "&display=swap")
@@ -60,16 +61,37 @@ def graph(fig, **kw):
                      **kw)
 
 
-def signal_badge() -> html.Div:
+STATE_CLS = {ON: "on", OFF: "off"}
+
+
+def signal_badge() -> html.Details:
+    """Klickbarer Signal-Button; aufgeklappt zeigt er die Faktorwerte."""
     on = int(BT.signal.iloc[-1]) == 1
-    return html.Div([
-        html.Span(className="dot " + ("on" if on else "off")),
+    factors = factor_states(BT.iloc[-1], StrategyParams())
+    chips = [html.Span([html.I(className="led " + STATE_CLS.get(f["state"], "neutral")),
+                        name], className="chip", title=f"{name}: {f['state']}")
+             for name, f in factors.items()]
+    rows = [html.Div([
+        html.Span(name, className="f-name"),
+        html.Span(f["state"], className="f-state " + STATE_CLS.get(f["state"], "neutral")),
+        html.Span(_de(f["detail"]).replace("%", " %"), className="f-detail"),
+    ], className="f-row") for name, f in factors.items()]
+    return html.Details([
+        html.Summary([
+            html.Span([html.I(className="pulse"),
+                       html.Span("Risk On" if on else "Risk Off", className="sig-main"),
+                       html.Span("SPY" if on else "SHY", className="sig-asset")],
+                      className="sig-btn " + ("on" if on else "off")),
+            html.Span(chips, className="chips"),
+        ], className="sig-summary", title="Details zu den Faktoren anzeigen"),
         html.Div([
-            html.Strong("In Aktien investiert (SPY)" if on else "Defensiv positioniert (SHY)"),
-            html.Span(f"1-Tages-VaR 99 %: {pct(BT.var_1d.iloc[-1], 2)} · "
-                      f"Stand {LAST:%d.%m.%Y}", className="sub"),
-        ]),
-    ], className="signal", role="status")
+            html.P(f"Signal zum Handelsschluss am {LAST:%d.%m.%Y}. Gehandelt wird am "
+                   "nächsten Handelstag.", className="note small"),
+            *rows,
+            html.P("Risk Off durch den Risk-Faktor hat Vorrang. Sonst genügt ein "
+                   "Risk-On-Faktor für eine Investition in SPY.", className="note small"),
+        ], className="sig-pop"),
+    ], className="signal")
 
 
 def controls() -> html.Div:
@@ -121,7 +143,7 @@ app.layout = html.Div([
         controls(),
         html.Div([
             html.Section([
-                html.Div([html.H2("Wert von 1 USD"),
+                html.Div([html.H2("Wert von 1.000 USD"),
                           html.Span("Schattierte Phasen: Strategie hält kurzlaufende "
                                     "US-Staatsanleihen", className="note")],
                          className="panel-head"),
@@ -164,7 +186,7 @@ def update_main(period, scale):
     return fig, [table(tbl, highlight_col="SPY3"),
                  html.P("Mix: täglich rebalancierte Kombination aus SPY und SHY, entweder mit der "
                         "durchschnittlichen Aktienquote oder dem Beta von SPY3. "
-                        "Sharpe Ratio über SHY als risikofreiem Satz.",
+                        "Sharpe Ratio ohne risikofreien Satz (rf = 0 %), Beta und Alpha über SHY.",
                         className="note small")]
 
 

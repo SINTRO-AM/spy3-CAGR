@@ -5,9 +5,9 @@ import math
 
 PCT_METRICS = {"Total Return", "CAGR", "Volatilität p.a.", "Max. Drawdown",
                "Jensen's Alpha p.a.", "Up-Capture", "Down-Capture"}
-DEC_METRICS = {"Sharpe (ex rf)", "Calmar", "Beta"}
+DEC_METRICS = {"Sharpe Ratio", "Calmar", "Beta"}
 
-LABELS = {"Sharpe (ex rf)": "Sharpe Ratio", "Calmar": "Calmar Ratio"}
+LABELS = {"Calmar": "Calmar Ratio"}
 
 
 def _de(s: str) -> str:
