@@ -6,10 +6,14 @@ LANGS = {"de": "Deutsch", "en": "English"}
 TXT: dict[str, tuple[str, str]] = {
     # Kopf und Einleitung
     "title": ("SPY3 im Vergleich zum S&P 500", "SPY3 compared with the S&P 500"),
-    "lede": ("Backtest {start} bis {end}, Total Return in USD, nach Handelskosten von "
-             "{cost} bp je Umschichtung.",
-             "Backtest {start} to {end}, total return in USD, after trading costs of "
-             "{cost} bp per switch."),
+    "lede": ("Backtest {start} bis {end}, Total Return in USD.",
+             "Backtest {start} to {end}, total return in USD."),
+    "lede_defs": ("SPY3 brutto: nach Handelskosten von {cost} bp je Umschichtung. "
+                  "SPY3 netto: zusätzlich nach {mgmt} Managementgebühr p.a. und {perf} "
+                  "Performancegebühr.",
+                  "SPY3 gross: after trading costs of {cost} bp per switch. "
+                  "SPY3 net: additionally after the {mgmt} p.a. management fee and the "
+                  "{perf} performance fee."),
     "lang_menu": ("Sprache", "Language"),
     "period": ("Zeitraum", "Period"),
     "scale": ("Skala", "Scale"),

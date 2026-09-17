@@ -63,10 +63,25 @@ def section(title: str, note: str, *children) -> html.Section:
                         className="panel")
 
 
-def graph(fig, **kw) -> dcc.Graph:
-    return dcc.Graph(figure=fig, config={"displaylogo": False, "responsive": True,
-                                         "modeBarButtonsToRemove": ["lasso2d", "select2d"]},
-                     **kw)
+GRAPH_CONFIG = {"displaylogo": False, "responsive": True,
+                "modeBarButtonsToRemove": ["lasso2d", "select2d"]}
+
+
+def graph_box(size: str, graph_id: str | None = None, fig=None) -> html.Div:
+    """Chart in einem Rahmen mit fester Höhe.
+
+    Die Höhe hängt am äußeren Div, nicht am dcc.Graph: Dash baut den Graph beim
+    Aktualisieren neu auf, sodass eine Höhe am Graph selbst kurz auf 0 fallen kann.
+    """
+    kw = {"id": graph_id} if graph_id else {}
+    if fig is not None:
+        kw["figure"] = fig
+    return html.Div(dcc.Graph(config=GRAPH_CONFIG, style={"height": "100%", "width": "100%"},
+                              **kw), className=f"graph-box graph-box--{size}")
+
+
+def graph(fig) -> html.Div:
+    return graph_box("tab", fig=fig)
 
 
 def seg(id_, options, value):
@@ -124,8 +139,7 @@ def lang_menu() -> html.Details:
 def chart_panel(title: str, note: str, graph_id: str, lang: str) -> html.Section:
     return html.Section([
         html.H2(t(title, lang)), html.P(t(note, lang), className="note"),
-        dcc.Graph(id=graph_id, className="side-graph",
-                  config={"displaylogo": False, "responsive": True}),
+        graph_box("side", graph_id),
     ], className="panel")
 
 
@@ -137,8 +151,10 @@ def page(lang: str) -> list:
         html.Div([
             html.H1(t("title", lang)),
             html.P(t("lede", lang, start=BT.index[0].strftime(fmt_d),
-                     end=LAST.strftime(fmt_d), cost=f"{PARAMS.cost_bps:.0f}"),
-                   className="lede"),
+                     end=LAST.strftime(fmt_d)), className="lede"),
+            html.P(t("lede_defs", lang, cost=f"{PARAMS.cost_bps:.0f}",
+                     mgmt=pct(PARAMS.mgmt_fee, 1, lang=lang),
+                     perf=pct(PARAMS.perf_fee, 0, lang=lang)), className="lede defs"),
         ], className="intro"),
         html.Div([
             html.Div([html.Span(t("period", lang), className="ctl-lbl"),
@@ -153,9 +169,7 @@ def page(lang: str) -> list:
                 html.Div([html.H2(t("perf", lang)),
                           html.Span(t("perf_note", lang), className="note")],
                          className="panel-head"),
-                dcc.Loading(dcc.Graph(id="wealth", className="wealth-graph",
-                                      config={"displaylogo": False, "responsive": True}),
-                            type="dot", color=plots.NAVY),
+                graph_box("main", "wealth"),
                 html.P(t("fees_note", lang), className="note small"),
             ], className="panel chart-panel"),
             html.Section([html.H2(t("kpis", lang)), html.Div(id="kpis")],
@@ -179,7 +193,7 @@ app = Dash(__name__, title="SPY3 Dashboard · SINTRO", external_stylesheets=[FON
 server = app.server
 
 app.layout = html.Div([
-    dcc.Store(id="lang", storage_type="local", data="de"),
+    dcc.Store(id="lang-pref", storage_type="local", data="en"),
     html.Header([
         html.Img(src=app.get_asset_url("sintro-logo.png"), alt="SINTRO Asset Management",
                  className="logo"),
@@ -191,7 +205,7 @@ app.layout = html.Div([
 
 
 # ---------- Callbacks -------------------------------------------------------
-@app.callback(Output("lang", "data"),
+@app.callback(Output("lang-pref", "data"),
               Input("lang-de", "n_clicks"), Input("lang-en", "n_clicks"),
               prevent_initial_call=True)
 def choose_lang(_de, _en):
@@ -208,22 +222,22 @@ app.clientside_callback(
         document.documentElement.lang = lang || "de";
         return window.dash_clientside.no_update;
     }""",
-    Output("lang-menu", "title"), Input("lang", "data"))
+    Output("lang-menu", "title"), Input("lang-pref", "data"))
 
 
 @app.callback(Output("page", "children"), Output("signal", "children"),
               Output("footer", "children"), Output("lang-current", "children"),
               *[Output(f"lang-{c}", "className") for c in LANGS],
-              Input("lang", "data"))
+              Input("lang-pref", "data"))
 def render(lang):
-    lang = lang if lang in LANGS else "de"
+    lang = lang if lang in LANGS else "en"
     opts = ["lang-opt is-current" if c == lang else "lang-opt" for c in LANGS]
     return (page(lang), signal_badge(lang), t("footer", lang), lang.upper(), *opts)
 
 
 @app.callback(Output("wealth", "figure"), Output("kpis", "children"),
               Output("dd-graph", "figure"), Output("alpha-graph", "figure"),
-              Input("period", "value"), Input("scale", "value"), Input("lang", "data"))
+              Input("period", "value"), Input("scale", "value"), Input("lang-pref", "data"))
 def update_main(period, scale, lang):
     b, mixes = slice_bt(period, lang)
     fig = plots.wealth_chart(b, mixes, log=scale != "linear", lang=lang)
@@ -238,7 +252,7 @@ def update_main(period, scale, lang):
 
 
 @app.callback(Output("tab-body", "children"), Input("analysis-tabs", "value"),
-              Input("period", "value"), Input("lang", "data"))
+              Input("period", "value"), Input("lang-pref", "data"))
 def update_tab(tab, period, lang):
     b, _ = slice_bt(period, lang)
     pf, bm = b.ret_pf, b.ret_bm

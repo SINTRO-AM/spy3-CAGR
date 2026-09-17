@@ -137,8 +137,7 @@ def relative_chart(bt: pd.DataFrame, lang: str = "de") -> go.Figure:
     fig.add_hline(y=1, line=dict(color=LINE, width=1))
     wide = ratio.max() / ratio.min() > 4
     return _base(fig, lang, yaxis_type="log", yaxis_dtick="D2" if wide else None,
-                 yaxis_tickformat=",.2f",
-                 height=340, showlegend=False)
+                 yaxis_tickformat=",.2f", showlegend=False)
 
 
 def rolling_excess_chart(bt: pd.DataFrame, years=(3, 5), lang: str = "de") -> go.Figure:
@@ -148,7 +147,7 @@ def rolling_excess_chart(bt: pd.DataFrame, years=(3, 5), lang: str = "de") -> go
         fig.add_scatter(x=s.index, y=s, name=t("years_n", lang, y=y),
                         line=dict(color=c, width=1.8), hovertemplate="%{y:+.1%}")
     fig.add_hline(y=0, line=dict(color=INK, width=1))
-    return _base(fig, lang, yaxis_tickformat="+.0%", height=340)
+    return _base(fig, lang, yaxis_tickformat="+.0%")
 
 
 def cum_excess_chart(bt: pd.DataFrame, lang: str = "de") -> go.Figure:

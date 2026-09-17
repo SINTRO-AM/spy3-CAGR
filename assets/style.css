@@ -96,8 +96,9 @@ p { margin: 0; }
 
 /* Seite */
 .page { max-width: var(--maxw); margin: 0 auto; padding: 32px var(--gutter) 48px; }
-.intro { margin-bottom: 20px; max-width: 70ch; }
+.intro { margin-bottom: 20px; max-width: 100ch; }
 .lede { color: var(--muted); margin-top: 6px; }
+.lede.defs { margin-top: 2px; font-size: .9rem; }
 .note { color: var(--muted); font-size: .88rem; max-width: 72ch; }
 .note.small { font-size: .8rem; margin-top: 12px; }
 
@@ -137,8 +138,10 @@ p { margin: 0; }
 .kpi-panel .tbl tbody th { white-space: nowrap; }
 
 .risk-row { margin-top: 20px; }
-.side-graph { height: clamp(300px, 22vw, 420px); }
-.wealth-graph { height: clamp(440px, 34vw, 640px); }
+.graph-box { position: relative; width: 100%; overflow: hidden; }
+.graph-box--main { height: clamp(440px, 34vw, 640px); }
+.graph-box--side { height: clamp(300px, 22vw, 420px); }
+.graph-box--tab { height: 360px; }
 
 /* Tabellen */
 .tbl-wrap { overflow-x: auto; }
@@ -193,9 +196,8 @@ p { margin: 0; }
   .sig-summary { flex-wrap: wrap; gap: 8px; }
   .logo { height: 30px; }
   h1 { font-size: 1.5rem; }
-  .risk-row { margin-top: 20px; }
-.side-graph { height: clamp(300px, 22vw, 420px); }
-.wealth-graph { height: 420px; }
+  .graph-box--main { height: 400px; }
+  .graph-box--side, .graph-box--tab { height: 320px; }
   .panel { padding: 16px; }
   .tabs .tab, .tabs .tab--on { margin-right: 16px; }
 }
