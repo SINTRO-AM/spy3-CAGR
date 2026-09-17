@@ -47,7 +47,7 @@ python app.py                            # Dashboard lokal
   Sharpe Ratio, Calmar Ratio, Max. Drawdown und Beta über 1, 3 oder 5 Jahre, jeweils für SPY3
   brutto/netto, S&P 500 und 60/40, dazu der Anteil der Fenster, in denen SPY3 netto besser war
 * Zeitraum- und Skalenumschalter, mit kurzem Hinweis zur Log-/Linear-Skala beim Laden
-  (blendet sich nach 5 Sekunden aus, reines CSS); Zahlenformate je Sprache (`spy3/formatting.py`),
+  (blendet sich nach 10 Sekunden aus, reines CSS); Zahlenformate je Sprache (`spy3/formatting.py`),
   Texte in `spy3/i18n.py`
 
 ## Daten und Gebühren

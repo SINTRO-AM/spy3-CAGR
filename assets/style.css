@@ -128,7 +128,7 @@ p { margin: 0; }
         max-width: calc(100vw - 32px);
         padding: 12px 14px; background: var(--paper); border: 1px solid var(--line);
         border-radius: var(--radius); box-shadow: 0 8px 24px rgba(15,30,50,.12);
-        animation: hint 5s ease forwards; }
+        animation: hint 10s ease forwards; }
 .hint::before { content: ""; position: absolute; left: 70px; top: -6px; width: 10px; height: 10px;
                 background: var(--paper); border-left: 1px solid var(--line);
                 border-top: 1px solid var(--line); transform: rotate(45deg); }
@@ -138,8 +138,8 @@ p { margin: 0; }
 .hint-text span { color: var(--muted); font-size: .84rem; line-height: 1.45; }
 @keyframes hint {
   0%   { opacity: 0; transform: translateY(-6px); }
-  6%   { opacity: 1; transform: translateY(0); }
-  88%  { opacity: 1; transform: translateY(0); }
+  3%   { opacity: 1; transform: translateY(0); }
+  94%  { opacity: 1; transform: translateY(0); }
   100% { opacity: 0; transform: translateY(-4px); visibility: hidden; }
 }
 
@@ -234,6 +234,6 @@ p { margin: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   *:not(.hint) { transition: none !important; animation: none !important; }
-  .hint { animation: hint-fade 5s linear forwards !important; }
+  .hint { animation: hint-fade 10s linear forwards !important; }
 }
-@keyframes hint-fade { 0%, 90% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+@keyframes hint-fade { 0%, 95% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
