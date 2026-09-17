@@ -121,6 +121,28 @@ p { margin: 0; }
 .seg label:has(input:focus-visible) { outline: 2px solid var(--navy); outline-offset: 1px; }
 .seg-lbl { color: inherit; }
 
+/* Hinweis zur Skala (verschwindet nach 5 s) */
+.controls > div { position: relative; }
+.hint { position: absolute; left: -8px; top: calc(100% + 12px); z-index: 25;
+        display: flex; align-items: flex-start; gap: 12px; width: 430px;
+        max-width: calc(100vw - 32px);
+        padding: 12px 14px; background: var(--paper); border: 1px solid var(--line);
+        border-radius: var(--radius); box-shadow: 0 8px 24px rgba(15,30,50,.12);
+        animation: hint 5s ease forwards; }
+.hint::before { content: ""; position: absolute; left: 70px; top: -6px; width: 10px; height: 10px;
+                background: var(--paper); border-left: 1px solid var(--line);
+                border-top: 1px solid var(--line); transform: rotate(45deg); }
+.hint-bot { width: 38px; height: 38px; flex: none; }
+.hint-text { display: flex; flex-direction: column; gap: 2px; }
+.hint-text strong { font-weight: 500; font-size: .9rem; }
+.hint-text span { color: var(--muted); font-size: .84rem; line-height: 1.45; }
+@keyframes hint {
+  0%   { opacity: 0; transform: translateY(-6px); }
+  6%   { opacity: 1; transform: translateY(0); }
+  88%  { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-4px); visibility: hidden; }
+}
+
 /* Raster und Flächen */
 .grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(490px, 1fr);
         gap: 20px; align-items: stretch; }
@@ -203,9 +225,15 @@ p { margin: 0; }
   .sig-summary { flex-wrap: wrap; gap: 8px; }
   .logo { height: 30px; }
   h1 { font-size: 1.5rem; }
+  .hint { position: static; max-width: 100%; margin-top: 4px; }
+  .hint::before { display: none; }
   .graph-box--main { height: 400px; }
   .graph-box--side, .graph-box--tab { height: 320px; }
   .panel { padding: 16px; }
   .tabs .tab, .tabs .tab--on { margin-right: 16px; }
 }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+@media (prefers-reduced-motion: reduce) {
+  *:not(.hint) { transition: none !important; animation: none !important; }
+  .hint { animation: hint-fade 5s linear forwards !important; }
+}
+@keyframes hint-fade { 0%, 90% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }

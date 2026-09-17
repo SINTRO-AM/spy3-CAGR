@@ -30,6 +30,7 @@ KPI_EMPHASIS = {"Sharpe Ratio", "Max. Drawdown"}
 ROLL_SERIES = {"gross": BT.ret_pf, "net": BT.ret_pf_net, "sp": BT.ret_bm,
                "6040": R["mixes"]["60/40"]}
 
+ROBOT = "/assets/robot.svg"
 GLOBE = "data:image/svg+xml;base64," + base64.b64encode(
     b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" '
     b'stroke="#5E6B7D" stroke-width="1.6"><circle cx="12" cy="12" r="9"/>'
@@ -143,6 +144,15 @@ def lang_menu() -> html.Details:
 
 
 # ---------- Seite -----------------------------------------------------------
+def scale_hint(lang: str) -> html.Div:
+    """Kurzer Hinweis zur Skala; blendet sich nach 5 Sekunden selbst aus (reines CSS)."""
+    return html.Div([
+        html.Img(src=ROBOT, alt="", className="hint-bot"),
+        html.Div([html.Strong(t("hint_title", lang)),
+                  html.Span(t("hint_body", lang))], className="hint-text"),
+    ], className="hint", role="note")
+
+
 def chart_panel(title: str, note: str, graph_id: str, lang: str) -> html.Section:
     return html.Section([
         html.H2(t(title, lang)), html.P(t(note, lang), className="note"),
@@ -169,7 +179,8 @@ def page(lang: str) -> list:
                                      for k in PERIODS], "all")]),
             html.Div([html.Span(t("scale", lang), className="ctl-lbl"),
                       seg("scale", [{"label": t("log", lang), "value": "log"},
-                                    {"label": t("linear", lang), "value": "linear"}], "log")]),
+                                    {"label": t("linear", lang), "value": "linear"}], "log"),
+                      scale_hint(lang)], className="ctl ctl--scale"),
         ], className="controls"),
         html.Div([
             html.Section([

@@ -18,6 +18,13 @@ TXT: dict[str, tuple[str, str]] = {
     "period": ("Zeitraum", "Period"),
     "scale": ("Skala", "Scale"),
     "log": ("Logarithmisch", "Logarithmic"),
+    "hint_title": ("Tipp zur Skala", "A note on the scale"),
+    "hint_body": ("Logarithmisch: gleiche Abstände bedeuten gleiche prozentuale "
+                  "Veränderungen – gut zum Vergleich der Wachstumsraten über 26 Jahre. "
+                  "Linear zeigt absolute Beträge und damit den Zinseszinseffekt.",
+                  "Logarithmic: equal distances mean equal percentage changes, which is "
+                  "how to compare growth rates over 26 years. Linear shows absolute "
+                  "amounts, and therefore the compounding effect."),
     "linear": ("Linear", "Linear"),
     "p_all": ("Gesamt", "Full"), "p_10": ("10 Jahre", "10 years"),
     "p_5": ("5 Jahre", "5 years"), "p_3": ("3 Jahre", "3 years"), "p_1": ("1 Jahr", "1 year"),
