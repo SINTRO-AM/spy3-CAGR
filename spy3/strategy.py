@@ -17,6 +17,8 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
+from .fees import apply_fees
+
 
 @dataclass(frozen=True)
 class StrategyParams:
@@ -30,6 +32,7 @@ class StrategyParams:
     dd_window: int = 200
     cost_bps: float = 10.0      # je Positionswechsel
     mgmt_fee: float = 0.002     # Managementgebühr p.a., täglich abgegrenzt
+    perf_fee: float = 0.10      # Performancegebühr (HWM, Hurdle SPY, quartalsweise)
 
 
 def compute_signal(price: pd.Series, p: StrategyParams = StrategyParams()) -> pd.DataFrame:
@@ -62,8 +65,9 @@ def backtest(returns: pd.DataFrame, price: pd.Series,
     bt["ret_off"] = returns["risk_off"]
     bt["ret_pf"] = (bt["position"] * bt["ret_bm"]
                     + (1 - bt["position"]) * bt["ret_off"] - bt["cost"])
-    daily_fee = (1 + p.mgmt_fee) ** (1 / 252) - 1
-    bt["ret_pf_net"] = (1 + bt["ret_pf"]) / (1 + daily_fee) - 1
+    fees = apply_fees(bt["ret_pf"], bt["ret_bm"], p.mgmt_fee, p.perf_fee)
+    bt["ret_pf_net"] = fees["ret_net"]
+    bt["perf_fee_paid"] = fees["perf_fee_paid"]
     bt["wealth_pf"] = (1 + bt["ret_pf"]).cumprod()
     bt["wealth_bm"] = (1 + bt["ret_bm"]).cumprod()
     return bt

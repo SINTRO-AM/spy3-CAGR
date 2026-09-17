@@ -34,7 +34,8 @@ def build(px: pd.DataFrame, cost_bps: float = 10.0):
     }
     res = {
         "bt": bt, "mixes": mixes, "exposure": exposure, "beta": beta, "cost_bps": cost_bps,
-        "summary": m.summary_table({"SPY3": bt.ret_pf, "S&P 500": bt.ret_bm, **mixes},
+        "summary": m.summary_table({"SPY3": bt.ret_pf, "SPY3 netto": bt.ret_pf_net,
+                                    "S&P 500": bt.ret_bm, **mixes},
                                    bt.ret_bm, rf),
         "attribution": rb.attribution(bt.ret_pf, bt.ret_bm),
         "ex_major": rb.ex_crisis_summary(bt.ret_pf, bt.ret_bm, rf, rb.MAJOR),
@@ -46,7 +47,8 @@ def build(px: pd.DataFrame, cost_bps: float = 10.0):
         "conc_12m": rb.concentration(bt.ret_pf, bt.ret_bm, 12),
         "timing": rb.timing_test(bt.position, bt.ret_bm, bt.ret_off, cost_bps),
         "switches_pa": bt.position.diff().abs().sum() / (len(bt) / m.TD),
-        "pre_shy_days": int(rets["risk_off_missing"].sum()),
+        "pre_shy_days": int((rets["risk_off_source"] != "SHY").sum()),
+        "perf_fees": float(bt["perf_fee_paid"].sum()),
     }
     return res
 
@@ -71,7 +73,7 @@ def main():
     bt = r["bt"]
     print(f"Zeitraum {bt.index[0].date()} – {bt.index[-1].date()} | "
           f"Ø Aktienquote {r['exposure']:.0%} | Switches p.a. {r['switches_pa']:.1f} | "
-          f"Tage ohne SHY (rf=0): {r['pre_shy_days']}\n")
+          f"Tage mit T-Bill-Näherung statt SHY: {r['pre_shy_days']}\n")
     for k, t in [("Kennzahlen (inkl. fairer Vergleichs-Mixe)", "summary"),
                  ("Attribution der Log-Überschussrendite", "attribution"),
                  ("Ohne Dotcom & GFC", "ex_major"), ("Ohne alle Krisenfenster", "ex_all"),
@@ -84,7 +86,7 @@ def main():
 
     out = ROOT / "reports"
     out.mkdir(exist_ok=True)
-    figs = [plots.wealth_chart(bt, r["mixes"]), plots.relative_chart(bt),
+    figs = [plots.wealth_chart(bt, r["mixes"]), plots.drawdown_chart(bt), plots.relative_chart(bt),
             plots.cum_excess_chart(bt), plots.rolling_excess_chart(bt)]
     with open(out / "robustness_report.html", "w", encoding="utf-8") as f:
         f.write("<html><head><meta charset='utf-8'><title>SPY3 Robustness</title></head><body>")

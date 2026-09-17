@@ -66,3 +66,63 @@ def test_timing_test_runs():
     pos = pd.Series((rng.random(2000) > 0.2).astype(int), index=IDX)
     res = rb.timing_test(pos, bm, pd.Series(0.0, index=IDX), n=50)
     assert 0 <= res["p-Wert Sharpe"] <= 1
+
+
+# ---------- Gebühren -------------------------------------------------------
+from spy3.fees import apply_fees  # noqa: E402
+
+QIDX = pd.bdate_range("2020-01-01", "2020-12-31")
+
+
+def test_no_perf_fee_when_underperforming_spy():
+    g = pd.Series(0.0005, index=QIDX)
+    b = pd.Series(0.0008, index=QIDX)
+    f = apply_fees(g, b, mgmt_fee=0.0, perf_fee=0.10)
+    assert f.perf_fee_paid.sum() == 0
+    assert f.nav_net.iloc[-1] == pytest.approx((1.0005) ** len(QIDX))
+
+
+def test_perf_fee_is_ten_percent_of_excess_over_hurdle():
+    q1 = QIDX[QIDX < "2020-04-01"]
+    g = pd.Series(0.001, index=q1)
+    b = pd.Series(0.0, index=q1)
+    f = apply_fees(g, b, mgmt_fee=0.0, perf_fee=0.10)
+    gross = 1.001 ** len(q1)
+    assert f.perf_fee_paid.iloc[-1] == pytest.approx(0.1 * (gross - 1))
+    assert f.nav_net.iloc[-1] == pytest.approx(gross - 0.1 * (gross - 1))
+
+
+def test_high_water_mark_no_double_charge():
+    q = QIDX[QIDX < "2020-10-01"]
+    g = pd.Series(0.0, index=q)
+    g[q < "2020-04-01"] = 0.001             # Q1 Gewinn -> Gebühr
+    g[(q >= "2020-04-01") & (q < "2020-07-01")] = -0.001   # Q2 Verlust
+    g[q >= "2020-07-01"] = 0.001            # Q3 Erholung, aber kaum über HWM
+    f = apply_fees(g, pd.Series(-0.01 / 63, index=q), mgmt_fee=0.0)
+    paid = f.perf_fee_paid
+    assert paid[q < "2020-04-01"].sum() > 0
+    assert paid[(q >= "2020-04-01") & (q < "2020-07-01")].sum() == 0
+    # Q3: Gebühr nur auf den Teil über der HWM (nicht auf die Erholung)
+    nav_q2 = f.nav_net[q < "2020-07-01"].iloc[-1]
+    hwm = f.nav_net[q < "2020-04-01"].iloc[-1]
+    q3_gross_end = nav_q2 * 1.001 ** (q >= "2020-07-01").sum()
+    assert paid.iloc[-1] == pytest.approx(0.1 * max(q3_gross_end - hwm, 0))
+
+
+def test_mgmt_fee_annual_rate():
+    idx = pd.bdate_range("2020-01-01", periods=252)
+    f = apply_fees(pd.Series(0.0, index=idx), pd.Series(0.0, index=idx),
+                   mgmt_fee=0.002, perf_fee=0.0)
+    assert f.nav_net.iloc[-1] == pytest.approx(1 / 1.002)
+
+
+def test_tbill_proxy_before_shy():
+    from spy3.data import prepare_returns
+    idx = pd.bdate_range("2002-07-25", periods=6)
+    px = pd.DataFrame({"risk_on": [100, 101, 102, 103, 104, 105],
+                       "risk_off": [np.nan, np.nan, np.nan, 80, 80.1, 80.2],
+                       "tbill_yield": [1.7] * 6}, index=idx)
+    r = prepare_returns(px)
+    assert (r.risk_off_source.iloc[:2] == "T-Bill").all()
+    assert r.risk_off.iloc[0] == pytest.approx(1.017 ** (1 / 252) - 1)
+    assert r.risk_off_source.iloc[-1] == "SHY"

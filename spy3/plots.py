@@ -1,12 +1,12 @@
-"""Plotly-Charts im SINTRO-Stil. Standard: Vermögen auf Log-Skala."""
+"""Plotly-Charts im SINTRO-Stil (zweisprachig)."""
 from __future__ import annotations
 
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.io as pio
-from plotly.subplots import make_subplots
 
 from . import metrics as m
+from .i18n import t, term
 from .robustness import CRISES, excess_log, rolling_excess
 
 NAVY = "#003274"
@@ -16,14 +16,14 @@ LINE = "#E4E8EE"
 MUTED = "#5E6B7D"
 RISK_OFF = "rgba(206, 62, 52, 0.17)"
 NET = "#4F7FC0"
-START = 1_000
 MIX_COLORS = ["#6F9BD1", "#B7A07A"]
 FONT = "Jost, 'Segoe UI', Helvetica, Arial, sans-serif"
+START = 1_000
+SEP = {"de": ",.", "en": ".,"}
 
 pio.templates["sintro"] = go.layout.Template(layout=dict(
     font=dict(family=FONT, color=INK, size=13),
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-    separators=",.",
     colorway=[NAVY, SLATE, *MIX_COLORS],
     margin=dict(l=8, r=8, t=28, b=8),
     hovermode="x unified",
@@ -38,53 +38,68 @@ pio.templates["sintro"] = go.layout.Template(layout=dict(
 TEMPLATE = "sintro"
 
 
-def _risk_off_shapes(position: pd.Series, yref="paper"):
+def _base(fig: go.Figure, lang: str, **kw) -> go.Figure:
+    fig.update_layout(template=TEMPLATE, separators=SEP.get(lang, ",."), **kw)
+    return fig
+
+
+def _risk_off_shapes(position: pd.Series):
     off = position.eq(0)
     grp = (off != off.shift()).cumsum()
-    return [dict(type="rect", xref="x", yref=yref, x0=seg.index[0], x1=seg.index[-1],
+    return [dict(type="rect", xref="x", yref="paper", x0=seg.index[0], x1=seg.index[-1],
                  y0=0, y1=1, fillcolor=RISK_OFF, line_width=0, layer="below")
             for _, seg in position[off].groupby(grp[off])]
 
 
+def _legend_box(fig: go.Figure, name: str):
+    fig.add_scatter(x=[None], y=[None], mode="markers", name=name,
+                    marker=dict(symbol="square", size=12, color=RISK_OFF))
+
+
 def wealth_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
-                 log: bool = True, fee_label: str = "0,2 %") -> go.Figure:
-    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.74, 0.26],
-                        vertical_spacing=0.05)
-    wf = START * (1 + bt.ret_pf).cumprod()
-    wb = START * (1 + bt.ret_bm).cumprod()
+                 log: bool = True, lang: str = "de") -> go.Figure:
+    """Wert von 1.000 USD; ohne Drawdown (eigener Chart)."""
+    fig = go.Figure()
+    hov = "%{y:,.0f} USD"
     for i, (k, s) in enumerate((extra or {}).items()):
-        fig.add_scatter(x=s.index, y=START * (1 + s).cumprod(), name=k, row=1, col=1,
+        fig.add_scatter(x=s.index, y=START * (1 + s).cumprod(), name=k,
                         line=dict(color=MIX_COLORS[i % 2], width=1.3, dash="dot"),
-                        visible="legendonly", hovertemplate="%{y:,.0f} USD")
-    fig.add_scatter(x=bt.index, y=wb, name="S&P 500", line=dict(color=SLATE, width=1.6),
-                    row=1, col=1, hovertemplate="%{y:,.0f} USD")
+                        visible="legendonly", hovertemplate=hov)
+    fig.add_scatter(x=bt.index, y=START * (1 + bt.ret_bm).cumprod(), name="S&P 500",
+                    line=dict(color=SLATE, width=1.6), hovertemplate=hov)
     if "ret_pf_net" in bt:
-        wn = START * (1 + bt.ret_pf_net).cumprod()
-        fig.add_scatter(x=bt.index, y=wn, name=f"SPY3 nach {fee_label} Managementgebühr",
-                        line=dict(color=NET, width=1.4, dash="dash"), row=1, col=1,
-                        hovertemplate="%{y:,.0f} USD")
-    fig.add_scatter(x=bt.index, y=wf, name="SPY3 vor Managementgebühr",
-                    line=dict(color=NAVY, width=2.2), row=1, col=1,
-                    hovertemplate="%{y:,.0f} USD")
-    fig.add_scatter(x=bt.index, y=m.drawdown(bt.ret_bm), name="Drawdown S&P 500",
+        fig.add_scatter(x=bt.index, y=START * (1 + bt.ret_pf_net).cumprod(),
+                        name=t("net", lang), line=dict(color=NET, width=1.5, dash="dash"),
+                        hovertemplate=hov)
+    fig.add_scatter(x=bt.index, y=START * (1 + bt.ret_pf).cumprod(), name=t("gross", lang),
+                    line=dict(color=NAVY, width=2.2), hovertemplate=hov)
+    _legend_box(fig, t("riskoff", lang))
+    lo = START * min((1 + bt.ret_pf).cumprod().min(), (1 + bt.ret_bm).cumprod().min())
+    hi = START * max((1 + bt.ret_pf).cumprod().max(), (1 + bt.ret_bm).cumprod().max())
+    wide = hi / lo > 4
+    fig.update_yaxes(type="log" if log else "linear", tickformat=",.0f",
+                     dtick="D2" if log and wide else None)
+    fig.update_xaxes(showline=True)
+    return _base(fig, lang, shapes=_risk_off_shapes(bt.position), height=460)
+
+
+def drawdown_chart(bt: pd.DataFrame, lang: str = "de") -> go.Figure:
+    fig = go.Figure()
+    fig.add_scatter(x=bt.index, y=m.drawdown(bt.ret_bm), name="S&P 500",
                     line=dict(color=SLATE, width=1), fill="tozeroy",
-                    fillcolor="rgba(140,150,165,0.18)", showlegend=False, row=2, col=1,
-                    hovertemplate="%{y:.1%}")
-    fig.add_scatter(x=bt.index, y=m.drawdown(bt.ret_pf), name="Drawdown SPY3",
-                    line=dict(color=NAVY, width=1.4), showlegend=False, row=2, col=1,
-                    hovertemplate="%{y:.1%}")
-    fig.add_scatter(x=[None], y=[None], mode="markers", name="Risk-Off (SHY)",
-                    marker=dict(symbol="square", size=12, color=RISK_OFF), row=1, col=1)
-    fig.update_yaxes(type="log" if log else "linear", title=None, tickformat=",.0f",
-                     dtick="D2" if log else None, row=1, col=1)
-    fig.update_yaxes(tickformat=".0%", nticks=4, row=2, col=1)
-    fig.update_layout(template=TEMPLATE, shapes=_risk_off_shapes(bt.position),
-                      height=520)
-    fig.update_xaxes(showline=True, row=1, col=1, ticks="", showticklabels=False)
-    return fig
+                    fillcolor="rgba(140,150,165,0.18)", hovertemplate="%{y:.1%}")
+    if "ret_pf_net" in bt:
+        fig.add_scatter(x=bt.index, y=m.drawdown(bt.ret_pf_net), name=t("net", lang),
+                        line=dict(color=NET, width=1.2, dash="dash"),
+                        hovertemplate="%{y:.1%}")
+    fig.add_scatter(x=bt.index, y=m.drawdown(bt.ret_pf), name=t("gross", lang),
+                    line=dict(color=NAVY, width=1.6), hovertemplate="%{y:.1%}")
+    _legend_box(fig, t("riskoff", lang))
+    fig.update_yaxes(tickformat=".0%")
+    return _base(fig, lang, shapes=_risk_off_shapes(bt.position), height=360)
 
 
-def relative_chart(bt: pd.DataFrame) -> go.Figure:
+def relative_chart(bt: pd.DataFrame, lang: str = "de") -> go.Figure:
     ratio = (1 + bt.ret_pf).cumprod() / (1 + bt.ret_bm).cumprod()
     fig = go.Figure(go.Scatter(x=ratio.index, y=ratio, line=dict(color=NAVY, width=2),
                                name="SPY3 / S&P 500", hovertemplate="%{y:,.3f}"))
@@ -94,29 +109,29 @@ def relative_chart(bt: pd.DataFrame) -> go.Figure:
             continue
         fig.add_vrect(x0=max(pd.Timestamp(a), lo), x1=min(pd.Timestamp(b), hi),
                       fillcolor=SLATE, opacity=0.1, line_width=0,
-                      annotation_text=n.split(" ")[0], annotation_position="top left",
+                      annotation_text=term(n.split(" ")[0], lang),
+                      annotation_position="top left",
                       annotation_font=dict(size=11, color=MUTED))
     fig.add_hline(y=1, line=dict(color=LINE, width=1))
-    fig.update_layout(template=TEMPLATE, yaxis_type="log", height=340, showlegend=False,
-                      yaxis_dtick="D2",
-                      yaxis_tickformat=",.2f")
-    return fig
+    wide = ratio.max() / ratio.min() > 4
+    return _base(fig, lang, yaxis_type="log", yaxis_dtick="D2" if wide else None,
+                 yaxis_tickformat=",.2f",
+                 height=340, showlegend=False)
 
 
-def rolling_excess_chart(bt: pd.DataFrame, years=(3, 5)) -> go.Figure:
+def rolling_excess_chart(bt: pd.DataFrame, years=(3, 5), lang: str = "de") -> go.Figure:
     fig = go.Figure()
     for y, c in zip(years, [SLATE, NAVY]):
         s = rolling_excess(bt.ret_pf, bt.ret_bm, y)
-        fig.add_scatter(x=s.index, y=s, name=f"{y} Jahre", line=dict(color=c, width=1.8),
-                        hovertemplate="%{y:+.1%}")
+        fig.add_scatter(x=s.index, y=s, name=t("years_n", lang, y=y),
+                        line=dict(color=c, width=1.8), hovertemplate="%{y:+.1%}")
     fig.add_hline(y=0, line=dict(color=INK, width=1))
-    fig.update_layout(template=TEMPLATE, yaxis_tickformat="+.0%", height=340)
-    return fig
+    return _base(fig, lang, yaxis_tickformat="+.0%", height=340)
 
 
-def cum_excess_chart(bt: pd.DataFrame) -> go.Figure:
+def cum_excess_chart(bt: pd.DataFrame, lang: str = "de") -> go.Figure:
     ex = excess_log(bt.ret_pf, bt.ret_bm).cumsum()
-    fig = go.Figure(go.Scatter(x=ex.index, y=ex, fill="tozeroy", line=dict(color=NAVY, width=1.8),
+    fig = go.Figure(go.Scatter(x=ex.index, y=ex, fill="tozeroy",
+                               line=dict(color=NAVY, width=1.8),
                                fillcolor="rgba(0,50,116,0.08)", hovertemplate="%{y:+.1%}"))
-    fig.update_layout(template=TEMPLATE, yaxis_tickformat="+.0%", height=300, showlegend=False)
-    return fig
+    return _base(fig, lang, yaxis_tickformat="+.0%", height=300, showlegend=False)

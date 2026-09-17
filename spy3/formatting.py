@@ -1,45 +1,54 @@
-"""Einheitliche Zahlenformate (deutsch: 1.234,5 %)."""
+"""Zahlenformate je Sprache (de: 1.234,5 % / en: 1,234.5%)."""
 from __future__ import annotations
 
 import math
 
-PCT_METRICS = {"Total Return", "CAGR", "Volatilität p.a.", "Max. Drawdown",
-               "Jensen's Alpha p.a.", "Up-Capture", "Down-Capture"}
-DEC_METRICS = {"Sharpe Ratio", "Calmar", "Beta"}
-
-LABELS = {"Calmar": "Calmar Ratio"}
+DEC_KEYS = ("Sharpe", "Beta", "Calmar", "p-Wert")
 
 
-def _de(s: str) -> str:
+def _loc(s: str, lang: str) -> str:
+    if lang != "de":
+        return s
     return s.replace(",", "X").replace(".", ",").replace("X", ".")
 
 
-def pct(v, digits: int = 1, signed: bool = False) -> str:
-    if v is None or (isinstance(v, float) and math.isnan(v)):
-        return "–"
-    txt = f"{v * 100:,.{digits}f}"
-    if float(txt.replace(",", "")) == 0:
-        txt = txt.lstrip("-")
-    sign = "+" if signed and not txt.startswith("-") and float(txt.replace(",", "")) != 0 else ""
-    return f"{sign}{_de(txt)} %"
+def _de(s: str) -> str:  # Rückwärtskompatibilität
+    return _loc(s, "de")
 
 
-def dec(v, digits: int = 2) -> str:
-    if v is None or (isinstance(v, float) and math.isnan(v)):
-        return "–"
+def _nan(v) -> bool:
+    return v is None or (isinstance(v, float) and math.isnan(v))
+
+
+def _num(v: float, digits: int) -> str:
     txt = f"{v:,.{digits}f}"
     if float(txt.replace(",", "")) == 0:
         txt = txt.lstrip("-")
-    return _de(txt)
+    return txt
 
 
-def by_metric(name: str, v) -> str:
-    """Format anhand des Kennzahlnamens; Ratios/Beta/p-Werte dezimal, Rest Prozent."""
-    n = str(name)
-    if n in DEC_METRICS or any(k in n for k in ("Sharpe", "Beta", "Calmar", "p-Wert")):
-        return dec(v)
-    return pct(v)
+def pct(v, digits: int = 1, signed: bool = False, lang: str = "de") -> str:
+    if _nan(v):
+        return "–"
+    txt = _num(v * 100, digits)
+    if signed and not txt.startswith("-") and float(txt.replace(",", "")) != 0:
+        txt = "+" + txt
+    txt = _loc(txt, lang)
+    return f"{txt} %" if lang == "de" else f"{txt}%"
 
 
-def label(name: str) -> str:
-    return LABELS.get(name, name)
+def dec(v, digits: int = 2, lang: str = "de") -> str:
+    return "–" if _nan(v) else _loc(_num(v, digits), lang)
+
+
+def by_metric(name: str, v, lang: str = "de") -> str:
+    """Ratios, Beta und p-Werte dezimal, alles andere in Prozent."""
+    return dec(v, lang=lang) if any(k in str(name) for k in DEC_KEYS) else pct(v, lang=lang)
+
+
+def usd(v, lang: str = "de") -> str:
+    return f"{_loc(_num(v, 0), lang)} USD"
+
+
+def label(name: str) -> str:  # Rückwärtskompatibilität
+    return {"Calmar": "Calmar Ratio"}.get(name, name)

@@ -15,7 +15,7 @@ prüfbar macht:
 | Performance-Chart | kumulierte **Log**-Renditen auf linearer Achse | Vermögen (Wert von 1 USD), Log-Skala umschaltbar |
 | "Total Return" | Summe der Log-Renditen (3,50 → als „350 %“ gezeigt) | `∏(1+r) − 1` |
 | "Annualized Return" | Ø Log-Rendite × 252 | CAGR |
-| Sharpe | ohne risikofreien Satz | weiterhin rf = 0 %; Beta und Jensen's Alpha über SHY (vor 07/2002: 0 %) |
+| Sharpe | ohne risikofreien Satz | weiterhin rf = 0 %; Beta und Jensen's Alpha über SHY (vor 07/2002: T-Bills) |
 | Max. Drawdown | in Log-Punkten | preisbasiert |
 | Transaktionskosten | 1 bp, an zwei falschen Tagen (Signal(t) vs. Signal(t−2)) | 10 bp je Positionswechsel, genau einmal (`--cost`) |
 | Beta / Jensen's Alpha | nicht im Code (Deck) | OLS auf Überschussrenditen |
@@ -35,15 +35,26 @@ python app.py                            # Dashboard lokal
 
 `python app.py` startet das Dashboard unter http://127.0.0.1:8050 (Deployment: `gunicorn app:server`).
 
-* SINTRO-Logo und Signal-Button in der Kopfzeile: Risk On (grün) / Risk Off (rot) plus Zustand der
-  Faktoren Risk, Momentum und Mean-Reversion (Risk On / Neutral / Risk Off); Klick zeigt die Werte
-* Zeitraum (Gesamt, 10, 5, 3, 1 Jahr) und Skala (log/linear) als Umschalter; Kennzahlen und
-  Analysen rechnen für den gewählten Zeitraum neu
-* Wert von 1.000 USD mit Drawdown und rot markierten Risk-Off-Phasen, SPY3 vor und nach 0,2 % Managementgebühr p.a.; Vergleichs-Mixe per Legende einblendbar
-* Reiter: Abstand zum Markt, Rollierende Überschussrendite, Ohne Krisen, Kalenderjahre, Timing-Test
-* Einheitliche deutsche Zahlenformate (`spy3/formatting.py`): Renditen, Volatilität, Drawdown,
-  Alpha und Capture in %, Sharpe, Calmar, Beta und p-Werte als Dezimalzahl mit 2 Nachkommastellen
-* Responsiv bis Smartphone-Breite
+* Kopfzeile: SINTRO-Logo, Signal-Button (Risk On grün / Risk Off rot) mit den Faktoren Risk,
+  Momentum und Mean-Reversion (Klick zeigt die Werte) sowie Sprachmenü Deutsch/Englisch
+  (Auswahl bleibt im Browser gespeichert)
+* Wert von 1.000 USD vor und nach Gebühren, rot markierte Risk-Off-Phasen; Vergleichs-Mixe per
+  Legende einblendbar. Kennzahlen für SPY3 brutto und netto
+* Reiter: Drawdown, Abstand zum Markt, Rollierende Überschussrendite, Ohne Krisen,
+  Kalenderjahre, Timing-Test
+* Zeitraum- und Skalenumschalter; Zahlenformate je Sprache (`spy3/formatting.py`),
+  Texte in `spy3/i18n.py`
+
+## Daten und Gebühren
+
+* **Risk-Off vor SHY (bis 07/2002):** 13-Wochen-T-Bills (`^IRX`) als Näherung für kurzlaufende
+  US-Staatsanleihen. Ein alter Cache ohne T-Bill-Spalte wird automatisch neu geladen.
+* **Managementgebühr:** 0,2 % p.a., täglich abgegrenzt.
+* **Performancegebühr (`spy3/fees.py`):** 10 % auf den Wertzuwachs über max(High-Water-Mark,
+  Hurdle). Die Hurdle ist die HWM, fortgeschrieben mit dem SPY Total Return seit der letzten
+  Gebührenzahlung. Tägliche Abgrenzung, Kristallisierung zum Quartalsende, Minderperformance wird
+  vorgetragen. Modelliert ist ein Anteil, der zum Backtest-Start gezeichnet wurde.
+* **Sharpe Ratio:** rf = 0 %. Beta und Jensen's Alpha über SHY bzw. T-Bills.
 
 ## Wie man die Ergebnisse gegenüber dem Manager liest
 
