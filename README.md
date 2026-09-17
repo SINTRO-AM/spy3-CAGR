@@ -39,10 +39,13 @@ python app.py                            # Dashboard lokal
   Momentum und Mean-Reversion (Klick zeigt die Werte) sowie Sprachmenü Deutsch/Englisch
   (Auswahl bleibt im Browser gespeichert)
 * Wert von 1.000 USD: SPY3 vor Gebühren (dünn, blau), SPY3 nach Gebühren (grün), S&P 500 und
-  klassisches 60/40-Portfolio; rot markierte Risk-Off-Phasen. Daneben die Kennzahlen
+  klassisches 60/40-Portfolio; rot markierte Risk-Off-Phasen. Daneben die Kennzahlen in gleicher Höhe (Sharpe Ratio und Max. Drawdown hervorgehoben)
 * Darunter nebeneinander: maximaler Drawdown und Alpha (kumulierte Log-Überschussrendite
   gegenüber dem S&P 500)
-* Reiter: Abstand zum Markt, Rollierende Überschussrendite, Ohne Krisen, Kalenderjahre, Timing-Test
+* Reiter: Abstand zum Markt, Rollierende Performance, Ohne Krisen, Kalenderjahre, Timing-Test
+* Rollierende Performance (`spy3/rolling.py`): Überschussrendite, Rendite p.a., Volatilität,
+  Sharpe Ratio, Calmar Ratio, Max. Drawdown und Beta über 1, 3 oder 5 Jahre, jeweils für SPY3
+  brutto/netto, S&P 500 und 60/40, dazu der Anteil der Fenster, in denen SPY3 netto besser war
 * Zeitraum- und Skalenumschalter; Zahlenformate je Sprache (`spy3/formatting.py`),
   Texte in `spy3/i18n.py`
 

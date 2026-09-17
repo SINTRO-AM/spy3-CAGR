@@ -7,7 +7,9 @@ import pandas as pd
 from dash import Dash, Input, Output, ctx, dcc, html, no_update
 
 from scripts.run_report import build
-from spy3 import metrics as m, plots, robustness as rb
+from functools import lru_cache
+
+from spy3 import metrics as m, plots, robustness as rb, rolling as rl
 from spy3.data import load_prices
 from spy3.formatting import by_metric, dec, pct
 from spy3.i18n import LANGS, t, term
@@ -22,6 +24,11 @@ LAST = BT.index[-1]
 PERIODS = {"all": None, "10": 10, "5": 5, "3": 3, "1": 1}
 STATE_CLS = {ON: "on", OFF: "off"}
 PERSIST = dict(persistence=True, persistence_type="session")
+KPI_ORDER = ["Total Return", "CAGR", "Volatilität p.a.", "Sharpe Ratio", "Calmar", "Beta",
+             "Jensen's Alpha p.a.", "Up-Capture", "Down-Capture", "Max. Drawdown"]
+KPI_EMPHASIS = {"Sharpe Ratio", "Max. Drawdown"}
+ROLL_SERIES = {"gross": BT.ret_pf, "net": BT.ret_pf_net, "sp": BT.ret_bm,
+               "6040": R["mixes"]["60/40"]}
 
 GLOBE = "data:image/svg+xml;base64," + base64.b64encode(
     b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" '
@@ -40,7 +47,7 @@ def slice_bt(period: str, lang: str):
 
 
 def table(df: pd.DataFrame, lang: str, fmt=None, row_label="", highlight=(),
-          sign_cols=()) -> html.Div:
+          sign_cols=(), emphasis=(), wrap_cls="") -> html.Div:
     fmt = fmt or (lambda i, v: by_metric(i, v, lang))
     head = html.Tr([html.Th(row_label)] + [
         html.Th(c, className="hl" if c in highlight else None) for c in df.columns])
@@ -53,9 +60,9 @@ def table(df: pd.DataFrame, lang: str, fmt=None, row_label="", highlight=(),
                 cls.append("neg")
             txt = pct(v, signed=True, lang=lang) if c in sign_cols else fmt(idx, v)
             cells.append(html.Td(txt, className=" ".join(cls)))
-        rows.append(html.Tr(cells))
+        rows.append(html.Tr(cells, className="em" if idx in emphasis else None))
     return html.Div(html.Table([html.Thead(head), html.Tbody(rows)], className="tbl"),
-                    className="tbl-wrap")
+                    className=f"tbl-wrap {wrap_cls}".strip())
 
 
 def section(title: str, note: str, *children) -> html.Section:
@@ -245,9 +252,9 @@ def update_main(period, scale, lang):
     al = plots.alpha_chart(b, mixes, lang=lang)
     cols = {t("col_gross", lang): b.ret_pf, t("col_net", lang): b.ret_pf_net,
             "S&P 500": b.ret_bm, **mixes}
-    tbl = m.summary_table(cols, b.ret_bm, b.ret_off)
+    tbl = m.summary_table(cols, b.ret_bm, b.ret_off).loc[KPI_ORDER]
     hl = (t("col_gross", lang), t("col_net", lang))
-    return fig, [table(tbl, lang, highlight=hl),
+    return fig, [table(tbl, lang, highlight=hl, emphasis=KPI_EMPHASIS, wrap_cls="fill"),
                  html.P(t("kpi_note", lang), className="note small")], dd, al
 
 
@@ -267,15 +274,20 @@ def update_tab(tab, period, lang):
                           row_label=t("phase", lang))),
         ], className="two-col")
     if tab == "roll":
-        conc = rb.concentration(pf, bm, 12)
-        facts = [(pct(rb.rolling_hit_rate(pf, bm, y), 0, lang=lang), t("hit", lang, y=y))
-                 for y in (3, 5)]
-        facts.append((pct(conc, 0, lang=lang) if conc == conc and conc > 0 else "–",
-                      t("conc", lang)))
-        return section(t("roll_title", lang), t("roll_note", lang),
-                       html.Div([html.Div([html.Strong(a), html.Span(c)], className="fact")
-                                 for a, c in facts], className="facts"),
-                       graph(plots.rolling_excess_chart(b, lang=lang)))
+        metric_opts = [{"label": t(f"rm_{k}", lang), "value": k} for k in rl.METRICS]
+        win_opts = [{"label": t("yr_short", lang, y=y), "value": y} for y in (1, 3, 5)]
+        return html.Section([
+            html.H3(t("roll_title", lang)),
+            html.P(id="roll-note", className="note"),
+            html.Div([
+                html.Div([html.Span(t("roll_metric", lang), className="ctl-lbl"),
+                          seg("roll-metric", metric_opts, "sharpe")]),
+                html.Div([html.Span(t("roll_window", lang), className="ctl-lbl"),
+                          seg("roll-window", win_opts, 3)]),
+            ], className="controls"),
+            html.Div(id="roll-facts", className="facts"),
+            graph_box("tab", "roll-graph"),
+        ], className="panel")
     if tab == "ex":
         out = []
         for key, names in (("ex1", rb.MAJOR), ("ex2", None)):
@@ -314,6 +326,51 @@ def update_tab(tab, period, lang):
     return section(t("tt_title", lang), t("tt_note", lang),
                    html.Div(html.Table([html.Thead(head), html.Tbody(body)], className="tbl"),
                             className="tbl-wrap narrow"))
+
+
+@lru_cache(maxsize=128)
+def _rolling(key: str, metric: str, years: int) -> pd.Series:
+    return rl.rolling_metric(ROLL_SERIES[key], BT.ret_bm, metric, years)
+
+
+@app.callback(Output("roll-graph", "figure"), Output("roll-facts", "children"),
+              Output("roll-note", "children"),
+              Input("roll-metric", "value"), Input("roll-window", "value"),
+              Input("period", "value"), Input("lang-pref", "data"))
+def update_rolling(metric, years, period, lang):
+    metric = metric if metric in rl.METRICS else "sharpe"
+    years = int(years or 3)
+    b, _ = slice_bt(period, lang)
+    start = b.index[0]
+    fmt, _higher = rl.METRICS[metric]
+    names = {"gross": t("gross", lang), "net": t("net", lang), "sp": "S&P 500",
+             "6040": "60/40"}
+    keys = ["gross", "net", "6040"] if metric == "excess" else list(names)
+    series = {names[k]: _rolling(k, metric, years).loc[start:] for k in keys}
+    fig = plots.rolling_chart(series, fmt, metric in ("excess", "sharpe", "calmar"), lang)
+
+    net = series[names["net"]]
+    show = (lambda v: pct(v, 1, lang=lang)) if fmt == "pct" else (lambda v: dec(v, lang=lang))
+    facts = []
+    if metric == "excess":
+        facts.append((pct((net.dropna() > 0).mean(), 0, lang=lang),
+                      t("win_sp", lang, y=years)))
+        sp_rel = _rolling("6040", "excess", years).loc[start:]
+        facts.append((pct(rl.win_rate(net, sp_rel, "excess"), 0, lang=lang),
+                      t("win_6040", lang, y=years)))
+        facts.append((show(net.median()), t("median_net", lang, y=years)))
+    elif _higher is not None:
+        facts.append((pct(rl.win_rate(net, series["S&P 500"], metric), 0, lang=lang),
+                      t("win_sp", lang, y=years)))
+        facts.append((pct(rl.win_rate(net, series["60/40"], metric), 0, lang=lang),
+                      t("win_6040", lang, y=years)))
+        facts.append((show(net.median()), t("median_net", lang, y=years)))
+        facts.append((show(series["S&P 500"].median()), t("median_sp", lang, y=years)))
+    else:
+        facts.append((show(net.median()), t("median_net", lang, y=years)))
+    facts_el = [html.Div([html.Strong(a), html.Span(c)], className="fact") for a, c in facts]
+    note = t("rm_excess_note", lang) if metric == "excess" else t("roll_note_x", lang)
+    return fig, facts_el, note
 
 
 if __name__ == "__main__":

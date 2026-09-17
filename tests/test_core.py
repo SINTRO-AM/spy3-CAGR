@@ -126,3 +126,30 @@ def test_tbill_proxy_before_shy():
     assert (r.risk_off_source.iloc[:2] == "T-Bill").all()
     assert r.risk_off.iloc[0] == pytest.approx(1.017 ** (1 / 252) - 1)
     assert r.risk_off_source.iloc[-1] == "SHY"
+
+
+# ---------- Rollierende Kennzahlen -----------------------------------------
+from spy3 import rolling as rl  # noqa: E402
+
+
+def test_rolling_max_dd_matches_direct():
+    rng = np.random.default_rng(5)
+    idx = pd.bdate_range("2010-01-01", periods=900)
+    r = pd.Series(rng.normal(0.0003, 0.012, 900), index=idx)
+    rd = rl.rolling_metric(r, r, "maxdd", 1)
+    for end in (251, 500, 899):
+        assert rd.iloc[end] == pytest.approx(m.max_drawdown(r.iloc[end - 251:end + 1]))
+    assert rd.iloc[:251].isna().all()
+
+
+def test_rolling_sharpe_return_beta():
+    rng = np.random.default_rng(6)
+    idx = pd.bdate_range("2010-01-01", periods=800)
+    bm = pd.Series(rng.normal(0.0004, 0.01, 800), index=idx)
+    r = 0.5 * bm
+    sl = r.iloc[-756:]
+    assert rl.rolling_metric(r, bm, "sharpe", 3).iloc[-1] == pytest.approx(m.sharpe(sl))
+    assert rl.rolling_metric(r, bm, "return", 3).iloc[-1] == pytest.approx(m.cagr(sl))
+    assert rl.rolling_metric(r, bm, "beta", 3).iloc[-1] == pytest.approx(0.5)
+    assert rl.win_rate(rl.rolling_metric(r, bm, "vol", 3),
+                       rl.rolling_metric(bm, bm, "vol", 3), "vol") == 1.0

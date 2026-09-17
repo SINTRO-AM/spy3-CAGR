@@ -156,3 +156,25 @@ def cum_excess_chart(bt: pd.DataFrame, lang: str = "de") -> go.Figure:
                                line=dict(color=NAVY, width=1.8),
                                fillcolor="rgba(0,50,116,0.08)", hovertemplate="%{y:+.1%}"))
     return _base(fig, lang, yaxis_tickformat="+.0%", height=300, showlegend=False)
+
+
+def rolling_chart(series: dict[str, pd.Series], fmt: str, zero_line: bool,
+                  lang: str = "de") -> go.Figure:
+    """series: Name -> Zeitreihe; Stil nach Name (brutto, netto, S&P 500, 60/40)."""
+    styles = {
+        t("gross", lang): dict(color=NAVY, width=1.1),
+        t("net", lang): dict(color=NET, width=1.9),
+        "S&P 500": dict(color=SLATE, width=1.4),
+        "60/40": dict(color=MIX, width=1.3, dash="dot"),
+    }
+    tick = ".0%" if fmt == "pct" else ",.1f"
+    hov = "%{y:.1%}" if fmt == "pct" else "%{y:,.2f}"
+    fig = go.Figure()
+    for name in ["S&P 500", "60/40", t("gross", lang), t("net", lang)]:
+        if name in series:
+            s = series[name].dropna()
+            fig.add_scatter(x=s.index, y=s, name=name, line=styles[name], hovertemplate=hov)
+    if zero_line:
+        fig.add_hline(y=0, line=dict(color=INK, width=1))
+    fig.update_yaxes(tickformat=tick)
+    return _base(fig, lang)
