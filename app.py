@@ -12,7 +12,7 @@ from functools import lru_cache
 from spy3 import metrics as m, plots, robustness as rb, rolling as rl
 from spy3.data import load_prices
 from spy3.formatting import by_metric, dec, pct
-from spy3.i18n import LANGS, t, term
+from spy3.i18n import LANGS, t, term, tip
 from spy3.strategy import OFF, ON, StrategyParams, factor_states
 
 FONTS = "https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap"
@@ -48,13 +48,17 @@ def slice_bt(period: str, lang: str):
 
 
 def table(df: pd.DataFrame, lang: str, fmt=None, row_label="", highlight=(),
-          sign_cols=(), emphasis=(), wrap_cls="") -> html.Div:
+          sign_cols=(), emphasis=(), wrap_cls="", tips=None) -> html.Div:
     fmt = fmt or (lambda i, v: by_metric(i, v, lang))
+    tips = tips or {}
     head = html.Tr([html.Th(row_label)] + [
-        html.Th(c, className="hl" if c in highlight else None) for c in df.columns])
+        html.Th(c, className=" ".join(["hl"] * (c in highlight) + ["tip"] * bool(tips.get(c))),
+                title=tips.get(c)) for c in df.columns])
     rows = []
     for idx, r in df.iterrows():
-        cells = [html.Th(term(idx, lang), scope="row")]
+        rt = tip(idx, lang)
+        cells = [html.Th(term(idx, lang), scope="row", title=rt,
+                         className="tip" if rt else None)]
         for c, v in r.items():
             cls = ["num"] + (["hl"] if c in highlight else [])
             if c in sign_cols and isinstance(v, float) and v < 0:
@@ -66,9 +70,10 @@ def table(df: pd.DataFrame, lang: str, fmt=None, row_label="", highlight=(),
                     className=f"tbl-wrap {wrap_cls}".strip())
 
 
-def section(title: str, note: str, *children) -> html.Section:
-    return html.Section([html.H3(title), html.P(note, className="note"), *children],
-                        className="panel")
+def section(title: str, note: str, *children, tip_key: str | None = None,
+            lang: str = "de") -> html.Section:
+    return html.Section([html.Div([html.H3(title), info(tip_key, lang)], className="h-row"),
+                         html.P(note, className="note"), *children], className="panel")
 
 
 GRAPH_CONFIG = {"displaylogo": False, "responsive": True,
@@ -144,6 +149,13 @@ def lang_menu() -> html.Details:
 
 
 # ---------- Seite -----------------------------------------------------------
+def info(tip_key: str | None, lang: str) -> html.Span | None:
+    """Kleines Fragezeichen mit Erklärung als Tooltip."""
+    txt = tip(tip_key, lang) if tip_key else None
+    return html.Span("?", className="info", title=txt, tabIndex=0,
+                     role="img", **{"aria-label": txt}) if txt else None
+
+
 def scale_hint(lang: str) -> html.Div:
     """Kurzer Hinweis zur Skala; blendet sich nach 5 Sekunden selbst aus (reines CSS)."""
     return html.Div([
@@ -153,9 +165,11 @@ def scale_hint(lang: str) -> html.Div:
     ], className="hint", role="note")
 
 
-def chart_panel(title: str, note: str, graph_id: str, lang: str) -> html.Section:
+def chart_panel(title: str, note: str, graph_id: str, lang: str,
+                tip_key: str | None = None) -> html.Section:
     return html.Section([
-        html.H2(t(title, lang)), html.P(t(note, lang), className="note"),
+        html.Div([html.H2(t(title, lang)), info(tip_key, lang)], className="h-row"),
+        html.P(t(note, lang), className="note"),
         graph_box("side", graph_id),
     ], className="panel")
 
@@ -184,7 +198,8 @@ def page(lang: str) -> list:
         ], className="controls"),
         html.Div([
             html.Section([
-                html.Div([html.H2(t("perf", lang)),
+                html.Div([html.Div([html.H2(t("perf", lang)),
+                                    info("chart_perf", lang)], className="h-row"),
                           html.Span(t("perf_note", lang), className="note")],
                          className="panel-head"),
                 graph_box("main", "wealth"),
@@ -194,8 +209,8 @@ def page(lang: str) -> list:
                          className="panel kpi-panel"),
         ], className="grid"),
         html.Div([
-            chart_panel("dd_title", "dd_note", "dd-graph", lang),
-            chart_panel("alpha_title", "alpha_note", "alpha-graph", lang),
+            chart_panel("dd_title", "dd_note", "dd-graph", lang, "chart_dd"),
+            chart_panel("alpha_title", "alpha_note", "alpha-graph", lang, "chart_alpha"),
         ], className="two-col risk-row"),
         dcc.Tabs(id="analysis-tabs", value="gap", className="tabs", mobile_breakpoint=0,
                  children=[
@@ -265,7 +280,11 @@ def update_main(period, scale, lang):
             "S&P 500": b.ret_bm, **mixes}
     tbl = m.summary_table(cols, b.ret_bm, b.ret_off).loc[KPI_ORDER]
     hl = (t("col_gross", lang), t("col_net", lang))
-    return fig, [table(tbl, lang, highlight=hl, emphasis=KPI_EMPHASIS, wrap_cls="fill"),
+    col_tips = {t("col_gross", lang): tip("col_gross", lang),
+                t("col_net", lang): tip("col_net", lang),
+                "S&P 500": tip("col_bm", lang), "60/40": tip("col_mix", lang)}
+    return fig, [table(tbl, lang, highlight=hl, emphasis=KPI_EMPHASIS, wrap_cls="fill",
+                       tips=col_tips),
                  html.P(t("kpi_note", lang), className="note small")], dd, al
 
 
@@ -277,12 +296,15 @@ def update_tab(tab, period, lang):
     if tab in (None, "gap"):
         att = rb.attribution(pf, bm)
         att.columns = [t("excess_log", lang), t("share", lang)]
+        att_tips = {t("excess_log", lang): tip("excess_log", lang),
+                    t("share", lang): tip("share", lang)}
         return html.Div([
-            section(t("rel_title", lang), t("rel_note", lang),
-                    graph(plots.relative_chart(b, lang))),
+            section(t("cum_title", lang), t("cum_note", lang),
+                    graph(plots.cum_excess_chart(b, lang)), tip_key="excess_log", lang=lang),
             section(t("src_title", lang), t("src_note", lang),
+                    graph_box("bars", fig=plots.attribution_bars(att, lang)),
                     table(att, lang, fmt=lambda i, v: pct(v, lang=lang),
-                          row_label=t("phase", lang))),
+                          row_label=t("phase", lang), tips=att_tips)),
         ], className="two-col")
     if tab == "roll":
         metric_opts = [{"label": t(f"rm_{k}", lang), "value": k} for k in rl.METRICS]

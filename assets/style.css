@@ -30,7 +30,7 @@ p { margin: 0; }
   padding: 18px var(--gutter); background: var(--paper);
   border-bottom: 1px solid var(--line);
 }
-.logo { height: 38px; width: auto; display: block; }
+.logo { height: 46px; width: auto; display: block; }
 /* Kopfzeile rechts */
 .top-right { display: flex; align-items: center; gap: 16px; }
 .lang-menu { position: relative; }
@@ -171,6 +171,17 @@ p { margin: 0; }
 .graph-box--main { height: clamp(440px, 34vw, 640px); }
 .graph-box--side { height: clamp(300px, 22vw, 420px); }
 .graph-box--tab { height: 360px; }
+.graph-box--bars { height: 260px; margin-bottom: 8px; }
+
+/* Tooltips */
+.h-row { display: flex; align-items: center; gap: 8px; }
+.info { width: 17px; height: 17px; flex: none; border-radius: 50%; border: 1px solid var(--line);
+        color: var(--muted); font-size: .72rem; line-height: 15px; text-align: center;
+        cursor: help; background: var(--paper); }
+.info:hover, .info:focus-visible { color: var(--navy); border-color: var(--navy); }
+.tbl th.tip { cursor: help; text-decoration: underline dotted var(--line);
+              text-underline-offset: 3px; }
+.tbl th.tip:hover { text-decoration-color: var(--navy); }
 
 /* Tabellen */
 .tbl-wrap { overflow-x: auto; }
@@ -223,7 +234,7 @@ p { margin: 0; }
   .top-right { width: 100%; justify-content: space-between; align-items: flex-start; gap: 10px; }
   .signal { min-width: 0; flex: 1; }
   .sig-summary { flex-wrap: wrap; gap: 8px; }
-  .logo { height: 30px; }
+  .logo { height: 36px; }
   h1 { font-size: 1.5rem; }
   .hint { position: static; max-width: 100%; margin-top: 4px; }
   .hint::before { display: none; }

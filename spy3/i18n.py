@@ -70,11 +70,19 @@ TXT: dict[str, tuple[str, str]] = {
     "dd_title": ("Maximaler Drawdown", "Maximum drawdown"),
     "dd_note": ("Rückgang vom jeweils letzten Höchststand. Rot hinterlegt: Risk-Off-Phasen.",
                 "Decline from the previous peak. Red shading: risk-off phases."),
-    "alpha_title": ("Alpha gegenüber S&P 500", "Alpha versus the S&P 500"),
-    "alpha_note": ("Kumulierte Überschussrendite (log). Steigt die Linie, liegt die Strategie "
-                   "vor dem S&P 500.",
-                   "Cumulative excess return (log). A rising line means the strategy is "
-                   "ahead of the S&P 500."),
+    "alpha_title": ("Vorsprung gegenüber dem S&P 500", "Lead over the S&P 500"),
+    "alpha_note": ("Vermögen relativ zum S&P 500. 3,0x bedeutet dreifaches Endvermögen – "
+                   "genau das Verhältnis der Total Returns.",
+                   "Wealth relative to the S&P 500. 3.0x means three times the ending "
+                   "wealth, exactly the ratio of the two total returns."),
+    "cum_title": ("Kumulierte Überschussrendite", "Cumulative excess return"),
+    "cum_note": ("In Log-Punkten, damit sich die Phasen sauber aufteilen lassen. "
+                 "110 Log-Punkte entsprechen dem 3,0-fachen Vermögen der Benchmark.",
+                 "In log points, so the periods add up cleanly. 110 log points correspond "
+                 "to 3.0x the benchmark wealth."),
+    "att_title": ("Beitrag der Krisenphasen", "Contribution of crisis periods"),
+    "att_note": ("Beitrag zur kumulierten Log-Überschussrendite je Phase (vor Gebühren).",
+                 "Contribution to the cumulative log excess return by period (before fees)."),
     "rel_title": ("Relative Wertentwicklung", "Relative performance"),
     "rel_note": ("SPY3 geteilt durch S&P 500. Steigt die Linie, baut SPY3 Vorsprung auf; "
                  "verläuft sie waagerecht, entwickeln sich beide gleich.",
@@ -156,6 +164,83 @@ EN_TERMS = {
 DE_TERMS = {"Calmar": "Calmar Ratio", "CAGR BM": "CAGR S&P 500",
             "Sharpe BM": "Sharpe S&P 500", "MaxDD SPY3": "Max. DD SPY3",
             "MaxDD BM": "Max. DD S&P 500"}
+
+
+# Tooltips: Kennzahlen und Charts (de, en)
+TIPS: dict[str, tuple[str, str]] = {
+    "Total Return": ("Gesamtertrag über den Zeitraum, geometrisch verkettet: "
+                     "Endwert geteilt durch Startwert minus 1.",
+                     "Total gain over the period, geometrically linked: ending value "
+                     "divided by starting value minus 1."),
+    "CAGR": ("Geometrische Durchschnittsrendite pro Jahr, die den Startwert auf den "
+             "Endwert bringt.",
+             "Geometric average return per year that turns the starting value into the "
+             "ending value."),
+    "Volatilität p.a.": ("Standardabweichung der Tagesrenditen, mit Wurzel 252 auf ein "
+                         "Jahr skaliert.",
+                         "Standard deviation of daily returns, scaled to one year by the "
+                         "square root of 252."),
+    "Sharpe Ratio": ("Rendite je Einheit Risiko: CAGR geteilt durch Volatilität, hier "
+                     "ohne risikofreien Satz (rf = 0 %).",
+                     "Return per unit of risk: return divided by volatility, here without "
+                     "a risk-free rate (rf = 0%)."),
+    "Calmar": ("Rendite je Einheit Verlustrisiko: CAGR geteilt durch den Betrag des "
+               "maximalen Drawdowns.",
+               "Return per unit of downside risk: CAGR divided by the absolute maximum "
+               "drawdown."),
+    "Beta": ("Sensitivität gegenüber dem S&P 500 aus einer Regression auf Tagesrenditen. "
+             "1,00 = Indexrisiko, 0,41 = rund 40 % davon.",
+             "Sensitivity to the S&P 500 from a regression on daily returns. 1.00 = index "
+             "risk, 0.41 = roughly 40% of it."),
+    "Jensen's Alpha p.a.": ("Rendite über dem, was Beta gegenüber dem Index erklärt, "
+                            "annualisiert. Risikofreier Satz: kurzlaufende Staatsanleihen.",
+                            "Return beyond what beta versus the index explains, "
+                            "annualised. Risk-free rate: short-term Treasuries."),
+    "Up-Capture": ("Anteil der Indexrendite, den die Strategie in Monaten mit steigendem "
+                   "Index erzielt.",
+                   "Share of the index return the strategy captures in months when the "
+                   "index rises."),
+    "Down-Capture": ("Anteil der Indexverluste, den die Strategie in Monaten mit fallendem "
+                     "Index mitmacht. Niedriger ist besser.",
+                     "Share of index losses the strategy participates in during months "
+                     "when the index falls. Lower is better."),
+    "Max. Drawdown": ("Größter Rückgang vom bisherigen Höchststand bis zum Tief, auf "
+                      "Basis des Vermögensverlaufs.",
+                      "Largest decline from a previous peak to the trough, based on the "
+                      "wealth path."),
+    # Charts und Spalten
+    "chart_perf": ("Wert einer Anlage von 1.000 USD. Auf der Log-Skala bedeuten gleiche "
+                   "Abstände gleiche prozentuale Veränderungen.",
+                   "Value of a $1,000 investment. On the log scale, equal distances mean "
+                   "equal percentage changes."),
+    "chart_dd": ("Laufender Rückgang vom jeweils letzten Höchststand, Tag für Tag.",
+                 "Running decline from the most recent peak, day by day."),
+    "chart_alpha": ("Endvermögen SPY3 geteilt durch Endvermögen S&P 500. 3,0x entspricht "
+                    "110 Log-Punkten kumulierter Überschussrendite.",
+                    "SPY3 wealth divided by S&P 500 wealth. 3.0x corresponds to 110 log "
+                    "points of cumulative excess return."),
+    "col_gross": ("Nach Handelskosten, vor Management- und Performancegebühr.",
+                  "After trading costs, before management and performance fees."),
+    "col_net": ("Zusätzlich nach 0,2 % Managementgebühr p.a. und 10 % Performancegebühr "
+                "(High-Water-Mark, Hurdle SPY, quartalsweise).",
+                "Additionally after the 0.2% p.a. management fee and the 10% performance "
+                "fee (high-water mark, SPY hurdle, quarterly)."),
+    "col_bm": ("SPY Total Return, also inklusive reinvestierter Dividenden.",
+               "SPY total return, i.e. including reinvested dividends."),
+    "col_mix": ("60 % SPY und 40 % SHY, täglich rebalanciert. Vor 07/2002 T-Bills statt SHY.",
+                "60% SPY and 40% SHY, rebalanced daily. T-bills instead of SHY before 07/2002."),
+    "excess_log": ("Log-Punkte: 110 Log-Punkte entsprechen dem 3,0-fachen Vermögen "
+                   "gegenüber der Benchmark (exp(1,10) = 3,0).",
+                   "Log points: 110 log points correspond to 3.0x the benchmark wealth "
+                   "(exp(1.10) = 3.0)."),
+    "share": ("Anteil dieser Phase an der gesamten Überschussrendite.",
+              "Share of this period in the total excess return."),
+}
+
+
+def tip(key: str, lang: str) -> str | None:
+    v = TIPS.get(str(key))
+    return None if v is None else (v[1] if lang == "en" else v[0])
 
 
 def t(key: str, lang: str, **kw) -> str:

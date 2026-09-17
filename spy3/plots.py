@@ -103,21 +103,25 @@ def drawdown_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
 
 def alpha_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
                 lang: str = "de") -> go.Figure:
-    """Kumulierte Log-Überschussrendite gegenüber dem S&P 500."""
+    """Vermögen relativ zum S&P 500 (Vielfaches). 3,0x = dreifaches Endvermögen.
+
+    Die frühere Darstellung nutzte Log-Punkte: +110 Log-Punkte entsprechen 3,0x.
+    Das Vielfache ist direkt interpretierbar und passt zu den Total Returns.
+    """
     fig = go.Figure()
-    hov = "%{y:+.1%}"
+    hov = "%{y:,.2f}x"
+    wb = (1 + bt.ret_bm).cumprod()
     for k, s in (extra or {}).items():
-        fig.add_scatter(x=s.index, y=excess_log(s, bt.ret_bm).cumsum(), name=k,
+        fig.add_scatter(x=s.index, y=(1 + s).cumprod() / wb, name=k,
                         line=dict(color=MIX, width=1.2, dash="dot"), hovertemplate=hov)
-    fig.add_scatter(x=bt.index, y=excess_log(bt.ret_pf, bt.ret_bm).cumsum(),
-                    name=t("gross", lang), line=dict(color=NAVY, width=1.1),
-                    hovertemplate=hov)
+    fig.add_scatter(x=bt.index, y=(1 + bt.ret_pf).cumprod() / wb, name=t("gross", lang),
+                    line=dict(color=NAVY, width=1.1), hovertemplate=hov)
     if "ret_pf_net" in bt:
-        fig.add_scatter(x=bt.index, y=excess_log(bt.ret_pf_net, bt.ret_bm).cumsum(),
+        fig.add_scatter(x=bt.index, y=(1 + bt.ret_pf_net).cumprod() / wb,
                         name=t("net", lang), line=dict(color=NET, width=1.8),
                         hovertemplate=hov)
-    fig.add_hline(y=0, line=dict(color=INK, width=1))
-    fig.update_yaxes(tickformat="+.0%")
+    fig.add_hline(y=1, line=dict(color=INK, width=1))
+    fig.update_yaxes(tickformat=",.1f", ticksuffix="x")
     return _base(fig, lang, shapes=_risk_off_shapes(bt.position, RISK_OFF_SOFT))
 
 
@@ -148,6 +152,19 @@ def rolling_excess_chart(bt: pd.DataFrame, years=(3, 5), lang: str = "de") -> go
                         line=dict(color=c, width=1.8), hovertemplate="%{y:+.1%}")
     fig.add_hline(y=0, line=dict(color=INK, width=1))
     return _base(fig, lang, yaxis_tickformat="+.0%")
+
+
+def attribution_bars(att: pd.DataFrame, lang: str = "de") -> go.Figure:
+    """Beitrag der Krisenphasen zur Überschussrendite (Log-Punkte)."""
+    d = att.drop(index=[i for i in att.index if i.startswith(("Gesamt", "Total"))])
+    vals = d.iloc[:, 0]
+    fig = go.Figure(go.Bar(x=vals.values, y=[term(i, lang) for i in d.index], orientation="h",
+                           marker_color=[NAVY if v >= 0 else "#C53A30" for v in vals],
+                           hovertemplate="%{x:+.1%}<extra></extra>"))
+    fig.update_xaxes(tickformat="+.0%", zeroline=True, zerolinecolor=INK, zerolinewidth=1)
+    fig.update_yaxes(autorange="reversed")
+    return _base(fig, lang, showlegend=False, height=260, hovermode="closest",
+                 margin=dict(l=8, r=8, t=10, b=8))
 
 
 def cum_excess_chart(bt: pd.DataFrame, lang: str = "de") -> go.Figure:

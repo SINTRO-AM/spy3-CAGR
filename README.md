@@ -40,8 +40,9 @@ python app.py                            # Dashboard lokal
   (Auswahl bleibt im Browser gespeichert)
 * Wert von 1.000 USD: SPY3 vor Gebühren (dünn, blau), SPY3 nach Gebühren (grün), S&P 500 und
   klassisches 60/40-Portfolio; rot markierte Risk-Off-Phasen. Daneben die Kennzahlen in gleicher Höhe (Sharpe Ratio und Max. Drawdown hervorgehoben)
-* Darunter nebeneinander: maximaler Drawdown und Alpha (kumulierte Log-Überschussrendite
-  gegenüber dem S&P 500)
+* Darunter nebeneinander: maximaler Drawdown und Vorsprung gegenüber dem S&P 500 (Vermögen
+  relativ zur Benchmark, z. B. 3,0x = dreifaches Endvermögen)
+* Tooltips an Kennzahlen, Spaltenköpfen und Charts (Definition und Einheit)
 * Reiter: Abstand zum Markt, Rollierende Performance, Ohne Krisen, Kalenderjahre, Timing-Test
 * Rollierende Performance (`spy3/rolling.py`): Überschussrendite, Rendite p.a., Volatilität,
   Sharpe Ratio, Calmar Ratio, Max. Drawdown und Beta über 1, 3 oder 5 Jahre, jeweils für SPY3
@@ -49,6 +50,13 @@ python app.py                            # Dashboard lokal
 * Zeitraum- und Skalenumschalter, mit kurzem Hinweis zur Log-/Linear-Skala beim Laden
   (blendet sich nach 10 Sekunden aus, reines CSS); Zahlenformate je Sprache (`spy3/formatting.py`),
   Texte in `spy3/i18n.py`
+
+## Einheiten: Log-Punkte vs. Vielfaches
+
+Die Attribution rechnet in Log-Punkten, weil sich nur so die Beiträge der Phasen exakt zum
+Gesamtwert addieren. Umrechnung: `exp(x)`. 110 Log-Punkte entsprechen dem 3,0-fachen Vermögen
+gegenüber der Benchmark, was zu Total Returns von 2.423 % und 737 % passt
+(25.225 / 8.367 = 3,01). Der Vorsprung-Chart zeigt deshalb das Vielfache, nicht die Log-Punkte.
 
 ## Daten und Gebühren
 
