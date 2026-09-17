@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from spy3 import plots, robustness as rb, metrics as m  # noqa: E402
+from spy3.formatting import by_metric  # noqa: E402
 from spy3.data import load_prices, prepare_returns  # noqa: E402
 from spy3.strategy import StrategyParams, backtest  # noqa: E402
 
@@ -32,7 +33,7 @@ def build(px: pd.DataFrame, cost_bps: float = 10.0):
         f"Beta-Mix {beta:.0%} SPY": rb.static_mix(bt.ret_bm, bt.ret_off, beta),
     }
     res = {
-        "bt": bt, "mixes": mixes, "exposure": exposure,
+        "bt": bt, "mixes": mixes, "exposure": exposure, "beta": beta, "cost_bps": cost_bps,
         "summary": m.summary_table({"SPY3": bt.ret_pf, "S&P 500": bt.ret_bm, **mixes},
                                    bt.ret_bm, rf),
         "attribution": rb.attribution(bt.ret_pf, bt.ret_bm),
@@ -43,7 +44,7 @@ def build(px: pd.DataFrame, cost_bps: float = 10.0):
         "hit_3y": rb.rolling_hit_rate(bt.ret_pf, bt.ret_bm, 3),
         "hit_5y": rb.rolling_hit_rate(bt.ret_pf, bt.ret_bm, 5),
         "conc_12m": rb.concentration(bt.ret_pf, bt.ret_bm, 12),
-        "timing": rb.timing_test(bt.position, bt.ret_bm, bt.ret_off, cost_bps),
+        "timing": rb.timing_test(bt.position, bt.ret_bm, bt.ret_off, cost_bps, rf=rf),
         "switches_pa": bt.position.diff().abs().sum() / (len(bt) / m.TD),
         "pre_shy_days": int(rets["risk_off_missing"].sum()),
     }
@@ -51,7 +52,10 @@ def build(px: pd.DataFrame, cost_bps: float = 10.0):
 
 
 def fmt(df: pd.DataFrame) -> str:
-    return df.map(lambda v: f"{v:,.2f}" if isinstance(v, float) else v).to_string()
+    out = df.copy().astype(object)
+    for i in df.index:
+        out.loc[i] = [by_metric(i, v) if isinstance(v, float) else v for v in df.loc[i]]
+    return out.to_string()
 
 
 def main():

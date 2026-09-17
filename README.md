@@ -31,6 +31,19 @@ python scripts/run_report.py --refresh   # Daten via yfinance, Report in reports
 python app.py                            # Dashboard lokal
 ```
 
+## Dashboard
+
+`python app.py` startet das Dashboard unter http://127.0.0.1:8050 (Deployment: `gunicorn app:server`).
+
+* SINTRO-Logo und aktueller Signalstatus in der Kopfzeile
+* Zeitraum (Gesamt, 10, 5, 3, 1 Jahr) und Skala (log/linear) als Umschalter; Kennzahlen und
+  Analysen rechnen für den gewählten Zeitraum neu
+* Vermögenskurve mit Drawdown und markierten Risk-Off-Phasen; Vergleichs-Mixe per Legende einblendbar
+* Reiter: Abstand zum Markt, Rollierende Überschussrendite, Ohne Krisen, Kalenderjahre, Timing-Test
+* Einheitliche deutsche Zahlenformate (`spy3/formatting.py`): Renditen, Volatilität, Drawdown,
+  Alpha und Capture in %, Sharpe, Calmar, Beta und p-Werte als Dezimalzahl mit 2 Nachkommastellen
+* Responsiv bis Smartphone-Breite
+
 ## Wie man die Ergebnisse gegenüber dem Manager liest
 
 * **Attribution → „Außerhalb aller Krisen“** ≈ 0 oder negativ ⇒ sein Punkt stimmt: die Rendite-Outperformance

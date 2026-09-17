@@ -85,7 +85,7 @@ def static_mix(bm: pd.Series, off: pd.Series, weight: float) -> pd.Series:
 
 def timing_test(position: pd.Series, bm: pd.Series, off: pd.Series,
                 cost_bps: float = 10.0, n: int = 500, seed: int = 0,
-                min_shift: int = 252) -> dict:
+                min_shift: int = 252, rf: pd.Series | float = 0.0) -> dict:
     """Zirkulär verschobenes Signal: gleiche Quote, gleiche Regime-Längen,
     aber zufälliges Timing. p-Wert = Anteil Verschiebungen mit >= Sharpe/CAGR."""
     rng = np.random.default_rng(seed)
@@ -97,12 +97,12 @@ def timing_test(position: pd.Series, bm: pd.Series, off: pd.Series,
         return pd.Series(p * bm.to_numpy() + (1 - p) * off.to_numpy() - c, index=bm.index)
 
     base = run(pos)
-    b_sh, b_cg = m.sharpe(base), m.cagr(base)
+    b_sh, b_cg = m.sharpe(base, rf), m.cagr(base)
     shifts = rng.integers(min_shift, L - min_shift, size=n)
     sh, cg = np.empty(n), np.empty(n)
     for i, k in enumerate(shifts):
         s = run(np.roll(pos, k))
-        sh[i], cg[i] = m.sharpe(s), m.cagr(s)
+        sh[i], cg[i] = m.sharpe(s, rf), m.cagr(s)
     return {
         "Sharpe Strategie": b_sh, "Sharpe Zufalls-Timing (Median)": float(np.median(sh)),
         "p-Wert Sharpe": float((sh >= b_sh).mean()),
