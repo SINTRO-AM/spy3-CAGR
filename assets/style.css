@@ -136,10 +136,13 @@ p { margin: 0; }
 .kpi-panel .tbl th, .kpi-panel .tbl td { padding: 7px 4px; }
 .kpi-panel .tbl tbody th { white-space: nowrap; }
 
+.risk-row { margin-top: 20px; }
+.side-graph { height: clamp(300px, 22vw, 420px); }
 .wealth-graph { height: clamp(440px, 34vw, 640px); }
 
 /* Tabellen */
 .tbl-wrap { overflow-x: auto; }
+.tbl-wrap.narrow { max-width: 760px; }
 .tbl { width: 100%; border-collapse: collapse; font-size: .88rem;
        font-variant-numeric: tabular-nums lining-nums; }
 .tbl th, .tbl td { padding: 7px 6px; border-bottom: 1px solid var(--line); }
@@ -190,7 +193,9 @@ p { margin: 0; }
   .sig-summary { flex-wrap: wrap; gap: 8px; }
   .logo { height: 30px; }
   h1 { font-size: 1.5rem; }
-  .wealth-graph { height: 420px; }
+  .risk-row { margin-top: 20px; }
+.side-graph { height: clamp(300px, 22vw, 420px); }
+.wealth-graph { height: 420px; }
   .panel { padding: 16px; }
   .tabs .tab, .tabs .tab--on { margin-right: 16px; }
 }

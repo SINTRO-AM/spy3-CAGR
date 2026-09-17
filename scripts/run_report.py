@@ -28,9 +28,9 @@ def build(px: pd.DataFrame, cost_bps: float = 10.0):
     rf = rets["risk_off"]  # SHY als rf-Proxy (vor 2002: 0 %)
     exposure = bt.position.mean()
     _, beta = m.alpha_beta(bt.ret_pf, bt.ret_bm, rf)
+    # Klassisches 60/40: 60 % SPY, 40 % SHY (vor 07/2002 T-Bills), täglich rebalanciert
     mixes = {
-        f"Static Mix {exposure:.0%} SPY": rb.static_mix(bt.ret_bm, bt.ret_off, exposure),
-        f"Beta-Mix {beta:.0%} SPY": rb.static_mix(bt.ret_bm, bt.ret_off, beta),
+        "60/40": rb.static_mix(bt.ret_bm, bt.ret_off, 0.60),
     }
     res = {
         "bt": bt, "mixes": mixes, "exposure": exposure, "beta": beta, "cost_bps": cost_bps,
@@ -74,7 +74,7 @@ def main():
     print(f"Zeitraum {bt.index[0].date()} – {bt.index[-1].date()} | "
           f"Ø Aktienquote {r['exposure']:.0%} | Switches p.a. {r['switches_pa']:.1f} | "
           f"Tage mit T-Bill-Näherung statt SHY: {r['pre_shy_days']}\n")
-    for k, t in [("Kennzahlen (inkl. fairer Vergleichs-Mixe)", "summary"),
+    for k, t in [("Kennzahlen (inkl. 60/40-Portfolio)", "summary"),
                  ("Attribution der Log-Überschussrendite", "attribution"),
                  ("Ohne Dotcom & GFC", "ex_major"), ("Ohne alle Krisenfenster", "ex_all"),
                  ("Teilperioden", "subperiods"), ("Jahresrenditen", "yearly")]:
@@ -86,8 +86,8 @@ def main():
 
     out = ROOT / "reports"
     out.mkdir(exist_ok=True)
-    figs = [plots.wealth_chart(bt, r["mixes"]), plots.drawdown_chart(bt), plots.relative_chart(bt),
-            plots.cum_excess_chart(bt), plots.rolling_excess_chart(bt)]
+    figs = [plots.wealth_chart(bt, r["mixes"]), plots.drawdown_chart(bt), plots.alpha_chart(bt),
+            plots.relative_chart(bt), plots.rolling_excess_chart(bt)]
     with open(out / "robustness_report.html", "w", encoding="utf-8") as f:
         f.write("<html><head><meta charset='utf-8'><title>SPY3 Robustness</title></head><body>")
         for i, fig in enumerate(figs):

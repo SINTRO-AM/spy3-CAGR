@@ -19,8 +19,6 @@ PARAMS = StrategyParams()
 R = build(load_prices(), PARAMS.cost_bps)
 BT = R["bt"]
 LAST = BT.index[-1]
-_Q = round(R["exposure"] * 100)
-MIX_LABELS = [f"Mix {_Q}/{100 - _Q}", "Mix β {b}"]
 PERIODS = {"all": None, "10": 10, "5": 5, "3": 3, "1": 1}
 STATE_CLS = {ON: "on", OFF: "off"}
 PERSIST = dict(persistence=True, persistence_type="session")
@@ -33,15 +31,11 @@ GLOBE = "data:image/svg+xml;base64," + base64.b64encode(
 
 
 # ---------- Hilfsfunktionen -------------------------------------------------
-def mix_names(lang: str) -> list[str]:
-    return [MIX_LABELS[0], MIX_LABELS[1].format(b=dec(R["beta"], lang=lang))]
-
-
 def slice_bt(period: str, lang: str):
     yrs = PERIODS.get(period)
     start = BT.index[0] if yrs is None else LAST - pd.DateOffset(years=yrs)
     b = BT.loc[start:]
-    mixes = {n: s.loc[start:] for n, s in zip(mix_names(lang), R["mixes"].values())}
+    mixes = {n: s.loc[start:] for n, s in R["mixes"].items()}
     return b, mixes
 
 
@@ -127,6 +121,14 @@ def lang_menu() -> html.Details:
 
 
 # ---------- Seite -----------------------------------------------------------
+def chart_panel(title: str, note: str, graph_id: str, lang: str) -> html.Section:
+    return html.Section([
+        html.H2(t(title, lang)), html.P(t(note, lang), className="note"),
+        dcc.Graph(id=graph_id, className="side-graph",
+                  config={"displaylogo": False, "responsive": True}),
+    ], className="panel")
+
+
 def page(lang: str) -> list:
     fmt_d = "%m/%Y"
     tab = lambda key, val: dcc.Tab(label=t(key, lang), value=val, className="tab",  # noqa: E731
@@ -159,8 +161,13 @@ def page(lang: str) -> list:
             html.Section([html.H2(t("kpis", lang)), html.Div(id="kpis")],
                          className="panel kpi-panel"),
         ], className="grid"),
-        dcc.Tabs(id="tabs", value="dd", className="tabs", mobile_breakpoint=0, children=[
-            tab("t_dd", "dd"), tab("t_gap", "gap"), tab("t_roll", "roll"),
+        html.Div([
+            chart_panel("dd_title", "dd_note", "dd-graph", lang),
+            chart_panel("alpha_title", "alpha_note", "alpha-graph", lang),
+        ], className="two-col risk-row"),
+        dcc.Tabs(id="analysis-tabs", value="gap", className="tabs", mobile_breakpoint=0,
+                 children=[
+            tab("t_gap", "gap"), tab("t_roll", "roll"),
             tab("t_ex", "ex"), tab("t_years", "years"), tab("t_timing", "timing"),
         ], **PERSIST),
         html.Div(id="tab-body", className="tab-body"),
@@ -215,34 +222,33 @@ def render(lang):
 
 
 @app.callback(Output("wealth", "figure"), Output("kpis", "children"),
+              Output("dd-graph", "figure"), Output("alpha-graph", "figure"),
               Input("period", "value"), Input("scale", "value"), Input("lang", "data"))
 def update_main(period, scale, lang):
     b, mixes = slice_bt(period, lang)
     fig = plots.wealth_chart(b, mixes, log=scale != "linear", lang=lang)
+    dd = plots.drawdown_chart(b, mixes, lang=lang)
+    al = plots.alpha_chart(b, mixes, lang=lang)
     cols = {t("col_gross", lang): b.ret_pf, t("col_net", lang): b.ret_pf_net,
             "S&P 500": b.ret_bm, **mixes}
     tbl = m.summary_table(cols, b.ret_bm, b.ret_off)
     hl = (t("col_gross", lang), t("col_net", lang))
     return fig, [table(tbl, lang, highlight=hl),
-                 html.P(t("kpi_note", lang), className="note small")]
+                 html.P(t("kpi_note", lang), className="note small")], dd, al
 
 
-@app.callback(Output("tab-body", "children"), Input("tabs", "value"),
+@app.callback(Output("tab-body", "children"), Input("analysis-tabs", "value"),
               Input("period", "value"), Input("lang", "data"))
 def update_tab(tab, period, lang):
     b, _ = slice_bt(period, lang)
     pf, bm = b.ret_pf, b.ret_bm
-    if tab == "dd":
-        return section(t("dd_title", lang), t("dd_note", lang),
-                       graph(plots.drawdown_chart(b, lang)))
-    if tab == "gap":
+    if tab in (None, "gap"):
         att = rb.attribution(pf, bm)
         att.columns = [t("excess_log", lang), t("share", lang)]
         return html.Div([
             section(t("rel_title", lang), t("rel_note", lang),
                     graph(plots.relative_chart(b, lang))),
             section(t("src_title", lang), t("src_note", lang),
-                    graph(plots.cum_excess_chart(b, lang)),
                     table(att, lang, fmt=lambda i, v: pct(v, lang=lang),
                           row_label=t("phase", lang))),
         ], className="two-col")
@@ -293,7 +299,7 @@ def update_tab(tab, period, lang):
             for a, b_, c, d in rows]
     return section(t("tt_title", lang), t("tt_note", lang),
                    html.Div(html.Table([html.Thead(head), html.Tbody(body)], className="tbl"),
-                            className="tbl-wrap"))
+                            className="tbl-wrap narrow"))
 
 
 if __name__ == "__main__":

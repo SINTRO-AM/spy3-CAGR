@@ -15,8 +15,9 @@ SLATE = "#8C96A5"
 LINE = "#E4E8EE"
 MUTED = "#5E6B7D"
 RISK_OFF = "rgba(206, 62, 52, 0.17)"
-NET = "#4F7FC0"
-MIX_COLORS = ["#6F9BD1", "#B7A07A"]
+RISK_OFF_SOFT = "rgba(206, 62, 52, 0.09)"
+NET = "#1F6B45"
+MIX = "#B38B4D"
 FONT = "Jost, 'Segoe UI', Helvetica, Arial, sans-serif"
 START = 1_000
 SEP = {"de": ",.", "en": ".,"}
@@ -24,7 +25,7 @@ SEP = {"de": ",.", "en": ".,"}
 pio.templates["sintro"] = go.layout.Template(layout=dict(
     font=dict(family=FONT, color=INK, size=13),
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-    colorway=[NAVY, SLATE, *MIX_COLORS],
+    colorway=[NAVY, NET, SLATE, MIX],
     margin=dict(l=8, r=8, t=28, b=8),
     hovermode="x unified",
     hoverlabel=dict(bgcolor="white", bordercolor=LINE, font=dict(family=FONT, color=INK)),
@@ -43,11 +44,11 @@ def _base(fig: go.Figure, lang: str, **kw) -> go.Figure:
     return fig
 
 
-def _risk_off_shapes(position: pd.Series):
+def _risk_off_shapes(position: pd.Series, color: str = RISK_OFF):
     off = position.eq(0)
     grp = (off != off.shift()).cumsum()
     return [dict(type="rect", xref="x", yref="paper", x0=seg.index[0], x1=seg.index[-1],
-                 y0=0, y1=1, fillcolor=RISK_OFF, line_width=0, layer="below")
+                 y0=0, y1=1, fillcolor=color, line_width=0, layer="below")
             for _, seg in position[off].groupby(grp[off])]
 
 
@@ -61,18 +62,17 @@ def wealth_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
     """Wert von 1.000 USD; ohne Drawdown (eigener Chart)."""
     fig = go.Figure()
     hov = "%{y:,.0f} USD"
-    for i, (k, s) in enumerate((extra or {}).items()):
-        fig.add_scatter(x=s.index, y=START * (1 + s).cumprod(), name=k,
-                        line=dict(color=MIX_COLORS[i % 2], width=1.3, dash="dot"),
-                        visible="legendonly", hovertemplate=hov)
     fig.add_scatter(x=bt.index, y=START * (1 + bt.ret_bm).cumprod(), name="S&P 500",
-                    line=dict(color=SLATE, width=1.6), hovertemplate=hov)
+                    line=dict(color=SLATE, width=1.5), hovertemplate=hov)
+    for k, s in (extra or {}).items():
+        fig.add_scatter(x=s.index, y=START * (1 + s).cumprod(), name=k,
+                        line=dict(color=MIX, width=1.4, dash="dot"), hovertemplate=hov)
+    fig.add_scatter(x=bt.index, y=START * (1 + bt.ret_pf).cumprod(), name=t("gross", lang),
+                    line=dict(color=NAVY, width=1.3), hovertemplate=hov)
     if "ret_pf_net" in bt:
         fig.add_scatter(x=bt.index, y=START * (1 + bt.ret_pf_net).cumprod(),
-                        name=t("net", lang), line=dict(color=NET, width=1.5, dash="dash"),
+                        name=t("net", lang), line=dict(color=NET, width=2.1),
                         hovertemplate=hov)
-    fig.add_scatter(x=bt.index, y=START * (1 + bt.ret_pf).cumprod(), name=t("gross", lang),
-                    line=dict(color=NAVY, width=2.2), hovertemplate=hov)
     _legend_box(fig, t("riskoff", lang))
     lo = START * min((1 + bt.ret_pf).cumprod().min(), (1 + bt.ret_bm).cumprod().min())
     hi = START * max((1 + bt.ret_pf).cumprod().max(), (1 + bt.ret_bm).cumprod().max())
@@ -80,23 +80,45 @@ def wealth_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
     fig.update_yaxes(type="log" if log else "linear", tickformat=",.0f",
                      dtick="D2" if log and wide else None)
     fig.update_xaxes(showline=True)
-    return _base(fig, lang, shapes=_risk_off_shapes(bt.position), height=460)
+    return _base(fig, lang, shapes=_risk_off_shapes(bt.position))
 
 
-def drawdown_chart(bt: pd.DataFrame, lang: str = "de") -> go.Figure:
+def drawdown_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
+                   lang: str = "de") -> go.Figure:
     fig = go.Figure()
     fig.add_scatter(x=bt.index, y=m.drawdown(bt.ret_bm), name="S&P 500",
                     line=dict(color=SLATE, width=1), fill="tozeroy",
-                    fillcolor="rgba(140,150,165,0.18)", hovertemplate="%{y:.1%}")
+                    fillcolor="rgba(140,150,165,0.12)", hovertemplate="%{y:.1%}")
+    for k, s in (extra or {}).items():
+        fig.add_scatter(x=s.index, y=m.drawdown(s), name=k,
+                        line=dict(color=MIX, width=1.2, dash="dot"), hovertemplate="%{y:.1%}")
+    fig.add_scatter(x=bt.index, y=m.drawdown(bt.ret_pf), name=t("gross", lang),
+                    line=dict(color=NAVY, width=1.1), hovertemplate="%{y:.1%}")
     if "ret_pf_net" in bt:
         fig.add_scatter(x=bt.index, y=m.drawdown(bt.ret_pf_net), name=t("net", lang),
-                        line=dict(color=NET, width=1.2, dash="dash"),
-                        hovertemplate="%{y:.1%}")
-    fig.add_scatter(x=bt.index, y=m.drawdown(bt.ret_pf), name=t("gross", lang),
-                    line=dict(color=NAVY, width=1.6), hovertemplate="%{y:.1%}")
-    _legend_box(fig, t("riskoff", lang))
+                        line=dict(color=NET, width=1.8), hovertemplate="%{y:.1%}")
     fig.update_yaxes(tickformat=".0%")
-    return _base(fig, lang, shapes=_risk_off_shapes(bt.position), height=360)
+    return _base(fig, lang, shapes=_risk_off_shapes(bt.position, RISK_OFF_SOFT))
+
+
+def alpha_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
+                lang: str = "de") -> go.Figure:
+    """Kumulierte Log-Überschussrendite gegenüber dem S&P 500."""
+    fig = go.Figure()
+    hov = "%{y:+.1%}"
+    for k, s in (extra or {}).items():
+        fig.add_scatter(x=s.index, y=excess_log(s, bt.ret_bm).cumsum(), name=k,
+                        line=dict(color=MIX, width=1.2, dash="dot"), hovertemplate=hov)
+    fig.add_scatter(x=bt.index, y=excess_log(bt.ret_pf, bt.ret_bm).cumsum(),
+                    name=t("gross", lang), line=dict(color=NAVY, width=1.1),
+                    hovertemplate=hov)
+    if "ret_pf_net" in bt:
+        fig.add_scatter(x=bt.index, y=excess_log(bt.ret_pf_net, bt.ret_bm).cumsum(),
+                        name=t("net", lang), line=dict(color=NET, width=1.8),
+                        hovertemplate=hov)
+    fig.add_hline(y=0, line=dict(color=INK, width=1))
+    fig.update_yaxes(tickformat="+.0%")
+    return _base(fig, lang, shapes=_risk_off_shapes(bt.position, RISK_OFF_SOFT))
 
 
 def relative_chart(bt: pd.DataFrame, lang: str = "de") -> go.Figure:

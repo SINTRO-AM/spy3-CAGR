@@ -19,7 +19,7 @@ prüfbar macht:
 | Max. Drawdown | in Log-Punkten | preisbasiert |
 | Transaktionskosten | 1 bp, an zwei falschen Tagen (Signal(t) vs. Signal(t−2)) | 10 bp je Positionswechsel, genau einmal (`--cost`) |
 | Beta / Jensen's Alpha | nicht im Code (Deck) | OLS auf Überschussrenditen |
-| Benchmark-Fairness | nur 100 % SPY | zusätzlich statische SPY/SHY-Mixe mit gleicher Ø-Quote bzw. gleichem Beta |
+| Benchmark-Fairness | nur 100 % SPY | zusätzlich klassisches 60/40-Portfolio (SPY/SHY, vor 07/2002 T-Bills) |
 | Robustness | – | Krisen-Attribution, Ex-Krisen-Kennzahlen, rollierende Überschussrendite, Konzentration, Zufalls-Timing-Test, Teilperioden |
 
 ## Nutzung
@@ -38,10 +38,11 @@ python app.py                            # Dashboard lokal
 * Kopfzeile: SINTRO-Logo, Signal-Button (Risk On grün / Risk Off rot) mit den Faktoren Risk,
   Momentum und Mean-Reversion (Klick zeigt die Werte) sowie Sprachmenü Deutsch/Englisch
   (Auswahl bleibt im Browser gespeichert)
-* Wert von 1.000 USD vor und nach Gebühren, rot markierte Risk-Off-Phasen; Vergleichs-Mixe per
-  Legende einblendbar. Kennzahlen für SPY3 brutto und netto
-* Reiter: Drawdown, Abstand zum Markt, Rollierende Überschussrendite, Ohne Krisen,
-  Kalenderjahre, Timing-Test
+* Wert von 1.000 USD: SPY3 vor Gebühren (dünn, blau), SPY3 nach Gebühren (grün), S&P 500 und
+  klassisches 60/40-Portfolio; rot markierte Risk-Off-Phasen. Daneben die Kennzahlen
+* Darunter nebeneinander: maximaler Drawdown und Alpha (kumulierte Log-Überschussrendite
+  gegenüber dem S&P 500)
+* Reiter: Abstand zum Markt, Rollierende Überschussrendite, Ohne Krisen, Kalenderjahre, Timing-Test
 * Zeitraum- und Skalenumschalter; Zahlenformate je Sprache (`spy3/formatting.py`),
   Texte in `spy3/i18n.py`
 
@@ -61,8 +62,8 @@ python app.py                            # Dashboard lokal
 * **Attribution → „Außerhalb aller Krisen“** ≈ 0 oder negativ ⇒ sein Punkt stimmt: die Rendite-Outperformance
   stammt aus wenigen Crash-Phasen.
 * **Relative-Chart (SPY3 / S&P 500)** waagerecht nach 2009 ⇒ derselbe Befund visuell.
-* **Static-/Beta-Mix**: Liegt SPY3 bei Sharpe und Drawdown klar über einem Mix mit gleicher Aktienquote,
-  ist das Timing wertvoll – auch wenn es keine Rendite-Alpha in Bullenmärkten liefert.
+* **60/40-Portfolio**: Liegt SPY3 bei Rendite, Sharpe und Drawdown über dem klassischen 60/40,
+  liefert das Timing Mehrwert gegenüber einer statischen defensiven Allokation.
 * **Zufalls-Timing-Test**: p-Wert < 5 % ⇒ das Timing ist nicht durch Quote und Regime-Längen erklärbar.
 * **Rollierende 5J-Trefferquote**: ehrlichere Kennzahl als ein über 26 Jahre annualisiertes Alpha.
 

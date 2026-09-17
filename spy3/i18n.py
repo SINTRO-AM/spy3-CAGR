@@ -41,14 +41,12 @@ TXT: dict[str, tuple[str, str]] = {
                   "high-water mark and the SPY hurdle, crystallised quarterly."),
     # Kennzahlen
     "kpis": ("Kennzahlen", "Key figures"),
-    "kpi_note": ("Mix: täglich rebalancierte Kombination aus SPY und SHY mit der "
-                 "durchschnittlichen Aktienquote bzw. dem Beta von SPY3. Sharpe Ratio ohne "
+    "kpi_note": ("60/40: 60 % SPY und 40 % SHY, täglich rebalanciert. Sharpe Ratio ohne "
                  "risikofreien Satz (rf = 0 %), Beta und Alpha über kurzlaufende "
                  "Staatsanleihen. Vor 07/2002 ersetzen 13-Wochen-T-Bills den SHY.",
-                 "Mix: daily rebalanced SPY/SHY combination with the average equity weight "
-                 "or the beta of SPY3. Sharpe ratio without a risk-free rate (rf = 0%), beta "
-                 "and alpha against short-term Treasuries. Before 07/2002, 13-week T-bills "
-                 "stand in for SHY."),
+                 "60/40: 60% SPY and 40% SHY, rebalanced daily. Sharpe ratio without a "
+                 "risk-free rate (rf = 0%), beta and alpha against short-term Treasuries. "
+                 "Before 07/2002, 13-week T-bills stand in for SHY."),
     "col_gross": ("SPY3 brutto", "SPY3 gross"),
     "col_net": ("SPY3 netto", "SPY3 net"),
     # Tabs
@@ -61,15 +59,21 @@ TXT: dict[str, tuple[str, str]] = {
     "dd_title": ("Maximaler Drawdown", "Maximum drawdown"),
     "dd_note": ("Rückgang vom jeweils letzten Höchststand. Rot hinterlegt: Risk-Off-Phasen.",
                 "Decline from the previous peak. Red shading: risk-off phases."),
+    "alpha_title": ("Alpha gegenüber S&P 500", "Alpha versus the S&P 500"),
+    "alpha_note": ("Kumulierte Überschussrendite (log). Steigt die Linie, liegt die Strategie "
+                   "vor dem S&P 500.",
+                   "Cumulative excess return (log). A rising line means the strategy is "
+                   "ahead of the S&P 500."),
     "rel_title": ("Relative Wertentwicklung", "Relative performance"),
     "rel_note": ("SPY3 geteilt durch S&P 500. Steigt die Linie, baut SPY3 Vorsprung auf; "
                  "verläuft sie waagerecht, entwickeln sich beide gleich.",
                  "SPY3 divided by the S&P 500. A rising line means SPY3 is pulling ahead; "
                  "a flat line means both move alike."),
     "src_title": ("Woher der Vorsprung kommt", "Where the lead comes from"),
-    "src_note": ("Kumulierte logarithmische Überschussrendite und ihre Aufteilung auf "
-                 "Krisenphasen.",
-                 "Cumulative log excess return and how it splits across crisis periods."),
+    "src_note": ("Aufteilung der kumulierten Überschussrendite (log, vor Gebühren) auf "
+                 "Krisenphasen und übrige Zeit.",
+                 "Split of the cumulative excess return (log, before fees) across crisis "
+                 "periods and the rest."),
     "phase": ("Phase", "Period"), "excess_log": ("Überschuss (log)", "Excess (log)"),
     "share": ("Anteil", "Share"),
     "roll_title": ("Rollierende Überschussrendite p.a.", "Rolling excess return p.a."),
