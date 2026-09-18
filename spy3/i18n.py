@@ -19,6 +19,10 @@ TXT: dict[str, tuple[str, str]] = {
     "scale": ("Skala", "Scale"),
     "dl_pdf": ("PDF-Report", "PDF report"),
     "dl_xlsx": ("Rohdaten (Excel)", "Raw data (Excel)"),
+    "dl_missing": ("Export nicht verfügbar – fehlende Pakete: {pkgs}. Installation: "
+                   "pip install -r requirements.txt",
+                   "Export unavailable – missing packages: {pkgs}. Install with: "
+                   "pip install -r requirements.txt"),
     "dl_note": ("Report und Rohdaten enthalten den gewählten Zeitraum und die eingestellten "
                 "Gebühren.",
                 "Report and raw data reflect the selected period and the fee settings."),

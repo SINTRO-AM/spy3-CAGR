@@ -50,7 +50,9 @@ python app.py                            # Dashboard lokal
 * Download-Buttons in der Kopfzeile: PDF-Report mit SINTRO-Logo (Kennzahlen, Vermögens-,
   Drawdown- und Vorsprung-Chart, Attribution, Kalenderjahre, Disclaimer) und Excel-Mappe mit
   den Rohdaten (Tagesdaten, KPIs, Kalenderjahre, Attribution, Notes). Beide übernehmen den
-  gewählten Zeitraum und die eingestellten Gebühren (`spy3/report.py`)
+  gewählten Zeitraum und die eingestellten Gebühren (`spy3/report.py`). matplotlib, reportlab
+  und XlsxWriter werden erst beim Export importiert: fehlen sie, läuft das Dashboard weiter und
+  die Buttons sind deaktiviert (`pip install -r requirements.txt` behebt das)
 * Regler für Managementgebühr (0–2,0 % p.a.) und Performancegebühr (0–30 %); die Netto-Reihe,
   die Kennzahlen und alle Charts rechnen sofort neu (brutto bleibt unverändert)
 * Zeitraum- und Skalenumschalter, mit kurzem Hinweis zur Log-/Linear-Skala beim Laden

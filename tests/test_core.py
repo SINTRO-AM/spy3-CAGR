@@ -183,3 +183,15 @@ def test_pdf_and_xlsx_export(tmp_path):
     assert daily["wealth_spy3_net"].iloc[-1] == pytest.approx(
         1000 * (1 + bt.ret_pf_net).prod())
     assert (daily["position"].isin([0, 1])).all()
+
+
+def test_export_reports_missing_packages(monkeypatch):
+    """Fehlt ein optionales Paket, meldet das Modul es, statt beim Import zu scheitern."""
+    from spy3 import report as rp
+    import importlib.util
+    real = importlib.util.find_spec
+    monkeypatch.setattr(importlib.util, "find_spec",
+                        lambda name, *a, **k: None if name == "reportlab" else real(name))
+    assert rp.missing_packages() == ["reportlab"]
+    with pytest.raises(ModuleNotFoundError, match="reportlab"):
+        rp.build_pdf(pd.DataFrame(), {}, "de")

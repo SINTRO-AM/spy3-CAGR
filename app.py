@@ -140,12 +140,20 @@ def signal_badge(lang: str) -> html.Details:
     ], className="signal")
 
 
+EXPORT_MISSING = rp.missing_packages()
+
+
 def download_buttons() -> html.Div:
+    """Export-Buttons; ohne die optionalen Pakete deaktiviert statt fehlerhaft."""
+    off = bool(EXPORT_MISSING)
+    hint = ("Fehlende Pakete: " + ", ".join(EXPORT_MISSING) +
+            " – pip install -r requirements.txt") if off else None
     return html.Div([
         html.Button([html.Span("↓", className="dl-ico"), html.Span(id="dl-pdf-lbl")],
-                    id="btn-pdf", n_clicks=0, className="dl-btn dl-btn--primary"),
+                    id="btn-pdf", n_clicks=0, disabled=off, title=hint,
+                    className="dl-btn dl-btn--primary"),
         html.Button([html.Span("↓", className="dl-ico"), html.Span(id="dl-xlsx-lbl")],
-                    id="btn-xlsx", n_clicks=0, className="dl-btn"),
+                    id="btn-xlsx", n_clicks=0, disabled=off, title=hint, className="dl-btn"),
     ], className="downloads")
 
 
@@ -262,6 +270,8 @@ app.layout = html.Div([
                  className="top-right"),
         dcc.Download(id="dl-pdf"), dcc.Download(id="dl-xlsx"),
     ], className="topbar"),
+    html.Div(t("dl_missing", "en", pkgs=", ".join(EXPORT_MISSING)) if EXPORT_MISSING else "",
+             id="dl-warn", className="dl-warn" if EXPORT_MISSING else ""),
     html.Main(id="page", className="page"),
     html.Footer(id="footer", className="foot"),
 ])
@@ -474,6 +484,8 @@ def _export_frame(period, mgmt, perf, lang):
               State("perf-fee", "value"), State("lang-pref", "data"),
               prevent_initial_call=True)
 def download_pdf(_n, period, mgmt, perf, lang):
+    if EXPORT_MISSING:
+        return no_update
     lang = lang if lang in LANGS else "en"
     b, mixes, mgmt, perf = _export_frame(period, mgmt, perf, lang)
     pdf = rp.build_pdf(b, mixes, lang, PARAMS.cost_bps, mgmt / 100, perf / 100)
@@ -486,6 +498,8 @@ def download_pdf(_n, period, mgmt, perf, lang):
               State("perf-fee", "value"), State("lang-pref", "data"),
               prevent_initial_call=True)
 def download_xlsx(_n, period, mgmt, perf, lang):
+    if EXPORT_MISSING:
+        return no_update
     lang = lang if lang in LANGS else "en"
     b, mixes, mgmt, perf = _export_frame(period, mgmt, perf, lang)
     xlsx = rp.build_xlsx(b, mixes, lang)

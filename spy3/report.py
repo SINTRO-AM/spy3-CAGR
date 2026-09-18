@@ -2,28 +2,38 @@
 
 Charts werden mit matplotlib gezeichnet (kein Browser nötig), das PDF mit reportlab
 gesetzt. Beides läuft serverseitig, der Download liefert reine Bytes.
+
+matplotlib, reportlab und XlsxWriter werden erst beim Export importiert. Fehlt eines
+davon, bleibt das übrige Dashboard lauffähig; `missing_packages()` sagt, was fehlt.
 """
 from __future__ import annotations
 
+import importlib.util
 import io
 from datetime import date
 from pathlib import Path
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.dates as mdates  # noqa: E402
-import matplotlib.pyplot as plt  # noqa: E402
-import pandas as pd  # noqa: E402
-from reportlab.lib import colors  # noqa: E402
-from reportlab.lib.pagesizes import A4  # noqa: E402
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet  # noqa: E402
-from reportlab.lib.units import mm  # noqa: E402
-from reportlab.platypus import (Image, KeepTogether, PageBreak, Paragraph,  # noqa: E402
-                                SimpleDocTemplate, Spacer, Table, TableStyle)
+import pandas as pd
 
 from . import metrics as m, robustness as rb
 from .formatting import by_metric, pct
 from .i18n import t, term
+
+REQUIRED = {"matplotlib": "matplotlib", "reportlab": "reportlab", "xlsxwriter": "XlsxWriter"}
+
+
+def missing_packages() -> list[str]:
+    """Namen der fehlenden Pakete (leer, wenn alles da ist)."""
+    return [pip for mod, pip in REQUIRED.items() if importlib.util.find_spec(mod) is None]
+
+
+def _mpl():
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.dates as mdates
+    import matplotlib.pyplot as plt
+    return matplotlib, mdates, plt
+
 
 LOGO = Path(__file__).resolve().parent.parent / "assets" / "sintro-logo.png"
 NAVY = "#003274"
@@ -72,6 +82,7 @@ def _t(key: str, lang: str, **kw) -> str:
 
 # ---------- Charts ----------------------------------------------------------
 def _style(ax):
+    _, mdates, _ = _mpl()
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     for s in ("left", "bottom"):
@@ -91,6 +102,7 @@ def _risk_off(ax, position: pd.Series):
 
 
 def _png(fig) -> io.BytesIO:
+    _, _, plt = _mpl()
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=200, bbox_inches="tight", facecolor="white")
     plt.close(fig)
@@ -99,6 +111,7 @@ def _png(fig) -> io.BytesIO:
 
 
 def wealth_png(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str) -> io.BytesIO:
+    matplotlib, _, plt = _mpl()
     fig, ax = plt.subplots(figsize=(7.4, 3.5))
     _risk_off(ax, bt.position)
     ax.plot(bt.index, START * (1 + bt.ret_bm).cumprod(), color=SLATE, lw=1.1, label="S&P 500")
@@ -122,6 +135,7 @@ def wealth_png(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str) -> io.B
 
 
 def drawdown_png(bt: pd.DataFrame, lang: str) -> io.BytesIO:
+    matplotlib, _, plt = _mpl()
     fig, ax = plt.subplots(figsize=(7.4, 2.1))
     _risk_off(ax, bt.position)
     ax.fill_between(bt.index, m.drawdown(bt.ret_bm), 0, color=SLATE, alpha=0.25, lw=0)
@@ -134,6 +148,7 @@ def drawdown_png(bt: pd.DataFrame, lang: str) -> io.BytesIO:
 
 
 def alpha_png(bt: pd.DataFrame, lang: str) -> io.BytesIO:
+    matplotlib, _, plt = _mpl()
     fig, ax = plt.subplots(figsize=(7.4, 2.1))
     wb = (1 + bt.ret_bm).cumprod()
     ax.axhline(1, color=INK, lw=0.8)
@@ -150,6 +165,8 @@ def alpha_png(bt: pd.DataFrame, lang: str) -> io.BytesIO:
 
 # ---------- PDF -------------------------------------------------------------
 def _table(data, lang, col_widths, highlight_rows=()):
+    from reportlab.lib import colors
+    from reportlab.platypus import Table, TableStyle
     style = [
         ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
         ("FONTSIZE", (0, 0), (-1, -1), 8),
@@ -171,6 +188,16 @@ def _table(data, lang, col_widths, highlight_rows=()):
 
 def build_pdf(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str = "en",
               cost_bps: float = 10.0, mgmt: float = 0.002, perf: float = 0.10) -> bytes:
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import mm
+    from reportlab.platypus import (Image, KeepTogether, PageBreak, Paragraph,
+                                    SimpleDocTemplate, Spacer)
+
+    missing = missing_packages()
+    if missing:
+        raise ModuleNotFoundError("Fehlende Pakete für den Export: " + ", ".join(missing))
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=16 * mm, bottomMargin=16 * mm,
                             leftMargin=18 * mm, rightMargin=18 * mm,
@@ -281,6 +308,9 @@ def build_xlsx(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str = "en") 
         "Before 30/07/2002 the risk-off leg uses 13-week T-bill returns instead of SHY.",
         "Source: SINTRO SPY3 backtest dashboard.",
     ]})
+    missing = missing_packages()
+    if "XlsxWriter" in missing:
+        raise ModuleNotFoundError("Fehlende Pakete für den Export: XlsxWriter")
     buf = io.BytesIO()
     with pd.ExcelWriter(buf, engine="xlsxwriter", datetime_format="yyyy-mm-dd") as xl:
         kpi.to_excel(xl, sheet_name="KPIs")
