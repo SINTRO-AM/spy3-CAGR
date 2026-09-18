@@ -1,14 +1,12 @@
 """Plotly-Charts im SINTRO-Stil (zweisprachig)."""
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.io as pio
 
 from . import metrics as m
 from .i18n import t, term
-from .risk import LIVE_START
 from .robustness import CRISES, excess_log, rolling_excess
 
 NAVY = "#003274"
@@ -22,8 +20,6 @@ NET = "#1F6B45"
 MIX = "#B38B4D"
 FONT = "Jost, 'Segoe UI', Helvetica, Arial, sans-serif"
 START = 1_000
-VAR_COLOR = "#2E7D8F"
-HEAT = [[0, "#B03A2E"], [0.5, "#F4F6F9"], [1, "#12603C"]]
 SEP = {"de": ",.", "en": ".,"}
 
 pio.templates["sintro"] = go.layout.Template(layout=dict(
@@ -56,16 +52,6 @@ def _risk_off_shapes(position: pd.Series, color: str = RISK_OFF):
             for _, seg in position[off].groupby(grp[off])]
 
 
-def _live_line(fig: go.Figure, idx: pd.DatetimeIndex, lang: str, yref: str = "paper"):
-    """Gestrichelte Linie am Start des Live-Track-Records."""
-    d = pd.Timestamp(LIVE_START)
-    if idx[0] <= d <= idx[-1]:
-        fig.add_vline(x=d, line=dict(color=INK, width=1.2, dash="dash"),
-                      annotation_text=t("live_since", lang), annotation_position="top left",
-                      annotation_font=dict(size=11, color=INK),
-                      annotation_bgcolor="rgba(255,255,255,0.75)")
-
-
 def _legend_box(fig: go.Figure, name: str):
     fig.add_scatter(x=[None], y=[None], mode="markers", name=name,
                     marker=dict(symbol="square", size=12, color=RISK_OFF))
@@ -87,10 +73,6 @@ def wealth_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
         fig.add_scatter(x=bt.index, y=START * (1 + bt.ret_pf_net).cumprod(),
                         name=t("net", lang), line=dict(color=NET, width=2.1),
                         hovertemplate=hov)
-    if "var_1d" in bt:
-        fig.add_scatter(x=bt.index, y=bt.var_1d, name=t("var_line", lang), yaxis="y2",
-                        line=dict(color=VAR_COLOR, width=1), opacity=0.65,
-                        hovertemplate="%{y:.2%}")
     _legend_box(fig, t("riskoff", lang))
     lo = START * min((1 + bt.ret_pf).cumprod().min(), (1 + bt.ret_bm).cumprod().min())
     hi = START * max((1 + bt.ret_pf).cumprod().max(), (1 + bt.ret_bm).cumprod().max())
@@ -98,12 +80,7 @@ def wealth_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
     fig.update_yaxes(type="log" if log else "linear", tickformat=",.0f",
                      dtick="D2" if log and wide else None)
     fig.update_xaxes(showline=True)
-    _base(fig, lang, shapes=_risk_off_shapes(bt.position),
-          yaxis2=dict(overlaying="y", side="right", showgrid=False, tickformat=".0%",
-                      tickfont=dict(color=VAR_COLOR), title=None, rangemode="tozero",
-                      zeroline=False))
-    _live_line(fig, bt.index, lang)
-    return fig
+    return _base(fig, lang, shapes=_risk_off_shapes(bt.position))
 
 
 def drawdown_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
@@ -121,9 +98,7 @@ def drawdown_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
         fig.add_scatter(x=bt.index, y=m.drawdown(bt.ret_pf_net), name=t("net", lang),
                         line=dict(color=NET, width=1.8), hovertemplate="%{y:.1%}")
     fig.update_yaxes(tickformat=".0%")
-    _base(fig, lang, shapes=_risk_off_shapes(bt.position, RISK_OFF_SOFT))
-    _live_line(fig, bt.index, lang)
-    return fig
+    return _base(fig, lang, shapes=_risk_off_shapes(bt.position, RISK_OFF_SOFT))
 
 
 def alpha_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
@@ -147,9 +122,7 @@ def alpha_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
                         hovertemplate=hov)
     fig.add_hline(y=1, line=dict(color=INK, width=1))
     fig.update_yaxes(tickformat=",.1f", ticksuffix="x")
-    _base(fig, lang, shapes=_risk_off_shapes(bt.position, RISK_OFF_SOFT))
-    _live_line(fig, bt.index, lang)
-    return fig
+    return _base(fig, lang, shapes=_risk_off_shapes(bt.position, RISK_OFF_SOFT))
 
 
 def relative_chart(bt: pd.DataFrame, lang: str = "de") -> go.Figure:
@@ -222,85 +195,3 @@ def rolling_chart(series: dict[str, pd.Series], fmt: str, zero_line: bool,
         fig.add_hline(y=0, line=dict(color=INK, width=1))
     fig.update_yaxes(tickformat=tick)
     return _base(fig, lang)
-
-
-def monthly_heatmap(mt: pd.DataFrame, lang: str = "de") -> go.Figure:
-    """Monatsrenditen: Zeilen Jahre, Spalten Monate."""
-    months = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt",
-              "Nov", "Dez"] if lang == "de" else \
-             ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct",
-              "Nov", "Dec"]
-    z = mt.reindex(columns=range(1, 13)).to_numpy(dtype=float)
-    lim = float(np.nanmax(np.abs(z))) if np.isfinite(z).any() else 0.1
-    txt = [["" if not np.isfinite(v) else f"{v * 100:.1f}" for v in row] for row in z]
-    fig = go.Figure(go.Heatmap(
-        z=z, x=months, y=[str(i) for i in mt.index], text=txt, texttemplate="%{text}",
-        textfont=dict(size=10), colorscale=HEAT, zmid=0, zmin=-lim, zmax=lim,
-        xgap=2, ygap=2, showscale=False, hovertemplate="%{y} %{x}: %{z:+.2%}<extra></extra>"))
-    fig.update_xaxes(side="top", showline=False, ticks="")
-    fig.update_yaxes(type="category", tickmode="array", tickfont=dict(size=10),
-                     tickvals=[str(i) for i in mt.index],
-                     autorange="reversed" if mt.index[0] > mt.index[-1] else True)
-    return _base(fig, lang, hovermode="closest", height=max(240, 26 * len(mt) + 60),
-                 margin=dict(l=8, r=8, t=26, b=8))
-
-
-def yearly_bars(y: pd.DataFrame, lang: str = "de") -> go.Figure:
-    """Jahresrenditen SPY3 und S&P 500 als Balken, Differenz als Linie."""
-    cols = list(y.columns)
-    fig = go.Figure()
-    for c, col in zip(cols[:2], [NAVY, SLATE]):
-        fig.add_bar(x=[str(i) for i in y.index], y=y[c], name=c, marker_color=col,
-                    hovertemplate="%{y:+.1%}")
-    if len(cols) > 2:
-        fig.add_scatter(x=[str(i) for i in y.index], y=y[cols[2]], name=cols[2],
-                        mode="markers", marker=dict(color=MIX, size=7, symbol="diamond"),
-                        hovertemplate="%{y:+.1%}")
-    fig.add_hline(y=0, line=dict(color=INK, width=1))
-    fig.update_yaxes(tickformat="+.0%")
-    return _base(fig, lang, barmode="group", bargap=0.25, height=340)
-
-
-def mc_fan(paths: pd.DataFrame, lang: str = "de") -> go.Figure:
-    """Monte-Carlo-Perzentilpfade als Fächer."""
-    x = paths.index
-    fig = go.Figure()
-    for lo, hi, a in (("P5", "P95", 0.10), ("P25", "P75", 0.20)):
-        fig.add_scatter(x=x, y=paths[hi], line=dict(width=0), showlegend=False,
-                        hoverinfo="skip")
-        fig.add_scatter(x=x, y=paths[lo], line=dict(width=0), fill="tonexty",
-                        fillcolor=f"rgba(0,50,116,{a})", name=f"{lo}–{hi}",
-                        hovertemplate="%{y:,.2f}")
-    fig.add_scatter(x=x, y=paths["P50"], line=dict(color=NAVY, width=2), name="P50",
-                    hovertemplate="%{y:,.2f}")
-    fig.add_hline(y=1, line=dict(color=INK, width=1))
-    fig.update_yaxes(tickformat=",.2f", ticksuffix="x")
-    fig.update_xaxes(title=t("mc_x", lang))
-    return _base(fig, lang, height=340)
-
-
-def corr_heatmap(c: pd.DataFrame, lang: str = "de") -> go.Figure:
-    z = c.to_numpy(dtype=float)
-    fig = go.Figure(go.Heatmap(
-        z=z, x=list(c.columns), y=list(c.index),
-        text=[[f"{v:,.2f}".replace(".", ",") if lang == "de" else f"{v:,.2f}" for v in row]
-              for row in z],
-        texttemplate="%{text}", textfont=dict(size=11), colorscale=HEAT, zmid=0,
-        zmin=-1, zmax=1, xgap=2, ygap=2, showscale=False,
-        hovertemplate="%{y} / %{x}: %{z:.2f}<extra></extra>"))
-    fig.update_yaxes(autorange="reversed")
-    return _base(fig, lang, hovermode="closest", height=300,
-                 margin=dict(l=8, r=8, t=10, b=8))
-
-
-def return_hist(r: pd.Series, var95: float, var99: float, lang: str = "de") -> go.Figure:
-    """Verteilung der Tagesrenditen mit eingezeichneten VaR-Schwellen."""
-    fig = go.Figure(go.Histogram(x=r, nbinsx=120, marker_color=NAVY, opacity=0.75,
-                                 hovertemplate="%{x:.2%}: %{y}<extra></extra>"))
-    sp = "" if lang == "en" else " "
-    for v, name, col in ((-var95, f"VaR 95{sp}%", MIX), (-var99, f"VaR 99{sp}%", "#C53A30")):
-        fig.add_vline(x=v, line=dict(color=col, width=1.4, dash="dash"),
-                      annotation_text=name, annotation_position="top left",
-                      annotation_font=dict(size=11, color=col))
-    fig.update_xaxes(tickformat=".0%", range=[r.quantile(0.001), r.quantile(0.999)])
-    return _base(fig, lang, height=300, showlegend=False, hovermode="closest")

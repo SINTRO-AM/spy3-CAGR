@@ -191,8 +191,7 @@ p { margin: 0; }
 .graph-box--main { height: clamp(440px, 34vw, 640px); }
 .graph-box--side { height: clamp(300px, 22vw, 420px); }
 .graph-box--tab { height: 360px; }
-.graph-box--bars { height: 280px; margin-bottom: 8px; }
-.graph-box--heat { height: 760px; }
+.graph-box--bars { height: 260px; margin-bottom: 8px; }
 
 /* Tooltips */
 .h-row { display: flex; align-items: center; gap: 8px; }

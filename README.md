@@ -43,15 +43,7 @@ python app.py                            # Dashboard lokal
 * Darunter nebeneinander: maximaler Drawdown und Vorsprung gegenüber dem S&P 500 (Vermögen
   relativ zur Benchmark, z. B. 3,0x = dreifaches Endvermögen)
 * Tooltips an Kennzahlen, Spaltenköpfen und Charts (Definition und Einheit)
-* Performance-Chart mit zweiter Achse für den 1-Tages-VaR (99 %) und gestrichelter Linie
-  „live seit 09/2023“ (auch in Drawdown- und Vorsprung-Chart)
-* Reiter: Abstand zum Markt, Rollierende Performance, Ohne Krisen, Kalenderjahre, Risiko,
-  Timing-Test
-* Kalenderjahre: Balkendiagramm der Jahresrenditen (SPY3, S&P 500, Differenz) und Heatmap
-  der Monatsrenditen
-* Risiko (`spy3/risk.py`): Stresstests über 9 historische Fenster, VaR/CVaR auf 95 % und 99 %,
-  Verteilung der Tagesrenditen, Kupiec-Backtest des rollierenden VaR, Monte-Carlo über 1 Jahr
-  (Block-Bootstrap, 2.000 Pfade) und Korrelationsmatrix der Monatsrenditen
+* Reiter: Abstand zum Markt, Rollierende Performance, Ohne Krisen, Kalenderjahre, Timing-Test
 * Rollierende Performance (`spy3/rolling.py`): Überschussrendite, Rendite p.a., Volatilität,
   Sharpe Ratio, Calmar Ratio, Max. Drawdown und Beta über 1, 3 oder 5 Jahre, jeweils für SPY3
   brutto/netto, S&P 500 und 60/40, dazu der Anteil der Fenster, in denen SPY3 netto besser war
