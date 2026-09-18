@@ -53,6 +53,17 @@ python app.py                            # Dashboard lokal
   (blendet sich nach 10 Sekunden aus, reines CSS); Zahlenformate je Sprache (`spy3/formatting.py`),
   Texte in `spy3/i18n.py`
 
+## Chart fürs Deck
+
+`python scripts/deck_chart.py --lang de --net` erzeugt die korrigierte Fassung des
+Performance-Charts aus dem Pitch-Deck als HTML, PNG und SVG unter `reports/`. Gegenüber der
+alten Folie: Wert einer Anlage von 1.000 USD auf logarithmischer Skala statt kumulierter
+Log-Renditen mit Prozent-Beschriftung, 200-Tage-Linie auf dem Kurs statt auf einer
+Renditereihe, Netto-Reihe nach Gebühren und Markierung des Live-Track-Records ab 09/2023.
+VaR und Schwellen bleiben auf der rechten Achse. PNG/SVG brauchen `kaleido`
+(`pip install kaleido`, danach einmalig `plotly_get_chrome`); ohne das entsteht nur die
+HTML-Datei.
+
 ## Einheiten: Log-Punkte vs. Vielfaches
 
 Die Attribution rechnet in Log-Punkten, weil sich nur so die Beiträge der Phasen exakt zum
