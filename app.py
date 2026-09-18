@@ -4,12 +4,12 @@ from __future__ import annotations
 import base64
 
 import pandas as pd
-from dash import Dash, Input, Output, ctx, dcc, html, no_update
+from dash import Dash, Input, Output, State, ctx, dcc, html, no_update
 
 from scripts.run_report import build
 from functools import lru_cache
 
-from spy3 import metrics as m, plots, robustness as rb, rolling as rl
+from spy3 import metrics as m, plots, report as rp, robustness as rb, rolling as rl
 from functools import lru_cache
 
 from spy3.data import load_prices
@@ -140,6 +140,15 @@ def signal_badge(lang: str) -> html.Details:
     ], className="signal")
 
 
+def download_buttons() -> html.Div:
+    return html.Div([
+        html.Button([html.Span("↓", className="dl-ico"), html.Span(id="dl-pdf-lbl")],
+                    id="btn-pdf", n_clicks=0, className="dl-btn dl-btn--primary"),
+        html.Button([html.Span("↓", className="dl-ico"), html.Span(id="dl-xlsx-lbl")],
+                    id="btn-xlsx", n_clicks=0, className="dl-btn"),
+    ], className="downloads")
+
+
 def lang_menu() -> html.Details:
     return html.Details([
         html.Summary([html.Img(src=GLOBE, alt="", className="globe"),
@@ -249,7 +258,9 @@ app.layout = html.Div([
                         alt="SINTRO Asset Management", className="logo"),
                href="https://www.sintro.eu", target="_blank", rel="noopener noreferrer",
                className="logo-link", title="www.sintro.eu"),
-        html.Div([html.Div(id="signal"), lang_menu()], className="top-right"),
+        html.Div([html.Div(id="signal"), download_buttons(), lang_menu()],
+                 className="top-right"),
+        dcc.Download(id="dl-pdf"), dcc.Download(id="dl-xlsx"),
     ], className="topbar"),
     html.Main(id="page", className="page"),
     html.Footer(id="footer", className="foot"),
@@ -279,12 +290,14 @@ app.clientside_callback(
 
 @app.callback(Output("page", "children"), Output("signal", "children"),
               Output("footer", "children"), Output("lang-current", "children"),
+              Output("dl-pdf-lbl", "children"), Output("dl-xlsx-lbl", "children"),
               *[Output(f"lang-{c}", "className") for c in LANGS],
               Input("lang-pref", "data"))
 def render(lang):
     lang = lang if lang in LANGS else "en"
     opts = ["lang-opt is-current" if c == lang else "lang-opt" for c in LANGS]
-    return (page(lang), signal_badge(lang), t("footer", lang), lang.upper(), *opts)
+    return (page(lang), signal_badge(lang), t("footer", lang), lang.upper(),
+            t("dl_pdf", lang), t("dl_xlsx", lang), *opts)
 
 
 @lru_cache(maxsize=64)
@@ -445,6 +458,39 @@ def update_rolling(metric, years, period, lang):
     facts_el = [html.Div([html.Strong(a), html.Span(c)], className="fact") for a, c in facts]
     note = t("rm_excess_note", lang) if metric == "excess" else t("roll_note_x", lang)
     return fig, facts_el, note
+
+
+# ---------- Downloads -------------------------------------------------------
+def _export_frame(period, mgmt, perf, lang):
+    mgmt = PARAMS.mgmt_fee * 100 if mgmt is None else float(mgmt)
+    perf = PARAMS.perf_fee * 100 if perf is None else float(perf)
+    b, mixes = slice_bt(period or "all", lang)
+    b = b.assign(ret_pf_net=net_series(mgmt, perf).loc[b.index])
+    return b, mixes, mgmt, perf
+
+
+@app.callback(Output("dl-pdf", "data"), Input("btn-pdf", "n_clicks"),
+              State("period", "value"), State("mgmt-fee", "value"),
+              State("perf-fee", "value"), State("lang-pref", "data"),
+              prevent_initial_call=True)
+def download_pdf(_n, period, mgmt, perf, lang):
+    lang = lang if lang in LANGS else "en"
+    b, mixes, mgmt, perf = _export_frame(period, mgmt, perf, lang)
+    pdf = rp.build_pdf(b, mixes, lang, PARAMS.cost_bps, mgmt / 100, perf / 100)
+    name = f"SPY3-report-{b.index[-1]:%Y-%m-%d}.pdf"
+    return dcc.send_bytes(lambda buf: buf.write(pdf), name)
+
+
+@app.callback(Output("dl-xlsx", "data"), Input("btn-xlsx", "n_clicks"),
+              State("period", "value"), State("mgmt-fee", "value"),
+              State("perf-fee", "value"), State("lang-pref", "data"),
+              prevent_initial_call=True)
+def download_xlsx(_n, period, mgmt, perf, lang):
+    lang = lang if lang in LANGS else "en"
+    b, mixes, mgmt, perf = _export_frame(period, mgmt, perf, lang)
+    xlsx = rp.build_xlsx(b, mixes, lang)
+    name = f"SPY3-data-{b.index[-1]:%Y-%m-%d}.xlsx"
+    return dcc.send_bytes(lambda buf: buf.write(xlsx), name)
 
 
 if __name__ == "__main__":

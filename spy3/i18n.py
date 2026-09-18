@@ -17,6 +17,11 @@ TXT: dict[str, tuple[str, str]] = {
     "lang_menu": ("Sprache", "Language"),
     "period": ("Zeitraum", "Period"),
     "scale": ("Skala", "Scale"),
+    "dl_pdf": ("PDF-Report", "PDF report"),
+    "dl_xlsx": ("Rohdaten (Excel)", "Raw data (Excel)"),
+    "dl_note": ("Report und Rohdaten enthalten den gewählten Zeitraum und die eingestellten "
+                "Gebühren.",
+                "Report and raw data reflect the selected period and the fee settings."),
     "mgmt_fee": ("Managementgebühr", "Management fee"),
     "perf_fee": ("Performancegebühr", "Performance fee"),
     "log": ("Logarithmisch", "Logarithmic"),

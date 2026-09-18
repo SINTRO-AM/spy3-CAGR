@@ -1,4 +1,7 @@
 dash>=2.17
+matplotlib>=3.8
+reportlab>=4.0
+XlsxWriter>=3.2
 gunicorn>=22
 numpy>=1.26
 pandas>=2.1

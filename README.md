@@ -47,6 +47,10 @@ python app.py                            # Dashboard lokal
 * Rollierende Performance (`spy3/rolling.py`): Überschussrendite, Rendite p.a., Volatilität,
   Sharpe Ratio, Calmar Ratio, Max. Drawdown und Beta über 1, 3 oder 5 Jahre, jeweils für SPY3
   brutto/netto, S&P 500 und 60/40, dazu der Anteil der Fenster, in denen SPY3 netto besser war
+* Download-Buttons in der Kopfzeile: PDF-Report mit SINTRO-Logo (Kennzahlen, Vermögens-,
+  Drawdown- und Vorsprung-Chart, Attribution, Kalenderjahre, Disclaimer) und Excel-Mappe mit
+  den Rohdaten (Tagesdaten, KPIs, Kalenderjahre, Attribution, Notes). Beide übernehmen den
+  gewählten Zeitraum und die eingestellten Gebühren (`spy3/report.py`)
 * Regler für Managementgebühr (0–2,0 % p.a.) und Performancegebühr (0–30 %); die Netto-Reihe,
   die Kennzahlen und alle Charts rechnen sofort neu (brutto bleibt unverändert)
 * Zeitraum- und Skalenumschalter, mit kurzem Hinweis zur Log-/Linear-Skala beim Laden

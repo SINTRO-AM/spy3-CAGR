@@ -153,3 +153,33 @@ def test_rolling_sharpe_return_beta():
     assert rl.rolling_metric(r, bm, "beta", 3).iloc[-1] == pytest.approx(0.5)
     assert rl.win_rate(rl.rolling_metric(r, bm, "vol", 3),
                        rl.rolling_metric(bm, bm, "vol", 3), "vol") == 1.0
+
+
+# ---------- Export ---------------------------------------------------------
+def test_pdf_and_xlsx_export(tmp_path):
+    from spy3 import report as rp
+    from spy3.data import prepare_returns
+    idx = pd.bdate_range("2015-01-01", "2020-12-31")
+    rng = np.random.default_rng(5)
+    px = pd.DataFrame({"risk_on": 100 * np.exp(np.cumsum(rng.normal(0.0004, 0.011, len(idx)))),
+                       "risk_off": 80 * np.exp(np.cumsum(np.full(len(idx), 6e-5))),
+                       "tbill_yield": 1.5}, index=idx)
+    bt = backtest(prepare_returns(px), px["risk_on"], StrategyParams())
+    mixes = {"60/40": 0.6 * bt.ret_bm + 0.4 * bt.ret_off}
+
+    pdf = rp.build_pdf(bt, mixes, "de")
+    assert pdf[:5] == b"%PDF-" and len(pdf) > 20_000
+
+    xlsx = rp.build_xlsx(bt, mixes, "en")
+    assert xlsx[:2] == b"PK"
+    f = tmp_path / "x.xlsx"
+    f.write_bytes(xlsx)
+    sheets = pd.read_excel(f, sheet_name=None)
+    assert set(sheets) == {"KPIs", "Daily data", "Calendar years", "Attribution", "Notes"}
+    daily = sheets["Daily data"]
+    assert len(daily) == len(bt)
+    # Rohdaten müssen zum Backtest passen
+    assert daily["ret_spy3_gross"].iloc[-1] == pytest.approx(bt.ret_pf.iloc[-1])
+    assert daily["wealth_spy3_net"].iloc[-1] == pytest.approx(
+        1000 * (1 + bt.ret_pf_net).prod())
+    assert (daily["position"].isin([0, 1])).all()
