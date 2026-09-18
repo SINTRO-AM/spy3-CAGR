@@ -245,8 +245,10 @@ server = app.server
 app.layout = html.Div([
     dcc.Store(id="lang-pref", storage_type="local", data="en"),
     html.Header([
-        html.Img(src=app.get_asset_url("sintro-logo.png"), alt="SINTRO Asset Management",
-                 className="logo"),
+        html.A(html.Img(src=app.get_asset_url("sintro-logo.png"),
+                        alt="SINTRO Asset Management", className="logo"),
+               href="https://www.sintro.eu", target="_blank", rel="noopener noreferrer",
+               className="logo-link", title="www.sintro.eu"),
         html.Div([html.Div(id="signal"), lang_menu()], className="top-right"),
     ], className="topbar"),
     html.Main(id="page", className="page"),
