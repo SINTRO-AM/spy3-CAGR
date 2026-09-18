@@ -9,7 +9,7 @@ from dash import Dash, Input, Output, ctx, dcc, html, no_update
 from scripts.run_report import build
 from functools import lru_cache
 
-from spy3 import metrics as m, plots, robustness as rb, rolling as rl
+from spy3 import metrics as m, plots, risk as rk, robustness as rb, rolling as rl
 from functools import lru_cache
 
 from spy3.data import load_prices
@@ -232,7 +232,8 @@ def page(lang: str) -> list:
         dcc.Tabs(id="analysis-tabs", value="gap", className="tabs", mobile_breakpoint=0,
                  children=[
             tab("t_gap", "gap"), tab("t_roll", "roll"),
-            tab("t_ex", "ex"), tab("t_years", "years"), tab("t_timing", "timing"),
+            tab("t_ex", "ex"), tab("t_years", "years"), tab("t_risk", "risk"),
+            tab("t_timing", "timing"),
         ], **PERSIST),
         html.Div(id="tab-body", className="tab-body"),
     ]
@@ -329,6 +330,50 @@ def update_main(period, scale, mgmt, perf, lang):
             pct(mgmt / 100, 1, lang=lang), pct(perf / 100, 0, lang=lang))
 
 
+def risk_tab(b: pd.DataFrame, lang: str) -> html.Div:
+    series = {"SPY3": b.ret_pf, "S&P 500": b.ret_bm,
+              "60/40": rb.static_mix(b.ret_bm, b.ret_off, 0.60)}
+    stress = rk.stress_table(series)
+    stress.columns = list(series) + [t("maxdd_col", lang)]
+    var = rk.var_table(series)
+    res = rk.var_backtest(b.ret_pf)
+    labels = {"n": ("Beobachtungen", "Observations"),
+              "x": ("Überschreitungen", "Breaches"), "exp": ("Erwartet", "Expected"),
+              "rate": ("Quote", "Rate"), "lr": ("Kupiec-LR", "Kupiec LR")}
+    i = 1 if lang == "en" else 0
+    bt_tbl = pd.DataFrame({"SPY3": {
+        labels["n"][i]: dec(res["Beobachtungen"], 0, lang=lang),
+        labels["x"][i]: dec(res["Überschreitungen"], 0, lang=lang),
+        labels["exp"][i]: dec(res["Erwartet"], 0, lang=lang),
+        labels["rate"][i]: pct(res["Quote"], 2, lang=lang),
+        labels["lr"][i]: dec(res["Kupiec-LR"], lang=lang)}})
+    mc = rk.monte_carlo_stats(b.ret_pf)
+    mc_lbl = {"P5": ("P5", "P5"), "P50": ("Median", "Median"), "P95": ("P95", "P95"),
+              "Verlustwahrscheinlichkeit": ("Verlustwahrscheinlichkeit",
+                                            "Probability of a loss"),
+              "Ø max. Drawdown": ("Ø max. Drawdown", "Average max. drawdown"),
+              "P(Drawdown > 20 %)": ("P(Drawdown > 20 %)", "P(drawdown > 20%)")}
+    mc_tbl = pd.DataFrame({"SPY3": {mc_lbl[k][i]: v for k, v in mc.items()}})
+    return html.Div([
+        section(t("stress_title", lang), t("stress_note", lang),
+                table(stress, lang, fmt=lambda i, v: pct(v, lang=lang),
+                      row_label=t("phase", lang), highlight=("SPY3",))),
+        section(t("var_title", lang), t("var_note", lang),
+                table(var, lang, fmt=lambda i, v: pct(v, 2, lang=lang),
+                      highlight=("SPY3",))),
+        section(t("var_hist_title", lang), t("var_hist_note", lang),
+                graph_box("bars", fig=plots.return_hist(
+                    b.ret_pf, var.loc["VaR 95%", "SPY3"], var.loc["VaR 99%", "SPY3"], lang))),
+        section(t("var_bt_title", lang), t("var_bt_note", lang),
+                table(bt_tbl, lang, fmt=lambda i, v: v, wrap_cls="narrow")),
+        section(t("mc_title", lang), t("mc_note", lang),
+                graph(plots.mc_fan(rk.monte_carlo(b.ret_pf), lang)),
+                table(mc_tbl, lang, fmt=lambda i, v: pct(v, lang=lang), wrap_cls="narrow")),
+        section(t("corr_title", lang), t("corr_note", lang),
+                graph_box("bars", fig=plots.corr_heatmap(rk.correlation(series), lang))),
+    ], className="two-col")
+
+
 @app.callback(Output("tab-body", "children"), Input("analysis-tabs", "value"),
               Input("period", "value"), Input("lang-pref", "data"))
 def update_tab(tab, period, lang):
@@ -374,7 +419,12 @@ def update_tab(tab, period, lang):
         y = rb.yearly_excess(pf, bm).sort_index(ascending=False)
         y.index = [f"{i} ({t('ytd', lang)})" if i == LAST.year else str(i) for i in y.index]
         y.columns = ["SPY3", "S&P 500", t("diff", lang)]
-        parts = [section(t("yr_title", lang), t("yr_note", lang),
+        parts = [section(t("bars_title", lang), t("bars_note", lang),
+                         graph(plots.yearly_bars(y.sort_index(), lang))),
+                 section(t("heat_title", lang), t("heat_note", lang),
+                         graph_box("heat", fig=plots.monthly_heatmap(
+                             rk.monthly_table(pf), lang))),
+                 section(t("yr_title", lang), t("yr_note", lang),
                          table(y, lang, fmt=lambda i, v: pct(v, lang=lang),
                                row_label=t("year", lang), highlight=("SPY3",),
                                sign_cols=(t("diff", lang),)))]
@@ -382,6 +432,8 @@ def update_tab(tab, period, lang):
             sp = rb.subperiods(pf, bm, b.ret_off)
             parts.append(section(t("dec_title", lang), t("dec_note", lang), table(sp, lang)))
         return html.Div(parts, className="two-col")
+    if tab == "risk":
+        return risk_tab(b, lang)
     tt = R["timing"]
     rows = [
         ("Sharpe Ratio" if lang == "de" else "Sharpe ratio",

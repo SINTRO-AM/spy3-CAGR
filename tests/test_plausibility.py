@@ -106,3 +106,66 @@ def test_rolling_beta_matches_regression(bt):
 def test_position_only_changes_after_signal(bt):
     assert (bt.position.iloc[1:].to_numpy() == bt.signal.shift(1).iloc[1:].to_numpy()).all()
     assert bt.ret_pf[bt.position.eq(0)].std() < bt.ret_pf[bt.position.eq(1)].std()
+
+
+# ---------- Risiko-Analysen ------------------------------------------------
+from spy3 import risk as rk  # noqa: E402
+
+
+def test_var_levels_and_cvar_ordering(bt):
+    v = rk.var_table({"SPY3": bt.ret_pf})["SPY3"]
+    assert v["VaR 99%"] > v["VaR 95%"] > 0                 # 99 % ist strenger
+    assert v["CVaR 99%"] >= v["VaR 99%"]                   # Tail-Mittel >= Schwelle
+    assert v["CVaR 95%"] >= v["VaR 95%"]
+    assert v["Schlechtester Tag"] >= v["CVaR 99%"]
+
+
+def test_var_quantile_definition(bt):
+    v = rk.var_table({"SPY3": bt.ret_pf})["SPY3"]["VaR 95%"]
+    assert (bt.ret_pf < -v).mean() == pytest.approx(0.05, abs=0.005)
+
+
+def test_var_backtest_counts(bt):
+    res = rk.var_backtest(bt.ret_pf, level=0.99, window=250)
+    assert res["Erwartet"] == pytest.approx(res["Beobachtungen"] * 0.01)
+    assert 0 <= res["Quote"] <= 0.2
+
+
+def test_stress_table_matches_direct_computation(bt):
+    st = rk.stress_table({"SPY3": bt.ret_pf, "S&P 500": bt.ret_bm})
+    a, b_ = rk.WINDOWS["GFC 2007–09"]
+    assert st.loc["GFC 2007–09", "SPY3"] == pytest.approx(
+        m.total_return(bt.ret_pf.loc[a:b_]))
+    assert st.loc["GFC 2007–09", "MaxDD"] <= 0
+
+
+def test_monte_carlo_percentiles_ordered(bt):
+    paths = rk.monte_carlo(bt.ret_pf, horizon_days=60, n_paths=300)
+    last = paths.iloc[-1]
+    assert last["P5"] < last["P25"] < last["P50"] < last["P75"] < last["P95"]
+    assert paths.iloc[0].between(0.8, 1.2).all()           # Start nahe 1
+    stats = rk.monte_carlo_stats(bt.ret_pf, horizon_days=60, n_paths=300)
+    assert 0 <= stats["Verlustwahrscheinlichkeit"] <= 1
+    assert stats["Ø max. Drawdown"] <= 0
+
+
+def test_monte_carlo_is_deterministic(bt):
+    a = rk.monte_carlo(bt.ret_pf, horizon_days=30, n_paths=200)
+    b_ = rk.monte_carlo(bt.ret_pf, horizon_days=30, n_paths=200)
+    pd.testing.assert_frame_equal(a, b_)
+
+
+def test_correlation_matrix_properties(bt):
+    c = rk.correlation({"SPY3": bt.ret_pf, "S&P 500": bt.ret_bm,
+                        "60/40": rb.static_mix(bt.ret_bm, bt.ret_off, 0.6)})
+    assert np.allclose(np.diag(c), 1.0)
+    assert np.allclose(c.to_numpy(), c.to_numpy().T)
+    assert ((c >= -1) & (c <= 1)).all().all()
+    assert c.loc["S&P 500", "60/40"] > c.loc["S&P 500", "SPY3"]   # statisch korrelierter
+
+
+def test_monthly_table_compounds_to_yearly(bt):
+    mt = rk.monthly_table(bt.ret_pf)
+    y = rb.yearly_excess(bt.ret_pf, bt.ret_bm)["SPY3"]
+    for year in [2005, 2010, 2015]:
+        assert (1 + mt.loc[year].dropna()).prod() - 1 == pytest.approx(y[year], rel=1e-9)
