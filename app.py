@@ -217,7 +217,8 @@ def page(lang: str) -> list:
             html.Div([html.Span(t("period", lang), className="ctl-lbl"),
                       seg("period", [{"label": t(f"p_{k}", lang), "value": k}
                                      for k in PERIODS], "all")]),
-            html.Div([html.Span(t("scale", lang), className="ctl-lbl"),
+            html.Div([html.Span([t("scale", lang), info("scale_tip", lang)],
+                                className="ctl-lbl"),
                       seg("scale", [{"label": t("log", lang), "value": "log"},
                                     {"label": t("linear", lang), "value": "linear"}], "log"),
                       scale_hint(lang)], className="ctl ctl--scale"),

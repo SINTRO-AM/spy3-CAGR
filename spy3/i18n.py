@@ -52,8 +52,8 @@ TXT: dict[str, tuple[str, str]] = {
     "f_mr": ("Abstand zum {w}-Tage-Hoch: {v}", "Distance from {w}-day high: {v}"),
     # Hauptchart
     "perf": ("Wert einer Investition von 1.000 USD", "Value of a $1,000 investment"),
-    "perf_note": ("Rot hinterlegt: Strategie hält kurzlaufende US-Staatsanleihen",
-                  "Red shading: strategy holds short-term US Treasuries"),
+    "perf_note": ("Rot hinterlegt: Strategie hält kurzlaufende US-T-Bills",
+                  "Red shading: strategy holds short-term US T-Bills"),
     "gross": ("SPY3 vor Gebühren", "SPY3 before fees"),
     "net": ("SPY3 nach Gebühren", "SPY3 after fees"),
     "riskoff": ("Risk-Off", "Risk off"),
@@ -252,6 +252,17 @@ TIPS: dict[str, tuple[str, str]] = {
                 "Fees affect the net series only; gross is unchanged. The performance fee "
                 "runs since inception above the high-water mark and the SPY hurdle and is "
                 "crystallised quarterly."),
+    "scale_tip": ("Logarithmisch: gleiche Abstände bedeuten gleiche prozentuale "
+                  "Veränderungen. Eine Verdopplung von 1.000 auf 2.000 USD sieht so groß aus "
+                  "wie eine von 10.000 auf 20.000 USD, dadurch bleiben frühe und späte Jahre "
+                  "vergleichbar. Linear: gleiche Abstände bedeuten gleiche Beträge in USD; "
+                  "die Kurve zeigt den Zinseszinseffekt, die ersten Jahre werden aber "
+                  "flachgedrückt.",
+                  "Logarithmic: equal distances mean equal percentage changes. A move from "
+                  "$1,000 to $2,000 looks as large as one from $10,000 to $20,000, which "
+                  "keeps early and late years comparable. Linear: equal distances mean equal "
+                  "dollar amounts; the curve shows the compounding effect, but the early "
+                  "years are squeezed flat."),
     "share": ("Anteil dieser Phase an der gesamten Überschussrendite.",
               "Share of this period in the total excess return."),
 }
