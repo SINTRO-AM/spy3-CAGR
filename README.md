@@ -47,6 +47,8 @@ python app.py                            # Dashboard lokal
 * Rollierende Performance (`spy3/rolling.py`): Überschussrendite, Rendite p.a., Volatilität,
   Sharpe Ratio, Calmar Ratio, Max. Drawdown und Beta über 1, 3 oder 5 Jahre, jeweils für SPY3
   brutto/netto, S&P 500 und 60/40, dazu der Anteil der Fenster, in denen SPY3 netto besser war
+* Regler für Managementgebühr (0–2,0 % p.a.) und Performancegebühr (0–30 %); die Netto-Reihe,
+  die Kennzahlen und alle Charts rechnen sofort neu (brutto bleibt unverändert)
 * Zeitraum- und Skalenumschalter, mit kurzem Hinweis zur Log-/Linear-Skala beim Laden
   (blendet sich nach 10 Sekunden aus, reines CSS); Zahlenformate je Sprache (`spy3/formatting.py`),
   Texte in `spy3/i18n.py`

@@ -103,7 +103,7 @@ p { margin: 0; }
 .note.small { font-size: .8rem; margin-top: 12px; }
 
 /* Segment-Steuerung */
-.controls { display: flex; flex-wrap: wrap; gap: 12px 32px; margin-bottom: 20px; }
+.controls { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: flex-start; margin-bottom: 20px; }
 .controls > div { display: flex; align-items: center; gap: 6px 12px; min-width: 0; max-width: 100%;
                    flex-wrap: wrap; }
 .ctl-lbl { font-size: .85rem; color: var(--muted); }
@@ -142,6 +142,23 @@ p { margin: 0; }
   94%  { opacity: 1; transform: translateY(0); }
   100% { opacity: 0; transform: translateY(-4px); visibility: hidden; }
 }
+
+/* Gebühren-Regler */
+.ctl--fee { align-items: flex-start !important; }
+.ctl--fee .ctl-lbl { display: inline-flex; align-items: center; gap: 6px; padding-top: 4px; }
+.ctl--fee .ctl-lbl b { color: var(--navy); font-weight: 500;
+                       font-variant-numeric: tabular-nums; }
+.fee-wrap { width: 156px; }
+.fee-slider .dash-slider-track { background: var(--line) !important; }
+.fee-slider .dash-slider-range { background: var(--navy) !important; }
+.fee-slider .dash-slider-thumb { background: #fff !important; border: 2px solid var(--navy) !important;
+                                 box-shadow: 0 1px 3px rgba(15,30,50,.25) !important; }
+.fee-slider .dash-slider-thumb:hover, .fee-slider .dash-slider-thumb:focus-visible {
+  box-shadow: 0 0 0 5px rgba(0,50,116,.15) !important; }
+.fee-slider .dash-slider-mark { color: var(--muted) !important; font-size: .72rem !important; }
+.fee-slider .dash-slider-tooltip { background: var(--navy) !important; color: #fff !important;
+  border-radius: 4px !important; padding: 1px 6px !important; font-size: .74rem !important; }
+.fee-slider .dash-range-slider-input { display: none !important; }
 
 /* Raster und Flächen */
 .grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(490px, 1fr);

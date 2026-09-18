@@ -17,6 +17,8 @@ TXT: dict[str, tuple[str, str]] = {
     "lang_menu": ("Sprache", "Language"),
     "period": ("Zeitraum", "Period"),
     "scale": ("Skala", "Scale"),
+    "mgmt_fee": ("Managementgebühr", "Management fee"),
+    "perf_fee": ("Performancegebühr", "Performance fee"),
     "log": ("Logarithmisch", "Logarithmic"),
     "hint_title": ("Tipp zur Skala", "A note on the scale"),
     "hint_body": ("Logarithmisch: gleiche Abstände bedeuten gleiche prozentuale "
@@ -46,9 +48,9 @@ TXT: dict[str, tuple[str, str]] = {
     "gross": ("SPY3 vor Gebühren", "SPY3 before fees"),
     "net": ("SPY3 nach Gebühren", "SPY3 after fees"),
     "riskoff": ("Risk-Off", "Risk off"),
-    "fees_note": ("Gebühren: 0,2 % Managementgebühr p.a. und 10 % Performancegebühr über "
+    "fees_note": ("Gebühren: {mgmt} Managementgebühr p.a. und {perf} Performancegebühr über "
                   "High-Water-Mark und SPY-Hurdle, quartalsweise abgerechnet.",
-                  "Fees: 0.2% p.a. management fee and 10% performance fee above the "
+                  "Fees: {mgmt} p.a. management fee and {perf} performance fee above the "
                   "high-water mark and the SPY hurdle, crystallised quarterly."),
     # Kennzahlen
     "kpis": ("Kennzahlen", "Key figures"),
@@ -221,10 +223,10 @@ TIPS: dict[str, tuple[str, str]] = {
                     "points of cumulative excess return."),
     "col_gross": ("Nach Handelskosten, vor Management- und Performancegebühr.",
                   "After trading costs, before management and performance fees."),
-    "col_net": ("Zusätzlich nach 0,2 % Managementgebühr p.a. und 10 % Performancegebühr "
-                "(High-Water-Mark, Hurdle SPY, quartalsweise).",
-                "Additionally after the 0.2% p.a. management fee and the 10% performance "
-                "fee (high-water mark, SPY hurdle, quarterly)."),
+    "col_net": ("Zusätzlich nach Management- und Performancegebühr in der oben gewählten "
+                "Höhe (High-Water-Mark, Hurdle SPY, quartalsweise).",
+                "Additionally after the management and performance fee set above "
+                "(high-water mark, SPY hurdle, quarterly)."),
     "col_bm": ("SPY Total Return, also inklusive reinvestierter Dividenden.",
                "SPY total return, i.e. including reinvested dividends."),
     "col_mix": ("60 % SPY und 40 % SHY, täglich rebalanciert. Vor 07/2002 T-Bills statt SHY.",
@@ -233,6 +235,12 @@ TIPS: dict[str, tuple[str, str]] = {
                    "gegenüber der Benchmark (exp(1,10) = 3,0).",
                    "Log points: 110 log points correspond to 3.0x the benchmark wealth "
                    "(exp(1.10) = 3.0)."),
+    "fee_tip": ("Gebühren wirken nur auf die Netto-Reihe; brutto bleibt unverändert. Die "
+                "Performancegebühr läuft seit Auflage über High-Water-Mark und SPY-Hurdle "
+                "und wird quartalsweise abgerechnet.",
+                "Fees affect the net series only; gross is unchanged. The performance fee "
+                "runs since inception above the high-water mark and the SPY hurdle and is "
+                "crystallised quarterly."),
     "share": ("Anteil dieser Phase an der gesamten Überschussrendite.",
               "Share of this period in the total excess return."),
 }

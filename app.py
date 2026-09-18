@@ -10,7 +10,10 @@ from scripts.run_report import build
 from functools import lru_cache
 
 from spy3 import metrics as m, plots, robustness as rb, rolling as rl
+from functools import lru_cache
+
 from spy3.data import load_prices
+from spy3.fees import apply_fees
 from spy3.formatting import by_metric, dec, pct
 from spy3.i18n import LANGS, t, term, tip
 from spy3.strategy import OFF, ON, StrategyParams, factor_states
@@ -156,6 +159,14 @@ def info(tip_key: str | None, lang: str) -> html.Span | None:
                      role="img", **{"aria-label": txt}) if txt else None
 
 
+def fee_slider(id_: str, lo: float, hi: float, step: float, value: float, unit: str):
+    marks = {lo: f"{lo:g}{unit}", hi: f"{hi:g}{unit}"}
+    return html.Div(dcc.Slider(lo, hi, step, value=value, id=id_, marks=marks,
+                               included=True, className="fee-slider",
+                               tooltip={"placement": "bottom", "always_visible": False},
+                               **PERSIST), className="fee-wrap")
+
+
 def scale_hint(lang: str) -> html.Div:
     """Kurzer Hinweis zur Skala; blendet sich nach 5 Sekunden selbst aus (reines CSS)."""
     return html.Div([
@@ -183,9 +194,7 @@ def page(lang: str) -> list:
             html.H1(t("title", lang)),
             html.P(t("lede", lang, start=BT.index[0].strftime(fmt_d),
                      end=LAST.strftime(fmt_d)), className="lede"),
-            html.P(t("lede_defs", lang, cost=f"{PARAMS.cost_bps:.0f}",
-                     mgmt=pct(PARAMS.mgmt_fee, 1, lang=lang),
-                     perf=pct(PARAMS.perf_fee, 0, lang=lang)), className="lede defs"),
+            html.P(id="lede-defs", className="lede defs"),
         ], className="intro"),
         html.Div([
             html.Div([html.Span(t("period", lang), className="ctl-lbl"),
@@ -195,6 +204,14 @@ def page(lang: str) -> list:
                       seg("scale", [{"label": t("log", lang), "value": "log"},
                                     {"label": t("linear", lang), "value": "linear"}], "log"),
                       scale_hint(lang)], className="ctl ctl--scale"),
+            html.Div([html.Span([t("mgmt_fee", lang), html.B(id="mgmt-fee-val"),
+                                 info("fee_tip", lang)], className="ctl-lbl"),
+                      fee_slider("mgmt-fee", 0, 2.0, 0.1, PARAMS.mgmt_fee * 100, "%")],
+                     className="ctl ctl--fee"),
+            html.Div([html.Span([t("perf_fee", lang), html.B(id="perf-fee-val")],
+                                className="ctl-lbl"),
+                      fee_slider("perf-fee", 0, 30, 1, PARAMS.perf_fee * 100, "%")],
+                     className="ctl ctl--fee"),
         ], className="controls"),
         html.Div([
             html.Section([
@@ -203,7 +220,7 @@ def page(lang: str) -> list:
                           html.Span(t("perf_note", lang), className="note")],
                          className="panel-head"),
                 graph_box("main", "wealth"),
-                html.P(t("fees_note", lang), className="note small"),
+                html.P(id="fees-note", className="note small"),
             ], className="panel chart-panel"),
             html.Section([html.H2(t("kpis", lang)), html.Div(id="kpis")],
                          className="panel kpi-panel"),
@@ -268,11 +285,31 @@ def render(lang):
     return (page(lang), signal_badge(lang), t("footer", lang), lang.upper(), *opts)
 
 
+@lru_cache(maxsize=64)
+def net_series(mgmt_pct: float, perf_pct: float) -> pd.Series:
+    """Netto-Reihe für die gewählten Gebühren, über die volle Historie gerechnet
+    (High-Water-Mark und Hurdle laufen seit Auflage, nicht seit Periodenbeginn)."""
+    if (mgmt_pct, perf_pct) == (PARAMS.mgmt_fee * 100, PARAMS.perf_fee * 100):
+        return BT.ret_pf_net
+    return apply_fees(BT.ret_pf, BT.ret_bm, mgmt_pct / 100, perf_pct / 100)["ret_net"]
+
+
 @app.callback(Output("wealth", "figure"), Output("kpis", "children"),
               Output("dd-graph", "figure"), Output("alpha-graph", "figure"),
-              Input("period", "value"), Input("scale", "value"), Input("lang-pref", "data"))
-def update_main(period, scale, lang):
+              Output("fees-note", "children"), Output("lede-defs", "children"),
+              Output("mgmt-fee-val", "children"), Output("perf-fee-val", "children"),
+              Input("period", "value"), Input("scale", "value"),
+              Input("mgmt-fee", "value"), Input("perf-fee", "value"),
+              Input("lang-pref", "data"))
+def update_main(period, scale, mgmt, perf, lang):
+    mgmt = PARAMS.mgmt_fee * 100 if mgmt is None else float(mgmt)
+    perf = PARAMS.perf_fee * 100 if perf is None else float(perf)
     b, mixes = slice_bt(period, lang)
+    b = b.assign(ret_pf_net=net_series(mgmt, perf).loc[b.index])
+    fee_txt = t("fees_note", lang, mgmt=pct(mgmt / 100, 1, lang=lang),
+                perf=pct(perf / 100, 0, lang=lang))
+    defs_txt = t("lede_defs", lang, cost=f"{PARAMS.cost_bps:.0f}",
+                 mgmt=pct(mgmt / 100, 1, lang=lang), perf=pct(perf / 100, 0, lang=lang))
     fig = plots.wealth_chart(b, mixes, log=scale != "linear", lang=lang)
     dd = plots.drawdown_chart(b, mixes, lang=lang)
     al = plots.alpha_chart(b, mixes, lang=lang)
@@ -283,9 +320,11 @@ def update_main(period, scale, lang):
     col_tips = {t("col_gross", lang): tip("col_gross", lang),
                 t("col_net", lang): tip("col_net", lang),
                 "S&P 500": tip("col_bm", lang), "60/40": tip("col_mix", lang)}
-    return fig, [table(tbl, lang, highlight=hl, emphasis=KPI_EMPHASIS, wrap_cls="fill",
-                       tips=col_tips),
-                 html.P(t("kpi_note", lang), className="note small")], dd, al
+    kpis = [table(tbl, lang, highlight=hl, emphasis=KPI_EMPHASIS, wrap_cls="fill",
+                  tips=col_tips),
+            html.P(t("kpi_note", lang), className="note small")]
+    return (fig, kpis, dd, al, fee_txt, defs_txt,
+            pct(mgmt / 100, 1, lang=lang), pct(perf / 100, 0, lang=lang))
 
 
 @app.callback(Output("tab-body", "children"), Input("analysis-tabs", "value"),
