@@ -44,7 +44,8 @@ python app.py                            # Dashboard lokal
 * Darunter nebeneinander: maximaler Drawdown und Vorsprung gegenüber dem S&P 500 (Vermögen
   relativ zur Benchmark, z. B. 3,0x = dreifaches Endvermögen)
 * Tooltips an Kennzahlen, Spaltenköpfen und Charts (Definition und Einheit)
-* Reiter: Abstand zum Markt, Rollierende Performance, Ohne Krisen, Kalenderjahre, Timing-Test
+* Reiter (Standard: Rollierende Performance mit 3-Jahres-Sharpe-Ratio): Rollierende
+  Performance, Abstand zum Markt, Ohne Krisen, Kalenderjahre, Timing-Test
 * Rollierende Performance (`spy3/rolling.py`): Überschussrendite, Rendite p.a., Volatilität,
   Sharpe Ratio, Calmar Ratio, Max. Drawdown und Beta über 1, 3 oder 5 Jahre, jeweils für SPY3
   brutto/netto, S&P 500 und 60/40, dazu der Anteil der Fenster, in denen SPY3 netto besser war
@@ -56,7 +57,8 @@ python app.py                            # Dashboard lokal
   die Buttons sind deaktiviert (`pip install -r requirements.txt` behebt das)
 * Regler für Managementgebühr (0–2,0 % p.a.) und Performancegebühr (0–30 %); die Netto-Reihe,
   die Kennzahlen und alle Charts rechnen sofort neu (brutto bleibt unverändert)
-* Zeitraum- und Skalenumschalter, mit kurzem Hinweis zur Log-/Linear-Skala beim Laden
+* Zeitraum- und Skalenumschalter (Standard: linear), mit kurzem Hinweis zur Log-/Linear-Skala
+  beim Laden und einem Tooltip an der Skala
   (blendet sich nach 10 Sekunden aus, reines CSS); Zahlenformate je Sprache (`spy3/formatting.py`),
   Texte in `spy3/i18n.py`
 

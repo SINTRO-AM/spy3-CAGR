@@ -219,8 +219,9 @@ def page(lang: str) -> list:
                                      for k in PERIODS], "all")]),
             html.Div([html.Span([t("scale", lang), info("scale_tip", lang)],
                                 className="ctl-lbl"),
-                      seg("scale", [{"label": t("log", lang), "value": "log"},
-                                    {"label": t("linear", lang), "value": "linear"}], "log"),
+                      seg("scale-mode", [{"label": t("linear", lang), "value": "linear"},
+                                         {"label": t("log", lang), "value": "log"}],
+                          "linear"),
                       scale_hint(lang)], className="ctl ctl--scale"),
             html.Div([html.Span([t("mgmt_fee", lang), html.B(id="mgmt-fee-val"),
                                  info("fee_tip", lang)], className="ctl-lbl"),
@@ -247,9 +248,9 @@ def page(lang: str) -> list:
             chart_panel("dd_title", "dd_note", "dd-graph", lang, "chart_dd"),
             chart_panel("alpha_title", "alpha_note", "alpha-graph", lang, "chart_alpha"),
         ], className="two-col risk-row"),
-        dcc.Tabs(id="analysis-tabs", value="gap", className="tabs", mobile_breakpoint=0,
+        dcc.Tabs(id="analysis-tabs2", value="roll", className="tabs", mobile_breakpoint=0,
                  children=[
-            tab("t_gap", "gap"), tab("t_roll", "roll"),
+            tab("t_roll", "roll"), tab("t_gap", "gap"),
             tab("t_ex", "ex"), tab("t_years", "years"), tab("t_timing", "timing"),
         ], **PERSIST),
         html.Div(id="tab-body", className="tab-body"),
@@ -324,7 +325,7 @@ def net_series(mgmt_pct: float, perf_pct: float) -> pd.Series:
               Output("dd-graph", "figure"), Output("alpha-graph", "figure"),
               Output("fees-note", "children"), Output("lede-defs", "children"),
               Output("mgmt-fee-val", "children"), Output("perf-fee-val", "children"),
-              Input("period", "value"), Input("scale", "value"),
+              Input("period", "value"), Input("scale-mode", "value"),
               Input("mgmt-fee", "value"), Input("perf-fee", "value"),
               Input("lang-pref", "data"))
 def update_main(period, scale, mgmt, perf, lang):
@@ -336,7 +337,7 @@ def update_main(period, scale, mgmt, perf, lang):
                 perf=pct(perf / 100, 0, lang=lang))
     defs_txt = t("lede_defs", lang, cost=f"{PARAMS.cost_bps:.0f}",
                  mgmt=pct(mgmt / 100, 1, lang=lang), perf=pct(perf / 100, 0, lang=lang))
-    fig = plots.wealth_chart(b, mixes, log=scale != "linear", lang=lang)
+    fig = plots.wealth_chart(b, mixes, log=scale == "log", lang=lang)
     dd = plots.drawdown_chart(b, mixes, lang=lang)
     al = plots.alpha_chart(b, mixes, lang=lang)
     cols = {t("col_gross", lang): b.ret_pf, t("col_net", lang): b.ret_pf_net,
@@ -353,12 +354,12 @@ def update_main(period, scale, mgmt, perf, lang):
             pct(mgmt / 100, 1, lang=lang), pct(perf / 100, 0, lang=lang))
 
 
-@app.callback(Output("tab-body", "children"), Input("analysis-tabs", "value"),
+@app.callback(Output("tab-body", "children"), Input("analysis-tabs2", "value"),
               Input("period", "value"), Input("lang-pref", "data"))
 def update_tab(tab, period, lang):
     b, _ = slice_bt(period, lang)
     pf, bm = b.ret_pf, b.ret_bm
-    if tab in (None, "gap"):
+    if tab == "gap":
         att = rb.attribution(pf, bm)
         att.columns = [t("excess_log", lang), t("share", lang)]
         att_tips = {t("excess_log", lang): tip("excess_log", lang),
@@ -371,7 +372,7 @@ def update_tab(tab, period, lang):
                     table(att, lang, fmt=lambda i, v: pct(v, lang=lang),
                           row_label=t("phase", lang), tips=att_tips)),
         ], className="two-col")
-    if tab == "roll":
+    if tab in (None, "roll"):
         metric_opts = [{"label": t(f"rm_{k}", lang), "value": k} for k in rl.METRICS]
         win_opts = [{"label": t("yr_short", lang, y=y), "value": y} for y in (1, 3, 5)]
         return html.Section([
