@@ -16,6 +16,7 @@ LINE = "#E4E8EE"
 MUTED = "#5E6B7D"
 RISK_OFF = "rgba(206, 62, 52, 0.17)"
 RISK_OFF_SOFT = "rgba(206, 62, 52, 0.09)"
+VAR_GREY = "#9AA3AF"
 NET = "#1F6B45"
 MIX = "#B38B4D"
 FONT = "Jost, 'Segoe UI', Helvetica, Arial, sans-serif"
@@ -73,14 +74,27 @@ def wealth_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
         fig.add_scatter(x=bt.index, y=START * (1 + bt.ret_pf_net).cumprod(),
                         name=t("net", lang), line=dict(color=NET, width=2.1),
                         hovertemplate=hov)
+    if "var_1d" in bt:
+        fig.add_scatter(x=bt.index, y=bt.var_1d, name=t("var_line", lang), yaxis="y2",
+                        line=dict(color=VAR_GREY, width=1, dash="dash"), opacity=0.85,
+                        hovertemplate="%{y:.2%}")
     _legend_box(fig, t("riskoff", lang))
     lo = START * min((1 + bt.ret_pf).cumprod().min(), (1 + bt.ret_bm).cumprod().min())
     hi = START * max((1 + bt.ret_pf).cumprod().max(), (1 + bt.ret_bm).cumprod().max())
     wide = hi / lo > 4
     fig.update_yaxes(type="log" if log else "linear", tickformat=",.0f",
                      dtick="D2" if log and wide else None)
-    fig.update_xaxes(showline=True)
-    return _base(fig, lang, shapes=_risk_off_shapes(bt.position))
+    fig.update_xaxes(showline=True, domain=[0.115, 1.0])
+    # Zweite Wertachse links außen für den VaR; die Hauptachse rückt dafür nach rechts
+    var_axis = dict(overlaying="y", side="left", anchor="free", position=0.0,
+                    showgrid=False, zeroline=False, rangemode="tozero",
+                    tickformat=".0%", ticks="outside", ticklen=3, dtick=0.02,
+                    range=[0, float(bt.var_1d.max()) * 1.15] if "var_1d" in bt else None,
+                    tickfont=dict(color=VAR_GREY, size=11), linecolor=LINE,
+                    tickcolor=LINE, title=dict(text=t("var_axis", lang),
+                                               font=dict(color=VAR_GREY, size=11)))
+    return _base(fig, lang, shapes=_risk_off_shapes(bt.position),
+                 yaxis2=var_axis if "var_1d" in bt else None)
 
 
 def drawdown_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,

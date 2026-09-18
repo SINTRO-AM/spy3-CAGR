@@ -38,7 +38,8 @@ python app.py                            # Dashboard lokal
 * Kopfzeile: SINTRO-Logo, Signal-Button (Risk On grün / Risk Off rot) mit den Faktoren Risk,
   Momentum und Mean-Reversion (Klick zeigt die Werte) sowie Sprachmenü Deutsch/Englisch
   (Auswahl bleibt im Browser gespeichert)
-* Wert von 1.000 USD: SPY3 vor Gebühren (dünn, blau), SPY3 nach Gebühren (grün), S&P 500 und
+* Wert von 1.000 USD mit zweiter Werteachse links außen für den 1-Tages-VaR (99 %, grau
+  gestrichelt): SPY3 vor Gebühren (dünn, blau), SPY3 nach Gebühren (grün), S&P 500 und
   klassisches 60/40-Portfolio; rot markierte Risk-Off-Phasen. Daneben die Kennzahlen in gleicher Höhe (Sharpe Ratio und Max. Drawdown hervorgehoben)
 * Darunter nebeneinander: maximaler Drawdown und Vorsprung gegenüber dem S&P 500 (Vermögen
   relativ zur Benchmark, z. B. 3,0x = dreifaches Endvermögen)
