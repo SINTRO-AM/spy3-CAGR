@@ -20,6 +20,23 @@ from .formatting import by_metric, pct
 from .i18n import t, term
 
 REQUIRED = {"matplotlib": "matplotlib", "reportlab": "reportlab", "xlsxwriter": "XlsxWriter"}
+FONT_DIR = Path(__file__).resolve().parent.parent / "assets" / "fonts"
+
+
+def _pdf_fonts() -> tuple[str, str]:
+    """Registriert Garet für das PDF, wenn die TTF-Dateien vorliegen; sonst Helvetica."""
+    reg, bold = FONT_DIR / "Garet-Regular.ttf", FONT_DIR / "Garet-Bold.ttf"
+    if not (reg.exists() and bold.exists()):
+        return "Helvetica", "Helvetica-Bold"
+    try:
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        if "Garet" not in pdfmetrics.getRegisteredFontNames():
+            pdfmetrics.registerFont(TTFont("Garet", str(reg)))
+            pdfmetrics.registerFont(TTFont("Garet-Bold", str(bold)))
+        return "Garet", "Garet-Bold"
+    except Exception:
+        return "Helvetica", "Helvetica-Bold"
 
 
 def missing_packages() -> list[str]:
@@ -30,6 +47,14 @@ def missing_packages() -> list[str]:
 def _mpl():
     import matplotlib
     matplotlib.use("Agg")
+    ttf = FONT_DIR / "Garet-Regular.ttf"
+    if ttf.exists():
+        try:
+            from matplotlib import font_manager
+            font_manager.fontManager.addfont(str(ttf))
+            matplotlib.rcParams["font.family"] = "Garet"
+        except Exception:
+            pass
     import matplotlib.dates as mdates
     import matplotlib.pyplot as plt
     return matplotlib, mdates, plt
@@ -167,10 +192,11 @@ def alpha_png(bt: pd.DataFrame, lang: str) -> io.BytesIO:
 def _table(data, lang, col_widths, highlight_rows=()):
     from reportlab.lib import colors
     from reportlab.platypus import Table, TableStyle
+    base, bold = _pdf_fonts()
     style = [
-        ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
-        ("FONTSIZE", (0, 0), (-1, -1), 8),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTNAME", (0, 0), (-1, -1), base),
+        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+        ("FONTNAME", (0, 0), (-1, 0), bold),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor(MUTED)),
         ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
         ("LINEBELOW", (0, 0), (-1, 0), 0.6, colors.HexColor(LINE)),
@@ -180,7 +206,7 @@ def _table(data, lang, col_widths, highlight_rows=()):
     ]
     for r in highlight_rows:
         style += [("TEXTCOLOR", (0, r), (-1, r), colors.HexColor(NAVY)),
-                  ("FONTNAME", (0, r), (-1, r), "Helvetica-Bold")]
+                  ("FONTNAME", (0, r), (-1, r), bold)]
     tbl = Table(data, colWidths=col_widths, hAlign="LEFT")
     tbl.setStyle(TableStyle(style))
     return tbl
@@ -202,12 +228,13 @@ def build_pdf(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str = "en",
     doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=16 * mm, bottomMargin=16 * mm,
                             leftMargin=18 * mm, rightMargin=18 * mm,
                             title=_t("title", lang), author="SINTRO Asset Management")
+    base, bold = _pdf_fonts()
     ss = getSampleStyleSheet()
-    h1 = ParagraphStyle("h1", parent=ss["Title"], fontName="Helvetica", fontSize=17,
+    h1 = ParagraphStyle("h1", parent=ss["Title"], fontName=base, fontSize=17,
                         textColor=colors.HexColor(INK), alignment=0, spaceAfter=2)
-    sub = ParagraphStyle("sub", parent=ss["Normal"], fontName="Helvetica", fontSize=8.5,
+    sub = ParagraphStyle("sub", parent=ss["Normal"], fontName=base, fontSize=9,
                          textColor=colors.HexColor(MUTED), leading=12)
-    h2 = ParagraphStyle("h2", parent=ss["Heading2"], fontName="Helvetica-Bold", fontSize=11,
+    h2 = ParagraphStyle("h2", parent=ss["Heading2"], fontName=bold, fontSize=11.5,
                         textColor=colors.HexColor(INK), spaceBefore=10, spaceAfter=4)
     small = ParagraphStyle("small", parent=sub, fontSize=7.5)
 
@@ -268,7 +295,7 @@ def build_pdf(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str = "en",
 
     def footer(canvas, doc_):
         canvas.saveState()
-        canvas.setFont("Helvetica", 7)
+        canvas.setFont(base, 7.5)
         canvas.setFillColor(colors.HexColor(MUTED))
         canvas.drawString(18 * mm, 10 * mm, "SINTRO Asset Management GmbH · www.sintro.eu")
         canvas.drawRightString(A4[0] - 18 * mm, 10 * mm, f"{doc_.page}")

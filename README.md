@@ -38,7 +38,7 @@ python app.py                            # Dashboard lokal
 * Kopfzeile: SINTRO-Logo, Signal-Button (Risk On grün / Risk Off rot) mit den Faktoren Risk,
   Momentum und Mean-Reversion (Klick zeigt die Werte) sowie Sprachmenü Deutsch/Englisch
   (Auswahl bleibt im Browser gespeichert)
-* Wert von 1.000 USD mit zweiter Werteachse links außen für den 1-Tages-VaR (99 %, grau
+* Wert von 1.000 USD mit zweiter Werteachse rechts für den 1-Tages-VaR (99 %, grau
   gestrichelt): SPY3 vor Gebühren (dünn, blau), SPY3 nach Gebühren (grün), S&P 500 und
   klassisches 60/40-Portfolio; rot markierte Risk-Off-Phasen. Daneben die Kennzahlen in gleicher Höhe (Sharpe Ratio und Max. Drawdown hervorgehoben)
 * Darunter nebeneinander: maximaler Drawdown und Vorsprung gegenüber dem S&P 500 (Vermögen
@@ -77,6 +77,13 @@ Die Attribution rechnet in Log-Punkten, weil sich nur so die Beiträge der Phase
 Gesamtwert addieren. Umrechnung: `exp(x)`. 110 Log-Punkte entsprechen dem 3,0-fachen Vermögen
 gegenüber der Benchmark, was zu Total Returns von 2.423 % und 737 % passt
 (25.225 / 8.367 = 3,01). Der Vorsprung-Chart zeigt deshalb das Vielfache, nicht die Log-Punkte.
+
+## Schrift
+
+Die Oberfläche nutzt **Garet**, mit Jost als Rückfall. Garet ist lizenzpflichtig und liegt
+deshalb nicht im Repository: Schriftdateien nach `assets/fonts/` legen (Details in der README
+dort), dann greifen sowohl Dashboard als auch PDF-Report automatisch darauf zu. Ohne die
+Dateien sieht alles aus wie bisher.
 
 ## Daten und Gebühren
 

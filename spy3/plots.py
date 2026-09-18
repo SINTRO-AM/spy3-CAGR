@@ -19,23 +19,23 @@ RISK_OFF_SOFT = "rgba(206, 62, 52, 0.09)"
 VAR_GREY = "#9AA3AF"
 NET = "#1F6B45"
 MIX = "#B38B4D"
-FONT = "Jost, 'Segoe UI', Helvetica, Arial, sans-serif"
+FONT = "Garet, Jost, 'Segoe UI', Helvetica, Arial, sans-serif"
 START = 1_000
 SEP = {"de": ",.", "en": ".,"}
 
 pio.templates["sintro"] = go.layout.Template(layout=dict(
-    font=dict(family=FONT, color=INK, size=13),
+    font=dict(family=FONT, color=INK, size=15),
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
     colorway=[NAVY, NET, SLATE, MIX],
     margin=dict(l=8, r=8, t=28, b=8),
     hovermode="x unified",
     hoverlabel=dict(bgcolor="white", bordercolor=LINE, font=dict(family=FONT, color=INK)),
-    legend=dict(orientation="h", yanchor="bottom", y=1.01, x=0, font=dict(color=MUTED),
-                bgcolor="rgba(0,0,0,0)"),
+    legend=dict(orientation="h", yanchor="bottom", y=1.01, x=0,
+                font=dict(color=MUTED, size=14), bgcolor="rgba(0,0,0,0)"),
     xaxis=dict(showgrid=False, linecolor=LINE, tickcolor=LINE, ticks="outside",
-               tickfont=dict(color=MUTED), zeroline=False, automargin=True),
-    yaxis=dict(gridcolor=LINE, zeroline=False, tickfont=dict(color=MUTED), ticks="",
-               automargin=True),
+               tickfont=dict(color=MUTED, size=13), zeroline=False, automargin=True),
+    yaxis=dict(gridcolor=LINE, zeroline=False, tickfont=dict(color=MUTED, size=13),
+               ticks="", automargin=True),
 ))
 TEMPLATE = "sintro"
 
@@ -84,15 +84,15 @@ def wealth_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
     wide = hi / lo > 4
     fig.update_yaxes(type="log" if log else "linear", tickformat=",.0f",
                      dtick="D2" if log and wide else None)
-    fig.update_xaxes(showline=True, domain=[0.115, 1.0])
-    # Zweite Wertachse links außen für den VaR; die Hauptachse rückt dafür nach rechts
-    var_axis = dict(overlaying="y", side="left", anchor="free", position=0.0,
-                    showgrid=False, zeroline=False, rangemode="tozero",
-                    tickformat=".0%", ticks="outside", ticklen=3, dtick=0.02,
+    fig.update_xaxes(showline=True)
+    # Zweite Wertachse rechts für den VaR
+    var_axis = dict(overlaying="y", side="right", showgrid=False, zeroline=False,
+                    rangemode="tozero", tickformat=".0%", ticks="outside", ticklen=3,
+                    dtick=0.02, automargin=True,
                     range=[0, float(bt.var_1d.max()) * 1.15] if "var_1d" in bt else None,
-                    tickfont=dict(color=VAR_GREY, size=11), linecolor=LINE,
+                    tickfont=dict(color=VAR_GREY, size=13), linecolor=LINE,
                     tickcolor=LINE, title=dict(text=t("var_axis", lang),
-                                               font=dict(color=VAR_GREY, size=11)))
+                                               font=dict(color=VAR_GREY, size=13)))
     return _base(fig, lang, shapes=_risk_off_shapes(bt.position),
                  yaxis2=var_axis if "var_1d" in bt else None)
 
@@ -151,7 +151,7 @@ def relative_chart(bt: pd.DataFrame, lang: str = "de") -> go.Figure:
                       fillcolor=SLATE, opacity=0.1, line_width=0,
                       annotation_text=term(n.split(" ")[0], lang),
                       annotation_position="top left",
-                      annotation_font=dict(size=11, color=MUTED))
+                      annotation_font=dict(size=13, color=MUTED))
     fig.add_hline(y=1, line=dict(color=LINE, width=1))
     wide = ratio.max() / ratio.min() > 4
     return _base(fig, lang, yaxis_type="log", yaxis_dtick="D2" if wide else None,

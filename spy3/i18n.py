@@ -57,8 +57,7 @@ TXT: dict[str, tuple[str, str]] = {
     "gross": ("SPY3 vor Gebühren", "SPY3 before fees"),
     "net": ("SPY3 nach Gebühren", "SPY3 after fees"),
     "riskoff": ("Risk-Off", "Risk off"),
-    "var_line": ("1-Tages-VaR 99 % (zweite Achse links)",
-                 "1-day VaR 99% (second axis, left)"),
+    "var_line": ("1-Tages-VaR 99 % (rechte Achse)", "1-day VaR 99% (right axis)"),
     "var_axis": ("1-Tages-VaR 99 %", "1-day VaR 99%"),
     "fees_note": ("Gebühren: {mgmt} Managementgebühr p.a. und {perf} Performancegebühr über "
                   "High-Water-Mark und SPY-Hurdle, quartalsweise abgerechnet.",
