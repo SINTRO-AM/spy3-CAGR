@@ -24,17 +24,17 @@ START = 1_000
 SEP = {"de": ",.", "en": ".,"}
 
 pio.templates["sintro"] = go.layout.Template(layout=dict(
-    font=dict(family=FONT, color=INK, size=15),
+    font=dict(family=FONT, color=INK, size=17),
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
     colorway=[NAVY, NET, SLATE, MIX],
     margin=dict(l=8, r=8, t=28, b=8),
     hovermode="x unified",
     hoverlabel=dict(bgcolor="white", bordercolor=LINE, font=dict(family=FONT, color=INK)),
     legend=dict(orientation="h", yanchor="bottom", y=1.01, x=0,
-                font=dict(color=MUTED, size=14), bgcolor="rgba(0,0,0,0)"),
+                font=dict(color=MUTED, size=16), bgcolor="rgba(0,0,0,0)"),
     xaxis=dict(showgrid=False, linecolor=LINE, tickcolor=LINE, ticks="outside",
-               tickfont=dict(color=MUTED, size=13), zeroline=False, automargin=True),
-    yaxis=dict(gridcolor=LINE, zeroline=False, tickfont=dict(color=MUTED, size=13),
+               tickfont=dict(color=MUTED, size=15), zeroline=False, automargin=True),
+    yaxis=dict(gridcolor=LINE, zeroline=False, tickfont=dict(color=MUTED, size=15),
                ticks="", automargin=True),
 ))
 TEMPLATE = "sintro"
@@ -90,9 +90,9 @@ def wealth_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
                     rangemode="tozero", tickformat=".0%", ticks="outside", ticklen=3,
                     dtick=0.02, automargin=True,
                     range=[0, float(bt.var_1d.max()) * 1.15] if "var_1d" in bt else None,
-                    tickfont=dict(color=VAR_GREY, size=13), linecolor=LINE,
+                    tickfont=dict(color=VAR_GREY, size=15), linecolor=LINE,
                     tickcolor=LINE, title=dict(text=t("var_axis", lang),
-                                               font=dict(color=VAR_GREY, size=13)))
+                                               font=dict(color=VAR_GREY, size=15)))
     return _base(fig, lang, shapes=_risk_off_shapes(bt.position),
                  yaxis2=var_axis if "var_1d" in bt else None)
 
@@ -151,7 +151,7 @@ def relative_chart(bt: pd.DataFrame, lang: str = "de") -> go.Figure:
                       fillcolor=SLATE, opacity=0.1, line_width=0,
                       annotation_text=term(n.split(" ")[0], lang),
                       annotation_position="top left",
-                      annotation_font=dict(size=13, color=MUTED))
+                      annotation_font=dict(size=15, color=MUTED))
     fig.add_hline(y=1, line=dict(color=LINE, width=1))
     wide = ratio.max() / ratio.min() > 4
     return _base(fig, lang, yaxis_type="log", yaxis_dtick="D2" if wide else None,
