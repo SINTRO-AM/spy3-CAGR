@@ -27,30 +27,18 @@ BT = R["bt"]
 ASSET_RETURNS = load_assets()
 
 
-def treasury_benchmark() -> tuple[pd.Series | None, dict]:
-    """Bloomberg-Treasury-Index als Vergleichsreihe; nach Datenende mit GOVT-ETF
-    (sonst SHY) fortgeführt, damit die Reihe den ganzen Backtest abdeckt."""
-    if "treasury" not in BT or BT["treasury"].notna().sum() < 250:
-        return None, {}
-    tr = BT["treasury"].copy()
-    last = tr.last_valid_index()
-    info = {"end": last, "splice": None}
-    if last is not None and last < BT.index[-1]:
-        if "US Treasuries (GOVT)" in ASSET_RETURNS:
-            filler = ASSET_RETURNS["US Treasuries (GOVT)"].reindex(BT.index)
-            info["splice"] = "GOVT ETF"
-        else:
-            filler = BT["ret_off"]
-            info["splice"] = "SHY ETF"
-        tr = tr.where(tr.index <= last, filler)
-    tr = tr.fillna(0.0)
-    tr.iloc[0] = 0.0
-    return tr, info
+def shy_benchmark() -> tuple[pd.Series, dict]:
+    """SHY ETF als Vergleichsreihe: genau das Risk-Off-Bein der Strategie, also SHY
+    ab 07/2002 und davor dieselbe Näherung (Bloomberg-Treasury-Index bzw. T-Bills)."""
+    src = BT["risk_off_source"] if "risk_off_source" in BT else pd.Series("SHY", index=BT.index)
+    pre = src[src != "SHY"]
+    info = {"pre_end": pre.index[-1] if len(pre) else None,
+            "pre_src": (pre.iloc[0] if len(pre) else None)}
+    return BT["ret_off"].fillna(0.0), info
 
 
-TSY_SERIES, TSY_INFO = treasury_benchmark()
-if TSY_SERIES is not None:
-    R["mixes"]["Treasury"] = TSY_SERIES
+TSY_SERIES, TSY_INFO = shy_benchmark()
+R["mixes"]["Treasury"] = TSY_SERIES
 LAST = BT.index[-1]
 PERIODS = {"all": None, "10": 10, "5": 5, "3": 3, "1": 1}
 STATE_CLS = {ON: "on", OFF: "off"}
@@ -393,10 +381,10 @@ def update_main(period, scale, mgmt, perf, lang, vw):
                 "S&P 500": tip("col_bm", lang), "60/40": tip("col_mix", lang),
                 t("tsy_label", lang): tip("col_tsy", lang)}
     tsy_note = ""
-    if TSY_SERIES is not None:
-        tsy_note = (t("tsy_note_full", lang) if not TSY_INFO.get("splice") else
-                    t("tsy_note_splice", lang, d=f"{TSY_INFO['end']:%m/%Y}",
-                      x=TSY_INFO["splice"]))
+    if TSY_INFO.get("pre_end") is not None:
+        src = {"LUATTRUU": "Bloomberg US Treasury Index", "T-Bill": "13-week T-bills"}.get(
+            TSY_INFO["pre_src"], TSY_INFO["pre_src"])
+        tsy_note = t("tsy_note_splice", lang, d=f"{TSY_INFO['pre_end']:%m/%Y}", x=src)
     kpis = [table(tbl, lang, highlight=hl, emphasis=KPI_EMPHASIS, wrap_cls="fill",
                   tips=col_tips),
             html.P(t("kpi_note", lang) + (" " + tsy_note if tsy_note else ""),

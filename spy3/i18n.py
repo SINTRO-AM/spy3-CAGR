@@ -54,17 +54,13 @@ TXT: dict[str, tuple[str, str]] = {
     "perf": ("Wert einer Investition von 1.000 USD", "Value of a $1,000 investment"),
     "perf_note": ("Rot hinterlegt: Strategie hält SHY ETF (kurzlaufende US-T-Bills)",
                   "Red shading: strategy holds SHY ETF (short-term US T-Bills)"),
-    "tsy_label": ("Treasury-Index", "Treasury index"),
-    "tsy_note_full": ("Treasury-Index: Bloomberg US Treasury Total Return Index (LUATTRUU).",
-                      "Treasury index: Bloomberg US Treasury Total Return Index (LUATTRUU)."),
-    "tsy_note_splice": ("Treasury-Index: Bloomberg US Treasury Total Return Index (LUATTRUU) "
-                        "bis {d}, danach fortgeführt mit {x}.",
-                        "Treasury index: Bloomberg US Treasury Total Return Index (LUATTRUU) "
-                        "to {d}, continued with {x} thereafter."),
-    "col_tsy": ("Bloomberg US Treasury Total Return Index, alle Laufzeiten. Nach Ende der "
-                "Bloomberg-Daten mit einem Treasury-ETF fortgeführt.",
-                "Bloomberg US Treasury Total Return Index, all maturities. Continued with a "
-                "Treasury ETF after the Bloomberg data ends."),
+    "tsy_label": ("SHY ETF", "SHY ETF"),
+    "tsy_note_splice": ("SHY ETF: bis {d} ersetzt durch {x}, danach der ETF selbst.",
+                        "SHY ETF: {x} up to {d}, the ETF itself thereafter."),
+    "col_tsy": ("SHY ETF (US-Staatsanleihen 1–3 Jahre), das Risk-Off-Instrument der "
+                "Strategie. Vor 07/2002 Bloomberg US Treasury Index.",
+                "SHY ETF (US Treasuries 1–3 years), the strategy's risk-off instrument. "
+                "Bloomberg US Treasury index before 07/2002."),
     "gross": ("SPY3 vor Gebühren", "SPY3 before fees"),
     "net": ("SPY3 nach Gebühren", "SPY3 after fees"),
     "riskoff": ("Risk-Off", "Risk off"),
