@@ -94,6 +94,10 @@ Dateien sieht alles aus wie bisher.
   Dezimalkomma, Tab-getrennt) und liegt wegen der Bloomberg-Lizenz nicht im Repository.
   Fehlt sie, greifen 13-Wochen-T-Bills (`^IRX`), danach 0 %. Die Spalte `risk_off_source`
   im Excel-Export zeigt je Tag, welche Quelle gilt.
+* **Treasury-Index als Vergleichsreihe:** Liegt die Bloomberg-Datei vor, erscheint der Index
+  zusätzlich als Spalte in der Kennzahlentabelle und als Linie in Vermögens-, Drawdown- und
+  Vorsprung-Chart. Nach dem Ende der Bloomberg-Daten wird die Reihe mit dem GOVT-ETF
+  fortgeführt (wenn über `load_assets()` geladen), sonst mit SHY; die Fußnote nennt das Datum.
 * **Managementgebühr:** 0,2 % p.a., täglich abgegrenzt.
 * **Performancegebühr (`spy3/fees.py`):** 10 % auf den Wertzuwachs über max(High-Water-Mark,
   Hurdle). Die Hurdle ist die HWM, fortgeschrieben mit dem SPY Total Return seit der letzten

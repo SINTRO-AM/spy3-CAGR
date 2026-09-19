@@ -24,6 +24,33 @@ PARAMS = StrategyParams()
 
 R = build(load_prices(), PARAMS.cost_bps)
 BT = R["bt"]
+ASSET_RETURNS = load_assets()
+
+
+def treasury_benchmark() -> tuple[pd.Series | None, dict]:
+    """Bloomberg-Treasury-Index als Vergleichsreihe; nach Datenende mit GOVT-ETF
+    (sonst SHY) fortgeführt, damit die Reihe den ganzen Backtest abdeckt."""
+    if "treasury" not in BT or BT["treasury"].notna().sum() < 250:
+        return None, {}
+    tr = BT["treasury"].copy()
+    last = tr.last_valid_index()
+    info = {"end": last, "splice": None}
+    if last is not None and last < BT.index[-1]:
+        if "US Treasuries (GOVT)" in ASSET_RETURNS:
+            filler = ASSET_RETURNS["US Treasuries (GOVT)"].reindex(BT.index)
+            info["splice"] = "GOVT ETF"
+        else:
+            filler = BT["ret_off"]
+            info["splice"] = "SHY ETF"
+        tr = tr.where(tr.index <= last, filler)
+    tr = tr.fillna(0.0)
+    tr.iloc[0] = 0.0
+    return tr, info
+
+
+TSY_SERIES, TSY_INFO = treasury_benchmark()
+if TSY_SERIES is not None:
+    R["mixes"]["Treasury"] = TSY_SERIES
 LAST = BT.index[-1]
 PERIODS = {"all": None, "10": 10, "5": 5, "3": 3, "1": 1}
 STATE_CLS = {ON: "on", OFF: "off"}
@@ -47,7 +74,8 @@ def slice_bt(period: str, lang: str):
     yrs = PERIODS.get(period)
     start = BT.index[0] if yrs is None else LAST - pd.DateOffset(years=yrs)
     b = BT.loc[start:]
-    mixes = {n: s.loc[start:] for n, s in R["mixes"].items()}
+    mixes = {(t("tsy_label", lang) if n == "Treasury" else n): s.loc[start:]
+             for n, s in R["mixes"].items()}
     return b, mixes
 
 
@@ -362,15 +390,21 @@ def update_main(period, scale, mgmt, perf, lang, vw):
     hl = (t("col_gross", lang), t("col_net", lang))
     col_tips = {t("col_gross", lang): tip("col_gross", lang),
                 t("col_net", lang): tip("col_net", lang),
-                "S&P 500": tip("col_bm", lang), "60/40": tip("col_mix", lang)}
+                "S&P 500": tip("col_bm", lang), "60/40": tip("col_mix", lang),
+                t("tsy_label", lang): tip("col_tsy", lang)}
+    tsy_note = ""
+    if TSY_SERIES is not None:
+        tsy_note = (t("tsy_note_full", lang) if not TSY_INFO.get("splice") else
+                    t("tsy_note_splice", lang, d=f"{TSY_INFO['end']:%m/%Y}",
+                      x=TSY_INFO["splice"]))
     kpis = [table(tbl, lang, highlight=hl, emphasis=KPI_EMPHASIS, wrap_cls="fill",
                   tips=col_tips),
-            html.P(t("kpi_note", lang), className="note small")]
+            html.P(t("kpi_note", lang) + (" " + tsy_note if tsy_note else ""),
+                   className="note small")]
     return (fig, kpis, dd, al, fee_txt, defs_txt,
             pct(mgmt / 100, 1, lang=lang), pct(perf / 100, 0, lang=lang))
 
 
-ASSET_RETURNS = load_assets()
 
 
 def risk_tab(b: pd.DataFrame, lang: str, compact: bool) -> html.Div:

@@ -20,6 +20,8 @@ RISK_OFF_SOFT = "rgba(206, 62, 52, 0.09)"
 VAR_GREY = "#9AA3AF"
 NET = "#1F6B45"
 MIX = "#B38B4D"
+MIX2 = "#7A8FB5"
+MIX_COLORS = [MIX, MIX2]
 FONT = "Garet, Jost, 'Segoe UI', Helvetica, Arial, sans-serif"
 START = 1_000
 SEP = {"de": ",.", "en": ".,"}
@@ -75,9 +77,10 @@ def wealth_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
     hov = "%{y:,.0f} USD"
     fig.add_scatter(x=bt.index, y=START * (1 + bt.ret_bm).cumprod(), name="S&P 500",
                     line=dict(color=SLATE, width=1.5), hovertemplate=hov)
-    for k, s in (extra or {}).items():
+    for i, (k, s) in enumerate((extra or {}).items()):
         fig.add_scatter(x=s.index, y=START * (1 + s).cumprod(), name=k,
-                        line=dict(color=MIX, width=1.4, dash="dot"), hovertemplate=hov)
+                        line=dict(color=MIX_COLORS[i % 2], width=1.4, dash="dot"),
+                        hovertemplate=hov)
     fig.add_scatter(x=bt.index, y=START * (1 + bt.ret_pf).cumprod(), name=t("gross", lang),
                     line=dict(color=NAVY, width=1.3), hovertemplate=hov)
     if "ret_pf_net" in bt:
@@ -113,9 +116,10 @@ def drawdown_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
     fig.add_scatter(x=bt.index, y=m.drawdown(bt.ret_bm), name="S&P 500",
                     line=dict(color=SLATE, width=1), fill="tozeroy",
                     fillcolor="rgba(140,150,165,0.12)", hovertemplate="%{y:.1%}")
-    for k, s in (extra or {}).items():
+    for i, (k, s) in enumerate((extra or {}).items()):
         fig.add_scatter(x=s.index, y=m.drawdown(s), name=k,
-                        line=dict(color=MIX, width=1.2, dash="dot"), hovertemplate="%{y:.1%}")
+                        line=dict(color=MIX_COLORS[i % 2], width=1.2, dash="dot"),
+                        hovertemplate="%{y:.1%}")
     fig.add_scatter(x=bt.index, y=m.drawdown(bt.ret_pf), name=t("gross", lang),
                     line=dict(color=NAVY, width=1.1), hovertemplate="%{y:.1%}")
     if "ret_pf_net" in bt:
@@ -135,9 +139,10 @@ def alpha_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
     fig = go.Figure()
     hov = "%{y:,.2f}x"
     wb = (1 + bt.ret_bm).cumprod()
-    for k, s in (extra or {}).items():
+    for i, (k, s) in enumerate((extra or {}).items()):
         fig.add_scatter(x=s.index, y=(1 + s).cumprod() / wb, name=k,
-                        line=dict(color=MIX, width=1.2, dash="dot"), hovertemplate=hov)
+                        line=dict(color=MIX_COLORS[i % 2], width=1.2, dash="dot"),
+                        hovertemplate=hov)
     fig.add_scatter(x=bt.index, y=(1 + bt.ret_pf).cumprod() / wb, name=t("gross", lang),
                     line=dict(color=NAVY, width=1.1), hovertemplate=hov)
     if "ret_pf_net" in bt:

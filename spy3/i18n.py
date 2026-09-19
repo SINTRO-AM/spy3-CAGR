@@ -52,8 +52,19 @@ TXT: dict[str, tuple[str, str]] = {
     "f_mr": ("Abstand zum {w}-Tage-Hoch: {v}", "Distance from {w}-day high: {v}"),
     # Hauptchart
     "perf": ("Wert einer Investition von 1.000 USD", "Value of a $1,000 investment"),
-    "perf_note": ("Rot hinterlegt: Strategie hält kurzlaufende US-T-Bills",
-                  "Red shading: strategy holds short-term US T-Bills"),
+    "perf_note": ("Rot hinterlegt: Strategie hält SHY ETF (kurzlaufende US-T-Bills)",
+                  "Red shading: strategy holds SHY ETF (short-term US T-Bills)"),
+    "tsy_label": ("Treasury-Index", "Treasury index"),
+    "tsy_note_full": ("Treasury-Index: Bloomberg US Treasury Total Return Index (LUATTRUU).",
+                      "Treasury index: Bloomberg US Treasury Total Return Index (LUATTRUU)."),
+    "tsy_note_splice": ("Treasury-Index: Bloomberg US Treasury Total Return Index (LUATTRUU) "
+                        "bis {d}, danach fortgeführt mit {x}.",
+                        "Treasury index: Bloomberg US Treasury Total Return Index (LUATTRUU) "
+                        "to {d}, continued with {x} thereafter."),
+    "col_tsy": ("Bloomberg US Treasury Total Return Index, alle Laufzeiten. Nach Ende der "
+                "Bloomberg-Daten mit einem Treasury-ETF fortgeführt.",
+                "Bloomberg US Treasury Total Return Index, all maturities. Continued with a "
+                "Treasury ETF after the Bloomberg data ends."),
     "gross": ("SPY3 vor Gebühren", "SPY3 before fees"),
     "net": ("SPY3 nach Gebühren", "SPY3 after fees"),
     "riskoff": ("Risk-Off", "Risk off"),

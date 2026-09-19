@@ -322,7 +322,8 @@ def build_xlsx(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str = "en") 
         "drawdown_spy": m.drawdown(bt.ret_bm).values,
     })
     for name, s in mixes.items():
-        daily[f"ret_{name.replace('/', '_')}"] = s.values
+        key = name.replace("/", "_").replace(" ", "_").replace("-", "_").lower()
+        daily[f"ret_{key}"] = s.reindex(bt.index).values
     cols = {"SPY3 gross": bt.ret_pf, "SPY3 net": bt.ret_pf_net, "S&P 500": bt.ret_bm, **mixes}
     kpi = m.summary_table(cols, bt.ret_bm, bt.ret_off)
     yearly = rb.yearly_excess(bt.ret_pf, bt.ret_bm)

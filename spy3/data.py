@@ -87,8 +87,9 @@ def prepare_returns(px: pd.DataFrame, treasury: pd.Series | None = None) -> pd.D
         treasury = load_treasury_index()
     if len(treasury):
         # Kurs auf die SPY-Handelstage bringen; fehlende Tage fortschreiben
-        tr_px = treasury.reindex(treasury.index.union(px.index)).ffill().reindex(px.index)
-        tr_ret = tr_px.pct_change()
+        tr_px = treasury.reindex(treasury.index.union(px.index)).ffill()
+        tr_px[tr_px.index > treasury.index.max()] = float("nan")   # nicht über das Ende hinaus
+        tr_ret = tr_px.reindex(px.index).pct_change()
     else:
         tr_ret = pd.Series(float("nan"), index=px.index)
     src = pd.Series("SHY", index=px.index)
@@ -112,7 +113,7 @@ ASSETS = {
     "Nasdaq 100": "QQQ", "Russell 2000": "IWM", "MSCI EAFE": "EFA",
     "Emerging Markets": "EEM", "US Aggregate Bonds": "AGG", "Long Treasuries": "TLT",
     "Gold": "GLD", "Commodities": "DBC", "REITs": "VNQ", "Investment Grade": "LQD",
-    "High Yield": "HYG",
+    "High Yield": "HYG", "US Treasuries (GOVT)": "GOVT",
 }
 ASSET_CACHE = CACHE.parent / "assets.csv"
 

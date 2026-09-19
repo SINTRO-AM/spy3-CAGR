@@ -241,8 +241,9 @@ def test_risk_off_priority_treasury_before_tbill():
                        "tbill_yield": 1.7}, index=idx)
     tr = pd.Series([200, 201, 202, 203], index=idx[:4])     # deckt nur die ersten Tage ab
     r = prepare_returns(px, treasury=tr)
-    # am ersten SHY-Kurstag gibt es noch keine SHY-Rendite -> Treasury-Index gilt dort noch
-    assert r.risk_off_source.tolist() == ["LUATTRUU"] * 4 + ["SHY", "SHY"]
+    # am ersten SHY-Kurstag gibt es noch keine SHY-Rendite; der Treasury-Index endet
+    # einen Tag vorher -> dort greift die T-Bill-Näherung
+    assert r.risk_off_source.tolist() == ["LUATTRUU"] * 3 + ["T-Bill", "SHY", "SHY"]
     assert r.risk_off.iloc[0] == pytest.approx(201 / 200 - 1)
     # ohne Treasury-Reihe fällt es auf T-Bills zurück
     r2 = prepare_returns(px, treasury=pd.Series(dtype=float))
@@ -259,3 +260,13 @@ def test_treasury_index_gaps_are_carried_forward():
     tr = pd.Series([100, 101, 103], index=[idx[0], idx[1], idx[3]])   # Tag 3 fehlt
     r = prepare_returns(px, treasury=tr)
     assert r.risk_off.tolist() == pytest.approx([0.01, 0.0, 103 / 101 - 1, 0.0])
+
+
+def test_treasury_series_ends_with_the_data():
+    from spy3.data import prepare_returns
+    idx = pd.bdate_range("2001-01-01", periods=6)
+    px = pd.DataFrame({"risk_on": 100.0, "risk_off": np.nan}, index=idx)
+    tr = pd.Series([100, 101, 102], index=idx[:3])
+    r = prepare_returns(px, treasury=tr)
+    assert r.treasury.notna().tolist() == [True, True, False, False, False]
+    assert r.risk_off_source.tolist() == ["LUATTRUU", "LUATTRUU", "none", "none", "none"]
