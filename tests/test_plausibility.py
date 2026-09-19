@@ -118,3 +118,48 @@ def test_sharpe_is_geometric(bt):
     # klassische (arithmetische) Variante liegt bei volatilen Reihen höher
     arith = bt.ret_bm.mean() / bt.ret_bm.std(ddof=1) * np.sqrt(m.TD)
     assert arith > m.sharpe(bt.ret_bm)
+
+
+# ---------- Risiko-Reiter ---------------------------------------------------
+from spy3 import risk as rk  # noqa: E402
+
+
+def test_var_ordering_and_definition(bt):
+    v = rk.var_table({"SPY3": bt.ret_pf})["SPY3"]
+    assert v["VaR 99%"] > v["VaR 95%"] > 0
+    assert v["CVaR 99%"] >= v["VaR 99%"] and v["CVaR 95%"] >= v["VaR 95%"]
+    assert v["Schlechtester Tag"] >= v["CVaR 99%"]
+    assert (bt.ret_pf < -v["VaR 95%"]).mean() == pytest.approx(0.05, abs=0.005)
+
+
+def test_var_backtest_expectation(bt):
+    res = rk.var_backtest(bt.ret_pf, level=0.99, window=250)
+    assert res["expected"] == pytest.approx(res["n"] * 0.01)
+    assert 0 <= res["rate"] <= 0.2
+
+
+def test_stress_table_matches_direct_computation(bt):
+    st = rk.stress_table({"SPY3": bt.ret_pf, "S&P 500": bt.ret_bm})
+    a, b_ = rk.WINDOWS["GFC 2007–09"]
+    assert st.loc["GFC 2007–09", "SPY3"] == pytest.approx(m.total_return(bt.ret_pf.loc[a:b_]))
+    assert st.loc["GFC 2007–09", "MaxDD"] <= 0
+
+
+def test_monte_carlo_is_ordered_and_deterministic(bt):
+    paths = rk.monte_carlo(bt.ret_pf, horizon=60, n_paths=300)
+    last = paths.iloc[-1]
+    assert last["P5"] < last["P25"] < last["P50"] < last["P75"] < last["P95"]
+    pd.testing.assert_frame_equal(paths, rk.monte_carlo(bt.ret_pf, horizon=60, n_paths=300))
+    stats = rk.monte_carlo_stats(bt.ret_pf, horizon=60, n_paths=300)
+    assert 0 <= stats["loss_prob"] <= 1 and stats["avg_dd"] <= 0
+    assert stats["p5"] < stats["p50"] < stats["p95"]
+
+
+def test_correlation_and_beta_tables(bt):
+    mix = rb.static_mix(bt.ret_bm, bt.ret_off, 0.6)
+    c = rk.correlation({"SPY3": bt.ret_pf, "S&P 500": bt.ret_bm, "60/40": mix})
+    assert np.allclose(np.diag(c), 1.0) and np.allclose(c.to_numpy(), c.to_numpy().T)
+    assert ((c >= -1) & (c <= 1)).all().all()
+    b_tbl = rk.beta_table(bt.ret_pf, {"S&P 500": bt.ret_bm, "60/40": mix})
+    _, beta = m.alpha_beta(bt.ret_pf, bt.ret_bm)
+    assert b_tbl.loc["S&P 500", "Beta"] == pytest.approx(beta, rel=1e-6)

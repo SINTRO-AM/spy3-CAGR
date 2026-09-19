@@ -322,6 +322,8 @@ p { margin: 0; }
   .graph-box--main { height: 330px; }
   .graph-box--side, .graph-box--tab { height: 270px; }
   .graph-box--bars { height: 230px; }
+  .graph-box--mc { height: 260px; }
+  .graph-box--corr { height: 460px; }
   .tbl { font-size: .88rem; }
   .tbl th, .tbl td { padding: 6px 5px; }
   .kpi-panel { padding: 14px 12px; }

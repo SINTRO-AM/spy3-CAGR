@@ -9,10 +9,11 @@ from dash import Dash, Input, Output, State, ctx, dcc, html, no_update
 from scripts.run_report import build
 from functools import lru_cache
 
-from spy3 import metrics as m, plots, report as rp, robustness as rb, rolling as rl
+from spy3 import (metrics as m, plots, report as rp, risk as rk, robustness as rb,
+                  rolling as rl)
 from functools import lru_cache
 
-from spy3.data import load_prices
+from spy3.data import load_assets, load_prices
 from spy3.fees import apply_fees
 from spy3.formatting import by_metric, dec, pct
 from spy3.i18n import LANGS, t, term, tip
@@ -251,7 +252,7 @@ def page(lang: str) -> list:
         dcc.Tabs(id="analysis-tabs2", value="roll", className="tabs", mobile_breakpoint=0,
                  children=[
             tab("t_roll", "roll"), tab("t_gap", "gap"),
-            tab("t_ex", "ex"), tab("t_years", "years"), tab("t_timing", "timing"),
+            tab("t_ex", "ex"), tab("t_years", "years"), tab("t_risk", "risk"), tab("t_timing", "timing"),
         ], **PERSIST),
         html.Div(id="tab-body", className="tab-body"),
     ]
@@ -263,8 +264,8 @@ server = app.server
 
 app.layout = html.Div([
     dcc.Store(id="lang-pref", storage_type="local", data="en"),
-    dcc.Store(id="viewport", data=1200),
-    dcc.Interval(id="viewport-tick", interval=1500, n_intervals=0),
+    dcc.Store(id="viewport", data="wide"),
+    dcc.Interval(id="viewport-tick", interval=2000, n_intervals=0),
     html.Header([
         html.A(html.Img(src=app.get_asset_url("sintro-logo.png"),
                         alt="SINTRO Asset Management", className="logo"),
@@ -292,9 +293,15 @@ def choose_lang(_de, _en):
 
 
 # Bildschirmbreite melden, damit Charts auf Smartphones kompakter gezeichnet werden
+# Nur die Stufe melden (kompakt/breit), nicht die Pixelbreite: sonst löst jede
+# Pixeländerung ein Neuzeichnen der Reiterinhalte aus und der Chart flackert.
 app.clientside_callback(
-    "function(_) { return window.innerWidth; }",
-    Output("viewport", "data"), Input("viewport-tick", "n_intervals"))
+    """function(_, current) {
+        const mode = window.innerWidth < 820 ? "compact" : "wide";
+        return mode === current ? window.dash_clientside.no_update : mode;
+    }""",
+    Output("viewport", "data"), Input("viewport-tick", "n_intervals"),
+    State("viewport", "data"))
 
 
 # Menü nach Auswahl schließen (natives <details>, daher clientseitig)
@@ -337,7 +344,7 @@ def net_series(mgmt_pct: float, perf_pct: float) -> pd.Series:
               Input("mgmt-fee", "value"), Input("perf-fee", "value"),
               Input("lang-pref", "data"), Input("viewport", "data"))
 def update_main(period, scale, mgmt, perf, lang, vw):
-    compact = (vw or 1200) < 820
+    compact = vw == "compact"
     mgmt = PARAMS.mgmt_fee * 100 if mgmt is None else float(mgmt)
     perf = PARAMS.perf_fee * 100 if perf is None else float(perf)
     b, mixes = slice_bt(period, lang)
@@ -363,13 +370,79 @@ def update_main(period, scale, mgmt, perf, lang, vw):
             pct(mgmt / 100, 1, lang=lang), pct(perf / 100, 0, lang=lang))
 
 
+ASSET_RETURNS = load_assets()
+
+
+def risk_tab(b: pd.DataFrame, lang: str, compact: bool) -> html.Div:
+    """Stresstests, VaR, Monte-Carlo und Korrelationen zu anderen Anlageklassen."""
+    net, bm = b.ret_pf_net, b.ret_bm
+    series = {t("net", lang): net, "S&P 500": bm,
+              "60/40": rb.static_mix(bm, b.ret_off, 0.60)}
+    stress = rk.stress_table(series)
+    stress.columns = list(series) + ["MaxDD"]
+    var = rk.var_table(series)
+    res = rk.var_backtest(net)
+    lbl = {"n": ("Beobachtungen", "Observations"), "breaches": ("Überschreitungen", "Breaches"),
+           "expected": ("Erwartet", "Expected"), "rate": ("Quote", "Rate"),
+           "lr": ("Kupiec-LR", "Kupiec LR")}
+    i = 1 if lang == "en" else 0
+    bt_tbl = pd.DataFrame({"SPY3": {
+        lbl["n"][i]: dec(res["n"], 0, lang=lang),
+        lbl["breaches"][i]: dec(res["breaches"], 0, lang=lang),
+        lbl["expected"][i]: dec(res["expected"], 0, lang=lang),
+        lbl["rate"][i]: pct(res["rate"], 2, lang=lang),
+        lbl["lr"][i]: dec(res["lr"], lang=lang)}})
+    mc = rk.monte_carlo_stats(net)
+    mc_lbl = {"p5": ("P5", "P5"), "p50": ("Median", "Median"), "p95": ("P95", "P95"),
+              "loss_prob": ("Verlustwahrscheinlichkeit", "Probability of a loss"),
+              "avg_dd": ("Ø max. Drawdown", "Average max. drawdown"),
+              "dd20_prob": ("P(Drawdown > 20 %)", "P(drawdown > 20%)")}
+    mc_tbl = pd.DataFrame({"SPY3": {mc_lbl[k][i]: v for k, v in mc.items()}})
+
+    assets = {}
+    if not ASSET_RETURNS.empty:
+        sl = ASSET_RETURNS.loc[b.index[0]:b.index[-1]]
+        assets = {c: sl[c] for c in sl.columns if sl[c].notna().sum() > 60}
+    corr = rk.correlation({**series, **assets})
+    corr_block = [graph_box("corr", fig=plots.corr_heatmap(corr, lang, compact))]
+    if not assets:
+        corr_block.append(html.P(t("corr_missing", lang), className="note small"))
+
+    parts = [
+        section(t("stress_title", lang), t("stress_note", lang),
+                graph(plots.stress_bars(stress, lang, compact)),
+                table(stress, lang, fmt=lambda i_, v: pct(v, lang=lang),
+                      row_label=t("phase", lang), highlight=(t("net", lang),))),
+        section(t("var_title", lang), t("var_note", lang),
+                table(var, lang, fmt=lambda i_, v: pct(v, 2, lang=lang),
+                      highlight=(t("net", lang),)),
+                graph_box("bars", fig=plots.return_hist(
+                    net, var.loc["VaR 95%"].iloc[0], var.loc["VaR 99%"].iloc[0],
+                    lang, compact))),
+        section(t("mc_title", lang), t("mc_note", lang),
+                graph_box("mc", fig=plots.mc_fan(rk.monte_carlo(net), lang, compact)),
+                table(mc_tbl, lang, fmt=lambda i_, v: pct(v, lang=lang), wrap_cls="narrow")),
+        section(t("corr_title", lang), t("corr_note", lang), *corr_block),
+        section(t("var_bt_title", lang), t("var_bt_note", lang),
+                table(bt_tbl, lang, fmt=lambda i_, v: v, wrap_cls="narrow")),
+    ]
+    if assets:
+        beta = rk.beta_table(net, assets)
+        beta.columns = ["Beta", "Korrelation" if lang == "de" else "Correlation"]
+        parts.append(section(t("beta_title", lang), t("beta_note", lang),
+                             table(beta, lang, fmt=lambda i_, v: dec(v, lang=lang))))
+    return html.Div(parts, className="two-col")
+
+
 @app.callback(Output("tab-body", "children"), Input("analysis-tabs2", "value"),
               Input("period", "value"), Input("lang-pref", "data"),
               Input("viewport", "data"))
 def update_tab(tab, period, lang, vw):
-    compact = (vw or 1200) < 820
+    compact = vw == "compact"
     b, _ = slice_bt(period, lang)
     pf, bm = b.ret_pf, b.ret_bm
+    if tab == "risk":
+        return risk_tab(b, lang, compact)
     if tab == "gap":
         att = rb.attribution(pf, bm)
         att.columns = [t("excess_log", lang), t("share", lang)]
@@ -449,7 +522,7 @@ def _rolling(key: str, metric: str, years: int) -> pd.Series:
               Input("period", "value"), Input("lang-pref", "data"),
               Input("viewport", "data"))
 def update_rolling(metric, years, period, lang, vw):
-    compact = (vw or 1200) < 820
+    compact = vw == "compact"
     metric = metric if metric in rl.METRICS else "sharpe"
     years = int(years or 3)
     b, _ = slice_bt(period, lang)

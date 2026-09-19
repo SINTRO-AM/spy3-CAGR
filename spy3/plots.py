@@ -1,6 +1,7 @@
 """Plotly-Charts im SINTRO-Stil (zweisprachig)."""
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -218,3 +219,72 @@ def rolling_chart(series: dict[str, pd.Series], fmt: str, zero_line: bool,
         fig.add_hline(y=0, line=dict(color=INK, width=1))
     fig.update_yaxes(tickformat=tick)
     return _base(fig, lang, compact)
+
+
+HEAT = [[0, "#B03A2E"], [0.5, "#F4F6F9"], [1, "#12603C"]]
+
+
+def mc_fan(paths: pd.DataFrame, lang: str = "de", compact: bool = False) -> go.Figure:
+    """Monte-Carlo-Perzentilpfade als Fächer."""
+    x = paths.index
+    fig = go.Figure()
+    for lo, hi, a in (("P5", "P95", 0.10), ("P25", "P75", 0.20)):
+        fig.add_scatter(x=x, y=paths[hi], line=dict(width=0), showlegend=False,
+                        hoverinfo="skip")
+        fig.add_scatter(x=x, y=paths[lo], line=dict(width=0), fill="tonexty",
+                        fillcolor=f"rgba(0,50,116,{a})", name=f"{lo}–{hi}",
+                        hovertemplate="%{y:,.2f}x")
+    fig.add_scatter(x=x, y=paths["P50"], line=dict(color=NAVY, width=2), name="P50",
+                    hovertemplate="%{y:,.2f}x")
+    fig.add_hline(y=1, line=dict(color=INK, width=1))
+    fig.update_yaxes(tickformat=",.2f", ticksuffix="x")
+    fig.update_xaxes(title=t("mc_x", lang))
+    return _base(fig, lang, compact, height=320)
+
+
+def corr_heatmap(c: pd.DataFrame, lang: str = "de", compact: bool = False) -> go.Figure:
+    z = c.to_numpy(dtype=float)
+    txt = [[("–" if not np.isfinite(v) else
+             (f"{v:,.2f}".replace(".", ",") if lang == "de" else f"{v:,.2f}"))
+            for v in row] for row in z]
+    fig = go.Figure(go.Heatmap(z=z, x=list(c.columns), y=list(c.index), text=txt,
+                               texttemplate="%{text}",
+                               textfont=dict(size=10 if compact else 12),
+                               colorscale=HEAT, zmid=0, zmin=-1, zmax=1, xgap=2, ygap=2,
+                               showscale=False,
+                               hovertemplate="%{y} / %{x}: %{z:.2f}<extra></extra>"))
+    fig.update_yaxes(autorange="reversed")
+    fig.update_xaxes(side="bottom", tickangle=-40)
+    return _base(fig, lang, compact, hovermode="closest",
+                 height=max(260, 30 * len(c) + 120),
+                 margin=dict(l=8, r=8, t=10, b=8))
+
+
+def return_hist(r: pd.Series, var95: float, var99: float, lang: str = "de",
+                compact: bool = False) -> go.Figure:
+    """Verteilung der Tagesrenditen mit den VaR-Schwellen."""
+    sp = "" if lang == "en" else " "
+    fig = go.Figure(go.Histogram(x=r, nbinsx=90, marker_color=NAVY, opacity=0.8,
+                                 hovertemplate="%{x:.2%}: %{y}<extra></extra>"))
+    for v, name, col in ((-var95, f"VaR 95{sp}%", MIX), (-var99, f"VaR 99{sp}%", "#C53A30")):
+        fig.add_vline(x=v, line=dict(color=col, width=1.4, dash="dash"),
+                      annotation_text=name, annotation_position="top left",
+                      annotation_font=dict(size=12, color=col))
+    fig.update_xaxes(tickformat=".0%", range=[r.quantile(0.002), r.quantile(0.998)])
+    fig.update_yaxes(title=None)
+    return _base(fig, lang, compact, height=300, showlegend=False, hovermode="closest")
+
+
+def stress_bars(st: pd.DataFrame, lang: str = "de", compact: bool = False) -> go.Figure:
+    """Rendite je Stressfenster als Balken (SPY3 gegen Benchmark)."""
+    cols = [c for c in st.columns if c != "MaxDD"][:3]
+    colors = {0: NET, 1: SLATE, 2: MIX}
+    fig = go.Figure()
+    for i, c in enumerate(cols):
+        fig.add_bar(y=[term(i2, lang) for i2 in st.index], x=st[c], name=c,
+                    orientation="h", marker_color=colors.get(i, SLATE),
+                    hovertemplate="%{x:+.1%}<extra></extra>")
+    fig.update_xaxes(tickformat="+.0%", zeroline=True, zerolinecolor=INK, zerolinewidth=1)
+    fig.update_yaxes(autorange="reversed")
+    return _base(fig, lang, compact, barmode="group", bargap=0.25,
+                 height=max(280, 34 * len(st) + 80), hovermode="closest")

@@ -80,6 +80,48 @@ TXT: dict[str, tuple[str, str]] = {
     "t_ex": ("Ohne Krisen", "Excluding crises"),
     "t_years": ("Kalenderjahre", "Calendar years"),
     "t_timing": ("Timing-Test", "Timing test"),
+    "t_risk": ("Risiko", "Risk"),
+    "mc_x": ("Handelstage", "Trading days"),
+    "stress_title": ("Stresstests", "Stress tests"),
+    "stress_note": ("Wertentwicklung in historischen Stressfenstern. MaxDD ist der tiefste "
+                    "Rückgang von SPY3 netto innerhalb des Fensters.",
+                    "Performance in historical stress windows. MaxDD is the deepest decline "
+                    "of SPY3 net within the window."),
+    "var_title": ("Value-at-Risk", "Value at risk"),
+    "var_note": ("Historischer VaR und CVaR (Expected Shortfall) auf Tagesbasis, als Verlust "
+                 "angegeben. CVaR ist der Mittelwert jenseits der VaR-Schwelle.",
+                 "Historical VaR and CVaR (expected shortfall) on a daily basis, stated as a "
+                 "loss. CVaR is the average beyond the VaR threshold."),
+    "var_hist_title": ("Verteilung der Tagesrenditen", "Distribution of daily returns"),
+    "var_hist_note": ("SPY3 netto, mit den VaR-Schwellen.",
+                      "SPY3 net, with the VaR thresholds."),
+    "var_bt_title": ("VaR-Backtest (Kupiec)", "VaR backtest (Kupiec)"),
+    "var_bt_note": ("Wie oft überschritt der Tagesverlust den rollierenden 99-%-VaR über 250 "
+                    "Tage? Erwartet wird 1 % der Tage. Ein LR-Wert über 3,84 verwirft das "
+                    "Modell auf dem 5-%-Niveau.",
+                    "How often did the daily loss exceed the rolling 99% VaR over 250 days? "
+                    "1% of days is expected. An LR value above 3.84 rejects the model at the "
+                    "5% level."),
+    "mc_title": ("Monte-Carlo, 1 Jahr", "Monte Carlo, 1 year"),
+    "mc_note": ("2.000 Pfade über 252 Handelstage, Block-Bootstrap mit 20-Tage-Blöcken; "
+                "Autokorrelation und Volatilitätscluster bleiben erhalten. Flächen: 5–95 % "
+                "und 25–75 % der Pfade.",
+                "2,000 paths over 252 trading days, block bootstrap with 20-day blocks, "
+                "preserving autocorrelation and volatility clustering. Shaded: 5–95% and "
+                "25–75% of paths."),
+    "corr_title": ("Korrelationen zu Indizes und Anlageklassen",
+                   "Correlations with indices and asset classes"),
+    "corr_note": ("Monatsrenditen über den gewählten Zeitraum.",
+                  "Monthly returns over the selected period."),
+    "corr_missing": ("Für weitere Anlageklassen fehlen die Kursdaten. Einmalig laden mit: "
+                     "python -c \"from spy3.data import load_assets; load_assets(refresh=True)\"",
+                     "Price data for the additional asset classes is missing. Load it once "
+                     "with: python -c \"from spy3.data import load_assets; "
+                     "load_assets(refresh=True)\""),
+    "beta_title": ("Beta und Korrelation je Anlageklasse",
+                   "Beta and correlation by asset class"),
+    "beta_note": ("SPY3 netto gegenüber der jeweiligen Anlageklasse, Tagesrenditen.",
+                  "SPY3 net against each asset class, daily returns."),
     "dd_title": ("Maximaler Drawdown", "Maximum drawdown"),
     "dd_note": ("Rückgang vom jeweils letzten Höchststand. Rot hinterlegt: Risk-Off-Phasen.",
                 "Decline from the previous peak. Red shading: risk-off phases."),
@@ -170,6 +212,10 @@ EN_TERMS = {
     "Covid 2020": "Covid 2020", "Inflation 2022": "Inflation 2022",
     "Außerhalb aller Krisen": "Outside all crises", "Gesamt": "Total",
     "Dotcom": "Dot-com", "GFC": "GFC", "Covid": "Covid", "Inflation": "Inflation",
+    "Schlechtester Tag": "Worst day", "Schlechtester Monat": "Worst month",
+    "Flash Crash 2010": "Flash crash 2010", "Taper Tantrum 2013": "Taper tantrum 2013",
+    "China-Schock 2015": "China shock 2015", "Volmageddon 2018": "Volmageddon 2018",
+    "Q4 2018": "Q4 2018", "MaxDD": "Max. DD",
     "CAGR SPY3": "CAGR SPY3", "CAGR BM": "CAGR S&P 500",
     "Sharpe SPY3": "Sharpe SPY3", "Sharpe BM": "Sharpe S&P 500",
     "MaxDD SPY3": "Max. DD SPY3", "MaxDD BM": "Max. DD S&P 500",

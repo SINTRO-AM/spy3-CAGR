@@ -66,3 +66,35 @@ def prepare_returns(px: pd.DataFrame) -> pd.DataFrame:
         warnings.warn("Keine T-Bill-Daten für die Zeit vor SHY: Risk-Off-Rendite dort 0 %. "
                       "Mit --refresh neu laden.", stacklevel=2)
     return r
+
+
+# Weitere Indizes und Anlageklassen für die Korrelationsmatrix
+ASSETS = {
+    "Nasdaq 100": "QQQ", "Russell 2000": "IWM", "MSCI EAFE": "EFA",
+    "Emerging Markets": "EEM", "US Aggregate Bonds": "AGG", "Long Treasuries": "TLT",
+    "Gold": "GLD", "Commodities": "DBC", "REITs": "VNQ", "Investment Grade": "LQD",
+    "High Yield": "HYG",
+}
+ASSET_CACHE = CACHE.parent / "assets.csv"
+
+
+def load_assets(start: str = "2000-01-01", refresh: bool = False,
+                cache: Path = ASSET_CACHE) -> pd.DataFrame:
+    """Tagesrenditen weiterer Anlageklassen. Ohne Netz und ohne Cache: leerer Frame."""
+    px = None
+    if cache.exists() and not refresh:
+        px = pd.read_csv(cache, index_col=0, parse_dates=True)
+    if px is None:
+        try:
+            import yfinance as yf
+
+            raw = yf.download(list(ASSETS.values()), start=start, auto_adjust=True,
+                              progress=False)["Close"]
+        except Exception as exc:                       # kein Netz, Ticker weg, Rate-Limit
+            warnings.warn(f"Anlageklassen nicht geladen: {exc}", stacklevel=2)
+            return pd.DataFrame()
+        px = raw.rename(columns={v: k for k, v in ASSETS.items()})
+        px.index = pd.to_datetime(px.index).tz_localize(None)
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        px.to_csv(cache)
+    return px.pct_change().iloc[1:]
