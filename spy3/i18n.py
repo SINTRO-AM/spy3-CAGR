@@ -55,8 +55,11 @@ TXT: dict[str, tuple[str, str]] = {
     "perf_note": ("Rot hinterlegt: Strategie hält SHY ETF (kurzlaufende US-T-Bills)",
                   "Red shading: strategy holds SHY ETF (short-term US T-Bills)"),
     "tsy_label": ("SHY ETF", "SHY ETF"),
-    "tsy_note_splice": ("SHY ETF: bis {d} ersetzt durch {x}, danach der ETF selbst.",
-                        "SHY ETF: {x} up to {d}, the ETF itself thereafter."),
+    "tsy_note_splice": ("Risk-Off-Bein und SHY-Spalte: bis {d} {x}, danach der SHY ETF selbst.",
+                        "Risk-off leg and SHY column: {x} up to {d}, the SHY ETF itself "
+                        "thereafter."),
+    "tsy_note_none": ("Risk-Off-Bein vor 07/2002: 0 % (keine Treasury- und keine T-Bill-Daten).",
+                      "Risk-off leg before 07/2002: 0% (no Treasury and no T-bill data)."),
     "col_tsy": ("SHY ETF (US-Staatsanleihen 1–3 Jahre), das Risk-Off-Instrument der "
                 "Strategie. Vor 07/2002 Bloomberg US Treasury Index.",
                 "SHY ETF (US Treasuries 1–3 years), the strategy's risk-off instrument. "
@@ -74,10 +77,9 @@ TXT: dict[str, tuple[str, str]] = {
     "kpis": ("Kennzahlen", "Key figures"),
     "kpi_note": ("60/40: 60 % SPY und 40 % SHY, monatlich rebalanciert. Sharpe Ratio ohne "
                  "risikofreien Satz (rf = 0 %), Beta und Alpha über kurzlaufende "
-                 "Staatsanleihen. Vor 07/2002 ersetzt der Bloomberg US Treasury Index den SHY.",
+                 "Staatsanleihen.",
                  "60/40: 60% SPY and 40% SHY, rebalanced monthly. Sharpe ratio without a "
-                 "risk-free rate (rf = 0%), beta and alpha against short-term Treasuries. "
-                 "Before 07/2002, the Bloomberg US Treasury index stands in for SHY."),
+                 "risk-free rate (rf = 0%), beta and alpha against short-term Treasuries."),
     "col_gross": ("SPY3 brutto", "SPY3 gross"),
     "col_net": ("SPY3 netto", "SPY3 net"),
     # Tabs

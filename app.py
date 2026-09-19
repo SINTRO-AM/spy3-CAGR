@@ -39,6 +39,10 @@ def shy_benchmark() -> tuple[pd.Series, dict]:
 
 TSY_SERIES, TSY_INFO = shy_benchmark()
 R["mixes"]["Treasury"] = TSY_SERIES
+if "risk_off_source" in BT:
+    _src = BT.loc[BT.index < "2002-07-30", "risk_off_source"].value_counts().to_dict()
+    print(f"Risk-Off vor SHY (30.07.2002): {_src}  "
+          f"[Treasury-Datei: {'ja' if TSY_INFO.get('pre_src') == 'LUATTRUU' else 'NEIN'}]")
 LAST = BT.index[-1]
 PERIODS = {"all": None, "10": 10, "5": 5, "3": 3, "1": 1}
 STATE_CLS = {ON: "on", OFF: "off"}
@@ -382,9 +386,14 @@ def update_main(period, scale, mgmt, perf, lang, vw):
                 t("tsy_label", lang): tip("col_tsy", lang)}
     tsy_note = ""
     if TSY_INFO.get("pre_end") is not None:
-        src = {"LUATTRUU": "Bloomberg US Treasury Index", "T-Bill": "13-week T-bills"}.get(
-            TSY_INFO["pre_src"], TSY_INFO["pre_src"])
-        tsy_note = t("tsy_note_splice", lang, d=f"{TSY_INFO['pre_end']:%m/%Y}", x=src)
+        names = {"LUATTRUU": ("Bloomberg US Treasury Index", "Bloomberg US Treasury index"),
+                 "T-Bill": ("13-Wochen-T-Bills", "13-week T-bills")}
+        key = TSY_INFO["pre_src"]
+        if key == "none":
+            tsy_note = t("tsy_note_none", lang)
+        else:
+            src = names.get(key, (key, key))[1 if lang == "en" else 0]
+            tsy_note = t("tsy_note_splice", lang, d=f"{TSY_INFO['pre_end']:%m/%Y}", x=src)
     kpis = [table(tbl, lang, highlight=hl, emphasis=KPI_EMPHASIS, wrap_cls="fill",
                   tips=col_tips),
             html.P(t("kpi_note", lang) + (" " + tsy_note if tsy_note else ""),

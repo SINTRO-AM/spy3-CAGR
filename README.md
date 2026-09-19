@@ -92,8 +92,10 @@ Dateien sieht alles aus wie bisher.
 * **Risk-Off vor SHY (bis 07/2002):** Bloomberg US Treasury Total Return Index (LUATTRUU) aus
   `data/luattruu.csv`. Die Datei ist der unveränderte Bloomberg-Export (Datum `dd.mm.yyyy`,
   Dezimalkomma, Tab-getrennt) und liegt wegen der Bloomberg-Lizenz nicht im Repository.
-  Fehlt sie, greifen 13-Wochen-T-Bills (`^IRX`), danach 0 %. Die Spalte `risk_off_source`
-  im Excel-Export zeigt je Tag, welche Quelle gilt.
+  Fehlt sie, greifen 13-Wochen-T-Bills (`^IRX`), danach 0 %. Welche Quelle tatsächlich gilt,
+  zeigen die Startmeldung von `app.py`, die Fußnote unter der Kennzahlentabelle und die Spalte
+  `risk_off_source` im Excel-Export. `python scripts/check_risk_off.py` rechnet beide
+  Varianten und beziffert den Unterschied.
 * **SHY ETF als Vergleichsreihe:** Das Risk-Off-Bein der Strategie erscheint zusätzlich als
   Spalte in der Kennzahlentabelle und als Linie in Vermögens-, Drawdown- und Vorsprung-Chart,
   also SHY ab 07/2002 und davor dieselbe Näherung wie im Backtest (Bloomberg-Treasury-Index,
