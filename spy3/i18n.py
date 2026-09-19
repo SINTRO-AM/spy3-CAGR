@@ -52,8 +52,8 @@ TXT: dict[str, tuple[str, str]] = {
     "f_mr": ("Abstand zum {w}-Tage-Hoch: {v}", "Distance from {w}-day high: {v}"),
     # Hauptchart
     "perf": ("Wert einer Investition von 1.000 USD", "Value of a $1,000 investment"),
-    "perf_note": ("Rot hinterlegt: Strategie hält SHY ETF (kurzlaufende US-T-Bills)",
-                  "Red shading: strategy holds SHY ETF (short-term US T-Bills)"),
+    "perf_note": ("Rot hinterlegt: Strategie hält kurzlaufende US-T-Bills",
+                  "Red shading: strategy holds short-term US T-Bills"),
     "tsy_label": ("SHY ETF", "SHY ETF"),
     "tsy_note_splice": ("Risk-Off-Bein und SHY-Spalte: bis {d} {x}, danach der SHY ETF selbst.",
                         "Risk-off leg and SHY column: {x} up to {d}, the SHY ETF itself "
