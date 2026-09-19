@@ -122,7 +122,7 @@ def test_tbill_proxy_before_shy():
     px = pd.DataFrame({"risk_on": [100, 101, 102, 103, 104, 105],
                        "risk_off": [np.nan, np.nan, np.nan, 80, 80.1, 80.2],
                        "tbill_yield": [1.7] * 6}, index=idx)
-    r = prepare_returns(px)
+    r = prepare_returns(px, treasury=pd.Series(dtype=float))   # ohne Treasury-Index
     assert (r.risk_off_source.iloc[:2] == "T-Bill").all()
     assert r.risk_off.iloc[0] == pytest.approx(1.017 ** (1 / 252) - 1)
     assert r.risk_off_source.iloc[-1] == "SHY"
@@ -216,3 +216,46 @@ def test_monthly_rebalancing(bt=None):
     jan = idx[idx < "2020-02-01"]
     expected = 0.6 * (1 + bm[jan]).prod() + 0.4 * (1 + off[jan]).prod() - 1
     assert m.total_return(monthly[jan]) == pytest.approx(expected)
+
+
+# ---------- Treasury-Index als Risk-Off vor SHY -----------------------------
+def test_treasury_export_parser(tmp_path):
+    from spy3.data import load_treasury_index
+    f = tmp_path / "lu.csv"
+    f.write_text("Security\tLUATTRUU Index\nDate\tPX_LAST\tlog return\n"
+                 "29.12.1989\t467,8\t\n31.01.1990\t460,81\t-1,51%\n"
+                 "01.03.1994\t1.084,43\t-0,68%\n02.03.1994\t1084.56\t0,02%\n",
+                 encoding="utf-8")
+    s = load_treasury_index(f)
+    assert list(s.index) == [pd.Timestamp("1989-12-29"), pd.Timestamp("1990-01-31"),
+                             pd.Timestamp("1994-03-01"), pd.Timestamp("1994-03-02")]
+    assert s.tolist() == pytest.approx([467.8, 460.81, 1084.43, 1084.56])
+    assert load_treasury_index(tmp_path / "fehlt.csv").empty
+
+
+def test_risk_off_priority_treasury_before_tbill():
+    from spy3.data import prepare_returns
+    idx = pd.bdate_range("2002-07-24", periods=7)      # SHY ab 30.07.2002
+    px = pd.DataFrame({"risk_on": np.linspace(100, 106, 7),
+                       "risk_off": [np.nan] * 4 + [80, 80.1, 80.2],
+                       "tbill_yield": 1.7}, index=idx)
+    tr = pd.Series([200, 201, 202, 203], index=idx[:4])     # deckt nur die ersten Tage ab
+    r = prepare_returns(px, treasury=tr)
+    # am ersten SHY-Kurstag gibt es noch keine SHY-Rendite -> Treasury-Index gilt dort noch
+    assert r.risk_off_source.tolist() == ["LUATTRUU"] * 4 + ["SHY", "SHY"]
+    assert r.risk_off.iloc[0] == pytest.approx(201 / 200 - 1)
+    # ohne Treasury-Reihe fällt es auf T-Bills zurück
+    r2 = prepare_returns(px, treasury=pd.Series(dtype=float))
+    assert r2.risk_off_source.iloc[0] == "T-Bill"
+    assert r2.risk_off.iloc[0] == pytest.approx(1.017 ** (1 / 252) - 1)
+
+
+def test_treasury_index_gaps_are_carried_forward():
+    """Fehlt ein Indexwert an einem SPY-Handelstag, ist die Rendite 0 und holt am
+    nächsten Tag auf – keine Doppelzählung."""
+    from spy3.data import prepare_returns
+    idx = pd.bdate_range("2001-01-01", periods=5)
+    px = pd.DataFrame({"risk_on": 100.0, "risk_off": np.nan}, index=idx)
+    tr = pd.Series([100, 101, 103], index=[idx[0], idx[1], idx[3]])   # Tag 3 fehlt
+    r = prepare_returns(px, treasury=tr)
+    assert r.risk_off.tolist() == pytest.approx([0.01, 0.0, 103 / 101 - 1, 0.0])

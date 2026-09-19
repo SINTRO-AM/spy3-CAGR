@@ -1,10 +1,14 @@
 """Preisdaten laden (yfinance, dividendenbereinigt) mit lokalem CSV-Cache.
 
-Risk-Off vor SHY-Start (30.07.2002): Näherung über die Rendite 13-wöchiger
-US-T-Bills (^IRX, annualisierte Rendite in %). Tagesrendite am Tag t aus der
-Rendite vom Vortag: (1 + y/100)^(1/252) - 1.
+Risk-Off vor SHY-Start (30.07.2002), in dieser Reihenfolge:
+  1. Bloomberg US Treasury Total Return Index (LUATTRUU), wenn data/luattruu.csv
+     vorliegt (Bloomberg-Export, wird direkt gelesen)
+  2. 13-wöchige US-T-Bills (^IRX): Tagesrendite (1 + y/100)^(1/252) - 1
+  3. 0 %
 """
 from __future__ import annotations
+
+import re
 
 import warnings
 from pathlib import Path
@@ -12,6 +16,8 @@ from pathlib import Path
 import pandas as pd
 
 CACHE = Path(__file__).resolve().parent.parent / "data" / "prices.csv"
+TREASURY_FILE = CACHE.parent / "luattruu.csv"
+_ROW = re.compile(r"^(\d{2})\.(\d{2})\.(\d{4})[^\t;,]*[\t;,]\s*([-\d.,]+)")
 TBILL = "^IRX"
 COLUMNS = ["risk_on", "risk_off", "tbill_yield"]
 
@@ -46,25 +52,58 @@ def load_prices(
     return px[COLUMNS].dropna(subset=["risk_on"])
 
 
-def prepare_returns(px: pd.DataFrame) -> pd.DataFrame:
-    """Tagesrenditen. Risk-Off: SHY, davor T-Bill-Näherung, sonst 0 %.
+def load_treasury_index(path: Path = TREASURY_FILE) -> pd.Series:
+    """Bloomberg US Treasury Total Return Index (PX_LAST) aus dem Rohexport.
 
-    Spalte `risk_off_source`: 'SHY', 'T-Bill' oder 'none'.
+    Liest Zeilen der Form `29.12.1989<TAB>467,8<TAB>...`; Kopfzeilen und die
+    log-return-Spalte werden ignoriert, Dezimalkomma und -punkt beide akzeptiert.
+    Fehlt die Datei, kommt eine leere Reihe zurück.
+    """
+    if not Path(path).exists():
+        return pd.Series(dtype=float, name="LUATTRUU")
+    rows = {}
+    for line in Path(path).read_text(encoding="utf-8-sig").splitlines():
+        m = _ROW.match(line.strip())
+        if not m:
+            continue
+        d, mo, y, val = m.groups()
+        val = val.replace(".", "").replace(",", ".") if "," in val else val
+        try:
+            rows[pd.Timestamp(int(y), int(mo), int(d))] = float(val)
+        except ValueError:
+            continue
+    return pd.Series(rows, name="LUATTRUU").sort_index()
+
+
+def prepare_returns(px: pd.DataFrame, treasury: pd.Series | None = None) -> pd.DataFrame:
+    """Tagesrenditen. Risk-Off: SHY, davor Treasury-Index, dann T-Bill, sonst 0 %.
+
+    Spalte `risk_off_source`: 'SHY', 'LUATTRUU', 'T-Bill' oder 'none'.
     """
     r = px[["risk_on", "risk_off"]].pct_change()
     y = px.get("tbill_yield", pd.Series(float("nan"), index=px.index)).ffill()
     tbill_ret = (1 + y.shift(1) / 100) ** (1 / 252) - 1
+    if treasury is None:
+        treasury = load_treasury_index()
+    if len(treasury):
+        # Kurs auf die SPY-Handelstage bringen; fehlende Tage fortschreiben
+        tr_px = treasury.reindex(treasury.index.union(px.index)).ffill().reindex(px.index)
+        tr_ret = tr_px.pct_change()
+    else:
+        tr_ret = pd.Series(float("nan"), index=px.index)
     src = pd.Series("SHY", index=px.index)
     miss = r["risk_off"].isna()
-    src[miss & tbill_ret.notna()] = "T-Bill"
-    src[miss & tbill_ret.isna()] = "none"
-    r["risk_off"] = r["risk_off"].fillna(tbill_ret).fillna(0.0)
+    src[miss & tr_ret.notna()] = "LUATTRUU"
+    src[miss & tr_ret.isna() & tbill_ret.notna()] = "T-Bill"
+    src[miss & tr_ret.isna() & tbill_ret.isna()] = "none"
+    r["risk_off"] = r["risk_off"].fillna(tr_ret).fillna(tbill_ret).fillna(0.0)
+    r["treasury"] = tr_ret
     r["tbill"] = tbill_ret.fillna(0.0)
     r["risk_off_source"] = src
     r = r.iloc[1:]
     if (r["risk_off_source"] == "none").any():
-        warnings.warn("Keine T-Bill-Daten für die Zeit vor SHY: Risk-Off-Rendite dort 0 %. "
-                      "Mit --refresh neu laden.", stacklevel=2)
+        warnings.warn("Weder Treasury-Index noch T-Bill-Daten für die Zeit vor SHY: "
+                      "Risk-Off-Rendite dort 0 %.", stacklevel=2)
     return r
 
 

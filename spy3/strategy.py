@@ -63,6 +63,8 @@ def backtest(returns: pd.DataFrame, price: pd.Series,
     bt["cost"] = switched * p.cost_bps / 1e4
     bt["ret_bm"] = returns["risk_on"]
     bt["ret_off"] = returns["risk_off"]
+    if "risk_off_source" in returns:
+        bt["risk_off_source"] = returns["risk_off_source"]
     bt["ret_pf"] = (bt["position"] * bt["ret_bm"]
                     + (1 - bt["position"]) * bt["ret_off"] - bt["cost"])
     fees = apply_fees(bt["ret_pf"], bt["ret_bm"], p.mgmt_fee, p.perf_fee)

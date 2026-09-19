@@ -309,6 +309,8 @@ def build_pdf(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str = "en",
 def build_xlsx(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str = "en") -> bytes:
     daily = pd.DataFrame({
         "date": bt.index, "signal": bt.signal.values, "position": bt.position.values,
+        "risk_off_source": (bt["risk_off_source"].values if "risk_off_source" in bt
+                            else "n/a"),
         "var_1d_99": bt.var_1d.values, "ret_spy": bt.ret_bm.values,
         "ret_risk_off": bt.ret_off.values, "ret_spy3_gross": bt.ret_pf.values,
         "ret_spy3_net": bt.ret_pf_net.values, "cost": bt.cost.values,
@@ -332,7 +334,8 @@ def build_xlsx(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str = "en") 
         "wealth_* columns: value of an initial 1,000 USD investment.",
         "ret_spy3_gross: after trading costs. ret_spy3_net: additionally after management "
         "and performance fee (high-water mark, SPY hurdle, quarterly).",
-        "Before 30/07/2002 the risk-off leg uses 13-week T-bill returns instead of SHY.",
+        "Before 30/07/2002 the risk-off leg uses the Bloomberg US Treasury Total Return "
+        "Index (LUATTRUU) instead of SHY; 13-week T-bills only if that file is missing.",
         "Source: SINTRO SPY3 backtest dashboard.",
     ]})
     missing = missing_packages()

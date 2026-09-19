@@ -15,11 +15,11 @@ prüfbar macht:
 | Performance-Chart | kumulierte **Log**-Renditen auf linearer Achse | Vermögen (Wert von 1 USD), Log-Skala umschaltbar |
 | "Total Return" | Summe der Log-Renditen (3,50 → als „350 %“ gezeigt) | `∏(1+r) − 1` |
 | "Annualized Return" | Ø Log-Rendite × 252 | CAGR |
-| Sharpe | ohne risikofreien Satz | weiterhin rf = 0 %; Beta und Jensen's Alpha über SHY (vor 07/2002: T-Bills) |
+| Sharpe | ohne risikofreien Satz | weiterhin rf = 0 %; Beta und Jensen's Alpha über SHY (vor 07/2002: Bloomberg Treasury Index) |
 | Max. Drawdown | in Log-Punkten | preisbasiert |
 | Transaktionskosten | 1 bp, an zwei falschen Tagen (Signal(t) vs. Signal(t−2)) | 10 bp je Positionswechsel, genau einmal (`--cost`) |
 | Beta / Jensen's Alpha | nicht im Code (Deck) | OLS auf Überschussrenditen |
-| Benchmark-Fairness | nur 100 % SPY | zusätzlich klassisches 60/40-Portfolio (SPY/SHY, monatlich rebalanciert, vor 07/2002 T-Bills) |
+| Benchmark-Fairness | nur 100 % SPY | zusätzlich klassisches 60/40-Portfolio (SPY/SHY, monatlich rebalanciert, vor 07/2002 Bloomberg Treasury Index) |
 | Robustness | – | Krisen-Attribution, Ex-Krisen-Kennzahlen, rollierende Überschussrendite, Konzentration, Zufalls-Timing-Test, Teilperioden |
 
 ## Nutzung
@@ -89,8 +89,11 @@ Dateien sieht alles aus wie bisher.
 
 ## Daten und Gebühren
 
-* **Risk-Off vor SHY (bis 07/2002):** 13-Wochen-T-Bills (`^IRX`) als Näherung für kurzlaufende
-  US-Staatsanleihen. Ein alter Cache ohne T-Bill-Spalte wird automatisch neu geladen.
+* **Risk-Off vor SHY (bis 07/2002):** Bloomberg US Treasury Total Return Index (LUATTRUU) aus
+  `data/luattruu.csv`. Die Datei ist der unveränderte Bloomberg-Export (Datum `dd.mm.yyyy`,
+  Dezimalkomma, Tab-getrennt) und liegt wegen der Bloomberg-Lizenz nicht im Repository.
+  Fehlt sie, greifen 13-Wochen-T-Bills (`^IRX`), danach 0 %. Die Spalte `risk_off_source`
+  im Excel-Export zeigt je Tag, welche Quelle gilt.
 * **Managementgebühr:** 0,2 % p.a., täglich abgegrenzt.
 * **Performancegebühr (`spy3/fees.py`):** 10 % auf den Wertzuwachs über max(High-Water-Mark,
   Hurdle). Die Hurdle ist die HWM, fortgeschrieben mit dem SPY Total Return seit der letzten
@@ -98,7 +101,7 @@ Dateien sieht alles aus wie bisher.
   vorgetragen. Modelliert ist ein Anteil, der zum Backtest-Start gezeichnet wurde.
 * **Sharpe Ratio:** geometrisch, also CAGR geteilt durch annualisierte Volatilität, rf = 0 %.
   Damit passt sie zur CAGR-Zeile der Tabelle. Die klassische arithmetische Variante liegt bei
-  volatilen Reihen höher (S&P 500: 0,51 statt 0,43). Beta und Jensen's Alpha über SHY bzw. T-Bills.
+  volatilen Reihen höher (S&P 500: 0,51 statt 0,43). Beta und Jensen's Alpha über SHY bzw. Treasury-Index.
 
 ## Wie man die Ergebnisse gegenüber dem Manager liest
 
