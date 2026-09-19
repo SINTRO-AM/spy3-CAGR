@@ -307,3 +307,30 @@ def test_treasury_loader_accepts_returns_only_file(tmp_path):
     a = load_treasury_index(prices).pct_change().dropna()
     b_ = load_treasury_index(rets).pct_change().dropna()
     assert np.allclose(a.to_numpy(), b_.to_numpy(), atol=1e-6)
+
+
+# ---------- SHY-Proxy (1–3 Jahre) -------------------------------------------
+def test_cmt_total_return_carry_and_duration():
+    from spy3.data import cmt_total_return
+    idx = pd.bdate_range("2000-01-03", periods=60)
+    flat = cmt_total_return(pd.Series(5.0, index=idx), 2.0).dropna()
+    assert flat.mean() == pytest.approx(0.05 / 252, rel=1e-6)      # nur Kupon
+    shock = pd.Series(5.0, index=idx); shock.iloc[10:] = 4.0
+    r = cmt_total_return(shock, 2.0)
+    assert 0.018 < r.iloc[10] < 0.021                               # Duration ≈ 1,9
+    assert r.iloc[11] == pytest.approx(0.04 / 252, rel=1e-6)        # danach Kupon zu 4 %
+
+
+def test_risk_off_priority_proxy_first():
+    from spy3.data import prepare_returns
+    idx = pd.bdate_range("2002-07-24", periods=7)
+    px = pd.DataFrame({"risk_on": np.linspace(100, 106, 7),
+                       "risk_off": [np.nan] * 4 + [80, 80.1, 80.2],
+                       "tbill_yield": 1.7}, index=idx)
+    tr = pd.Series([200, 201, 202, 203, 204], index=idx[:5])
+    proxy = pd.Series([0.001, 0.002, 0.003], index=idx[1:4])
+    r = prepare_returns(px, treasury=tr, proxy=proxy)
+    assert r.risk_off_source.tolist() == ["SHY-Proxy", "SHY-Proxy", "SHY-Proxy",
+                                          "LUATTRUU", "SHY", "SHY"]
+    assert r.risk_off.iloc[0] == pytest.approx(0.001)   # erster Proxy-Tag zählt voll
+    assert r.risk_off.iloc[3] == pytest.approx(204 / 203 - 1)

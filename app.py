@@ -386,7 +386,10 @@ def update_main(period, scale, mgmt, perf, lang, vw):
                 t("tsy_label", lang): tip("col_tsy", lang)}
     tsy_note = ""
     if TSY_INFO.get("pre_end") is not None:
-        names = {"LUATTRUU": ("Bloomberg US Treasury Index", "Bloomberg US Treasury index"),
+        names = {"SHY-Proxy": ("SHY-Proxy (US-Treasuries 1–3 Jahre)",
+                               "SHY proxy (US Treasuries 1–3 years)"),
+                 "LUATTRUU": ("Bloomberg US Treasury Index (alle Laufzeiten)",
+                              "Bloomberg US Treasury index (all maturities)"),
                  "T-Bill": ("13-Wochen-T-Bills", "13-week T-bills")}
         key = TSY_INFO["pre_src"]
         if key == "none":

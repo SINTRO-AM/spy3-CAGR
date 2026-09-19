@@ -90,7 +90,11 @@ Dateien sieht alles aus wie bisher.
 
 ## Daten und Gebühren
 
-* **Risk-Off vor SHY (bis 07/2002):** Bloomberg US Treasury Total Return Index (LUATTRUU) aus
+* **Risk-Off vor SHY (bis 07/2002):** ein Proxy mit gleicher Laufzeit wie der SHY (1–3 Jahre),
+  in dieser Reihenfolge: Bloomberg US Treasury 1-3 Year Index (`data/lt01truu.csv`, gleiches
+  Format wie unten); sonst eine synthetische Gesamtrendite aus den FRED-Renditen DGS1/DGS2/DGS3
+  (`python scripts/check_shy_proxy.py` lädt sie einmalig und vergleicht den Proxy mit dem echten
+  SHY ab 2002); sonst der Bloomberg US Treasury Total Return Index (LUATTRUU) aus
   `data/luattruu.csv` (anderer Ort per Umgebungsvariable `SPY3_TREASURY_FILE`). Der Loader
   liest den Bloomberg-Export unverändert, auch als `.xlsx`, mit Tab, Semikolon oder Komma,
   Dezimalkomma oder -punkt, in UTF-8, UTF-16 oder Windows-1252. Dürfen die Kurse nicht

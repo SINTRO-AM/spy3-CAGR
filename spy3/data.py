@@ -1,10 +1,12 @@
 """Preisdaten laden (yfinance, dividendenbereinigt) mit lokalem CSV-Cache.
 
 Risk-Off vor SHY-Start (30.07.2002), in dieser Reihenfolge:
-  1. Bloomberg US Treasury Total Return Index (LUATTRUU), wenn data/luattruu.csv
-     vorliegt (Bloomberg-Export, wird direkt gelesen)
-  2. 13-wöchige US-T-Bills (^IRX): Tagesrendite (1 + y/100)^(1/252) - 1
-  3. 0 %
+  1. SHY-Proxy mit gleicher Laufzeit (1–3 Jahre): Bloomberg US Treasury 1-3 Year
+     Index (data/lt01truu.csv) oder, wenn nicht vorhanden, synthetische Gesamtrendite
+     aus den FRED-Renditen DGS1/DGS2/DGS3 (data/fred_yields.csv)
+  2. Bloomberg US Treasury Total Return Index, alle Laufzeiten (data/luattruu.csv)
+  3. 13-wöchige US-T-Bills (^IRX): Tagesrendite (1 + y/100)^(1/252) - 1
+  4. 0 %
 """
 from __future__ import annotations
 
@@ -18,8 +20,12 @@ import numpy as np
 import pandas as pd
 
 CACHE = Path(__file__).resolve().parent.parent / "data" / "prices.csv"
-# Standardpfad; alternativ per Umgebungsvariable SPY3_TREASURY_FILE überschreiben
+# Standardpfade; alternativ per Umgebungsvariable überschreiben
 TREASURY_FILE = Path(os.environ.get("SPY3_TREASURY_FILE", CACHE.parent / "luattruu.csv"))
+SHORT_TREASURY_FILE = Path(os.environ.get("SPY3_SHORT_TREASURY_FILE",
+                                          CACHE.parent / "lt01truu.csv"))
+FRED_FILE = CACHE.parent / "fred_yields.csv"
+FRED_SERIES = {"DGS1": 1.0, "DGS2": 2.0, "DGS3": 3.0}      # Constant-Maturity-Renditen, Jahre
 TBILL = "^IRX"
 COLUMNS = ["risk_on", "risk_off", "tbill_yield"]
 
@@ -188,10 +194,12 @@ def load_treasury_index(path: Path = TREASURY_FILE) -> pd.Series:
     return _rows_to_index(rows)
 
 
-def prepare_returns(px: pd.DataFrame, treasury: pd.Series | None = None) -> pd.DataFrame:
-    """Tagesrenditen. Risk-Off: SHY, davor Treasury-Index, dann T-Bill, sonst 0 %.
+def prepare_returns(px: pd.DataFrame, treasury: pd.Series | None = None,
+                    proxy: pd.Series | None = None) -> pd.DataFrame:
+    """Tagesrenditen. Risk-Off: SHY, davor SHY-Proxy (1–3 J.), dann Treasury-Index
+    (alle Laufzeiten), dann T-Bill, sonst 0 %.
 
-    Spalte `risk_off_source`: 'SHY', 'LUATTRUU', 'T-Bill' oder 'none'.
+    Spalte `risk_off_source`: 'SHY', 'SHY-Proxy', 'LUATTRUU', 'T-Bill' oder 'none'.
     """
     r = px[["risk_on", "risk_off"]].pct_change()
     y = px.get("tbill_yield", pd.Series(float("nan"), index=px.index)).ffill()
@@ -199,55 +207,99 @@ def prepare_returns(px: pd.DataFrame, treasury: pd.Series | None = None) -> pd.D
     if treasury is None:
         treasury = load_treasury_index()
     if len(treasury):
-        # Kurs auf die SPY-Handelstage bringen; fehlende Tage fortschreiben
         tr_px = treasury.reindex(treasury.index.union(px.index)).ffill()
         tr_px[tr_px.index > treasury.index.max()] = float("nan")   # nicht über das Ende hinaus
         tr_ret = tr_px.reindex(px.index).pct_change()
     else:
         tr_ret = pd.Series(float("nan"), index=px.index)
+    if proxy is None:
+        proxy = load_short_treasury_returns()
+    if len(proxy):
+        # Renditen auf die SPY-Handelstage bringen: fehlende Tage über das Vermögen
+        base = proxy.index.min() - pd.Timedelta(days=1)
+        w = pd.concat([pd.Series([1.0], index=[base]), (1 + proxy).cumprod()])
+        w = w.reindex(w.index.union(px.index)).ffill()
+        w[w.index > proxy.index.max()] = float("nan")
+        w[w.index < base] = float("nan")
+        px_ret = w.reindex(px.index).pct_change()
+    else:
+        px_ret = pd.Series(float("nan"), index=px.index)
     src = pd.Series("SHY", index=px.index)
     miss = r["risk_off"].isna()
-    src[miss & tr_ret.notna()] = "LUATTRUU"
-    src[miss & tr_ret.isna() & tbill_ret.notna()] = "T-Bill"
-    src[miss & tr_ret.isna() & tbill_ret.isna()] = "none"
-    r["risk_off"] = r["risk_off"].fillna(tr_ret).fillna(tbill_ret).fillna(0.0)
+    src[miss & px_ret.notna()] = "SHY-Proxy"
+    src[miss & px_ret.isna() & tr_ret.notna()] = "LUATTRUU"
+    src[miss & px_ret.isna() & tr_ret.isna() & tbill_ret.notna()] = "T-Bill"
+    src[miss & px_ret.isna() & tr_ret.isna() & tbill_ret.isna()] = "none"
+    r["risk_off"] = (r["risk_off"].fillna(px_ret).fillna(tr_ret).fillna(tbill_ret)
+                     .fillna(0.0))
     r["treasury"] = tr_ret
+    r["shy_proxy"] = px_ret
     r["tbill"] = tbill_ret.fillna(0.0)
     r["risk_off_source"] = src
     r = r.iloc[1:]
     if (r["risk_off_source"] == "none").any():
-        warnings.warn("Weder Treasury-Index noch T-Bill-Daten für die Zeit vor SHY: "
+        warnings.warn("Weder SHY-Proxy, Treasury-Index noch T-Bill-Daten für die Zeit vor SHY: "
                       "Risk-Off-Rendite dort 0 %.", stacklevel=2)
     return r
 
 
-# Weitere Indizes und Anlageklassen für die Korrelationsmatrix
-ASSETS = {
-    "Nasdaq 100": "QQQ", "Russell 2000": "IWM", "MSCI EAFE": "EFA",
-    "Emerging Markets": "EEM", "US Aggregate Bonds": "AGG", "Long Treasuries": "TLT",
-    "Gold": "GLD", "Commodities": "DBC", "REITs": "VNQ", "Investment Grade": "LQD",
-    "High Yield": "HYG", "US Treasuries (GOVT)": "GOVT",
-}
-ASSET_CACHE = CACHE.parent / "assets.csv"
-
-
-def load_assets(start: str = "2000-01-01", refresh: bool = False,
-                cache: Path = ASSET_CACHE) -> pd.DataFrame:
-    """Tagesrenditen weiterer Anlageklassen. Ohne Netz und ohne Cache: leerer Frame."""
-    px = None
+# ---------- SHY-Proxy: 1–3-jährige Treasuries vor dem ETF-Start ------------------
+def load_fred_yields(refresh: bool = False, cache: Path = FRED_FILE,
+                     start: str = "1999-01-01") -> pd.DataFrame:
+    """Tägliche Constant-Maturity-Renditen (in %) von FRED; leer, wenn nicht ladbar."""
     if cache.exists() and not refresh:
-        px = pd.read_csv(cache, index_col=0, parse_dates=True)
-    if px is None:
+        return pd.read_csv(cache, index_col=0, parse_dates=True)
+    frames = []
+    for sid in FRED_SERIES:
+        url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}"
         try:
-            import yfinance as yf
-
-            raw = yf.download(list(ASSETS.values()), start=start, auto_adjust=True,
-                              progress=False)["Close"]
-        except Exception as exc:                       # kein Netz, Ticker weg, Rate-Limit
-            warnings.warn(f"Anlageklassen nicht geladen: {exc}", stacklevel=2)
+            df = pd.read_csv(url, index_col=0, parse_dates=True, na_values=".")
+        except Exception as exc:                        # kein Netz o. ä.
+            warnings.warn(f"FRED {sid} nicht geladen: {exc}", stacklevel=2)
             return pd.DataFrame()
-        px = raw.rename(columns={v: k for k, v in ASSETS.items()})
-        px.index = pd.to_datetime(px.index).tz_localize(None)
-        cache.parent.mkdir(parents=True, exist_ok=True)
-        px.to_csv(cache)
-    return px.pct_change().iloc[1:]
+        df.columns = [sid]
+        frames.append(df)
+    out = pd.concat(frames, axis=1).loc[start:]
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    out.to_csv(cache)
+    return out
+
+
+def cmt_total_return(yields_pct: pd.Series, maturity: float) -> pd.Series:
+    """Tägliche Gesamtrendite einer Par-Anleihe mit konstanter Restlaufzeit.
+
+    Am Vortag zu Rendite y0 (Kupon = y0, halbjährlich) zu pari gekauft, heute zur
+    Rendite y1 bewertet, plus ein Tag Kuponabgrenzung. Standardverfahren für
+    Anleihenrenditen aus Zinsreihen (Constant-Maturity-Total-Return).
+    """
+    y = yields_pct.ffill() / 100
+    y0, y1 = y.shift(1), y
+    n = 2 * maturity                                     # Anzahl Halbjahreskupons
+    disc = (1 + y1 / 2) ** (-n)
+    annuity = (1 - disc) / (y1 / 2)
+    price = (y0 / 2) * annuity + disc                    # Kurs heute, Nominal 1
+    return (price - 1 + y0 / 252).rename(f"CMT{maturity:g}y")
+
+
+def short_treasury_proxy(yields: pd.DataFrame | None = None) -> pd.Series:
+    """SHY-Proxy als gleichgewichteter Korb aus 1-, 2- und 3-jährigen Par-Anleihen."""
+    if yields is None or yields.empty:
+        return pd.Series(dtype=float)
+    cols = [c for c in FRED_SERIES if c in yields]
+    if not cols:
+        return pd.Series(dtype=float)
+    rets = pd.concat([cmt_total_return(yields[c], FRED_SERIES[c]) for c in cols], axis=1)
+    out = rets.mean(axis=1).dropna().rename("SHY-Proxy")
+    out.attrs["source"] = "CMT 1-3y (FRED)"
+    return out
+
+
+def load_short_treasury_returns() -> pd.Series:
+    """Tägliche einfache Renditen des SHY-Proxys: Bloomberg 1-3y-Index, sonst FRED-CMT."""
+    idx = load_treasury_index(SHORT_TREASURY_FILE)
+    if len(idx):
+        r = idx.pct_change().dropna().rename("SHY-Proxy")
+        r.attrs["source"] = "LT01TRUU"
+        return r
+    y = load_fred_yields() if FRED_FILE.exists() else pd.DataFrame()
+    return short_treasury_proxy(y)
