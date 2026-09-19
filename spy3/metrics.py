@@ -26,9 +26,18 @@ def ann_vol(r: pd.Series) -> float:
 
 
 def sharpe(r: pd.Series, rf: pd.Series | float = 0.0) -> float:
-    ex = r - rf
-    sd = ex.std(ddof=1)
-    return float(ex.mean() / sd * np.sqrt(TD)) if sd > 0 else np.nan
+    """Geometrische Variante: (CAGR − risikofreier Satz) / annualisierte Volatilität.
+
+    Damit passt der Zähler zur CAGR-Zeile der Kennzahlentabelle. Die klassische
+    Variante nutzt das arithmetische Mittel der Tagesrenditen; beide unterscheiden
+    sich um den Volatilitätsabschlag σ²/2 und fallen bei volatilen Reihen spürbar
+    auseinander (S&P 500: 0,51 arithmetisch gegenüber 0,43 geometrisch).
+    """
+    sd = ann_vol(r)
+    if not sd > 0:
+        return np.nan
+    rf_a = cagr(rf) if isinstance(rf, pd.Series) else float(rf)
+    return float((cagr(r) - rf_a) / sd)
 
 
 def drawdown(r: pd.Series) -> pd.Series:

@@ -193,10 +193,12 @@ TIPS: dict[str, tuple[str, str]] = {
                          "Jahr skaliert.",
                          "Standard deviation of daily returns, scaled to one year by the "
                          "square root of 252."),
-    "Sharpe Ratio": ("Rendite je Einheit Risiko: CAGR geteilt durch Volatilität, hier "
-                     "ohne risikofreien Satz (rf = 0 %).",
-                     "Return per unit of risk: return divided by volatility, here without "
-                     "a risk-free rate (rf = 0%)."),
+    "Sharpe Ratio": ("Rendite je Einheit Risiko: CAGR geteilt durch die annualisierte "
+                     "Volatilität, ohne risikofreien Satz (rf = 0 %). Geometrische "
+                     "Variante, deshalb konsistent mit der CAGR-Zeile.",
+                     "Return per unit of risk: CAGR divided by annualised volatility, "
+                     "without a risk-free rate (rf = 0%). Geometric definition, hence "
+                     "consistent with the CAGR row."),
     "Calmar": ("Rendite je Einheit Verlustrisiko: CAGR geteilt durch den Betrag des "
                "maximalen Drawdowns.",
                "Return per unit of downside risk: CAGR divided by the absolute maximum "

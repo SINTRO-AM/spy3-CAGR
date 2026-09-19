@@ -106,3 +106,15 @@ def test_rolling_beta_matches_regression(bt):
 def test_position_only_changes_after_signal(bt):
     assert (bt.position.iloc[1:].to_numpy() == bt.signal.shift(1).iloc[1:].to_numpy()).all()
     assert bt.ret_pf[bt.position.eq(0)].std() < bt.ret_pf[bt.position.eq(1)].std()
+
+
+def test_sharpe_is_geometric(bt):
+    """Sharpe = CAGR / annualisierte Volatilität, passend zur CAGR-Zeile der Tabelle."""
+    for r in (bt.ret_pf, bt.ret_bm):
+        assert m.sharpe(r) == pytest.approx(m.cagr(r) / m.ann_vol(r))
+    rf = bt.ret_off
+    assert m.sharpe(bt.ret_pf, rf) == pytest.approx(
+        (m.cagr(bt.ret_pf) - m.cagr(rf)) / m.ann_vol(bt.ret_pf))
+    # klassische (arithmetische) Variante liegt bei volatilen Reihen höher
+    arith = bt.ret_bm.mean() / bt.ret_bm.std(ddof=1) * np.sqrt(m.TD)
+    assert arith > m.sharpe(bt.ret_bm)

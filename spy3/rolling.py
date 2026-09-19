@@ -41,8 +41,9 @@ def rolling_metric(r: pd.Series, bm: pd.Series, metric: str, years: int) -> pd.S
         return np.expm1(lr.rolling(w).sum() / years)
     if metric == "vol":
         return r.rolling(w).std() * np.sqrt(TD)
-    if metric == "sharpe":
-        return r.rolling(w).mean() / r.rolling(w).std() * np.sqrt(TD)
+    if metric == "sharpe":                       # geometrisch, wie in metrics.sharpe
+        ret = np.expm1(lr.rolling(w).sum() / years)
+        return ret / (r.rolling(w).std() * np.sqrt(TD))
     if metric == "maxdd":
         return _rolling_max_dd(r, w)
     if metric == "calmar":

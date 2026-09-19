@@ -96,7 +96,9 @@ Dateien sieht alles aus wie bisher.
   Hurdle). Die Hurdle ist die HWM, fortgeschrieben mit dem SPY Total Return seit der letzten
   Gebührenzahlung. Tägliche Abgrenzung, Kristallisierung zum Quartalsende, Minderperformance wird
   vorgetragen. Modelliert ist ein Anteil, der zum Backtest-Start gezeichnet wurde.
-* **Sharpe Ratio:** rf = 0 %. Beta und Jensen's Alpha über SHY bzw. T-Bills.
+* **Sharpe Ratio:** geometrisch, also CAGR geteilt durch annualisierte Volatilität, rf = 0 %.
+  Damit passt sie zur CAGR-Zeile der Tabelle. Die klassische arithmetische Variante liegt bei
+  volatilen Reihen höher (S&P 500: 0,51 statt 0,43). Beta und Jensen's Alpha über SHY bzw. T-Bills.
 
 ## Wie man die Ergebnisse gegenüber dem Manager liest
 
