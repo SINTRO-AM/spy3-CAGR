@@ -13,6 +13,7 @@ import io
 from datetime import date
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from . import metrics as m, robustness as rb
@@ -315,6 +316,15 @@ def build_xlsx(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str = "en") 
         "ret_risk_off": bt.ret_off.values, "ret_spy3_gross": bt.ret_pf.values,
         "ret_spy3_net": bt.ret_pf_net.values, "cost": bt.cost.values,
         "perf_fee_paid": bt.perf_fee_paid.values,
+        # Log-Renditen (ln(1+r)) und kumulierte Log-Punkte: additiv über die Zeit,
+        # Rückrechnung in Prozent über exp(x) - 1
+        "log_ret_spy": np.log1p(bt.ret_bm).values,
+        "log_ret_spy3_gross": np.log1p(bt.ret_pf).values,
+        "log_ret_spy3_net": np.log1p(bt.ret_pf_net).values,
+        "cum_log_spy": np.log1p(bt.ret_bm).cumsum().values,
+        "cum_log_spy3_gross": np.log1p(bt.ret_pf).cumsum().values,
+        "cum_log_spy3_net": np.log1p(bt.ret_pf_net).cumsum().values,
+        "cum_log_excess_gross": (np.log1p(bt.ret_pf) - np.log1p(bt.ret_bm)).cumsum().values,
         "wealth_spy3_gross": START * (1 + bt.ret_pf).cumprod().values,
         "wealth_spy3_net": START * (1 + bt.ret_pf_net).cumprod().values,
         "wealth_spy": START * (1 + bt.ret_bm).cumprod().values,
@@ -331,7 +341,12 @@ def build_xlsx(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str = "en") 
     att = rb.attribution(bt.ret_pf, bt.ret_bm)
     att.columns = ["excess_log", "share"]
     notes = pd.DataFrame({"note": [
-        "All returns are simple (geometric) daily returns, not log returns.",
+        "ret_* columns are simple daily returns; log_ret_* = ln(1 + ret) are the "
+        "corresponding log returns.",
+        "cum_log_* columns are cumulative log points (sum of log returns). They are NOT "
+        "percentages: cumulative return in % = exp(cum_log) - 1; wealth = 1,000 * "
+        "exp(cum_log). cum_log_excess_gross = cum_log_spy3_gross - cum_log_spy; "
+        "exp() of it is the wealth multiple relative to the S&P 500.",
         "wealth_* columns: value of an initial 1,000 USD investment.",
         "ret_spy3_gross: after trading costs. ret_spy3_net: additionally after management "
         "and performance fee (high-water mark, SPY hurdle, quarterly).",
@@ -354,9 +369,17 @@ def build_xlsx(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str = "en") 
         numf = book.add_format({"num_format": "#,##0.00"})
         xl.sheets["Daily data"].set_column("A:A", 12)
         xl.sheets["Daily data"].set_column("B:C", 9)
-        xl.sheets["Daily data"].set_column("D:J", 13, pctf)
-        xl.sheets["Daily data"].set_column("K:M", 14, numf)
-        xl.sheets["Daily data"].set_column("N:R", 13, pctf)
+        cols = list(daily.columns)
+        from xlsxwriter.utility import xl_col_to_name as cn
+        logf = book.add_format({"num_format": "0.000000"})
+        for i, c in enumerate(cols):
+            if c.startswith("wealth_"):
+                xl.sheets["Daily data"].set_column(i, i, 14, numf)
+            elif c.startswith("log_ret_") or c.startswith("cum_log_"):
+                xl.sheets["Daily data"].set_column(i, i, 14, logf)
+            elif c.startswith(("ret_", "var_", "drawdown_", "cost", "perf_fee")):
+                xl.sheets["Daily data"].set_column(i, i, 13, pctf)
+        del cn
         xl.sheets["KPIs"].set_column("A:A", 24)
         xl.sheets["Notes"].set_column("A:A", 110)
     return buf.getvalue()

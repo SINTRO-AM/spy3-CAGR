@@ -270,3 +270,26 @@ def test_treasury_series_ends_with_the_data():
     r = prepare_returns(px, treasury=tr)
     assert r.treasury.notna().tolist() == [True, True, False, False, False]
     assert r.risk_off_source.tolist() == ["LUATTRUU", "LUATTRUU", "none", "none", "none"]
+
+
+def test_xlsx_export_has_log_columns(tmp_path):
+    from spy3 import report as rp
+    from spy3.data import prepare_returns
+    idx = pd.bdate_range("2018-01-01", "2020-12-31")
+    rng = np.random.default_rng(4)
+    px = pd.DataFrame({"risk_on": 100 * np.exp(np.cumsum(rng.normal(0.0004, 0.01, len(idx)))),
+                       "risk_off": 80 * np.exp(np.cumsum(np.full(len(idx), 5e-5))),
+                       "tbill_yield": 1.5}, index=idx)
+    bt = backtest(prepare_returns(px, treasury=pd.Series(dtype=float)), px["risk_on"],
+                  StrategyParams())
+    f = tmp_path / "x.xlsx"
+    f.write_bytes(rp.build_xlsx(bt, {}, "en"))
+    d = pd.read_excel(f, sheet_name="Daily data")
+    for c in ("log_ret_spy", "log_ret_spy3_gross", "cum_log_spy", "cum_log_spy3_gross",
+              "cum_log_spy3_net", "cum_log_excess_gross"):
+        assert c in d.columns
+    # Log-Punkte müssen exakt zum Vermögen passen: 1.000 * exp(cum_log) = wealth
+    assert np.allclose(1000 * np.exp(d.cum_log_spy3_gross), d.wealth_spy3_gross)
+    assert np.allclose(1000 * np.exp(d.cum_log_spy), d.wealth_spy)
+    assert np.allclose(d.cum_log_excess_gross, d.cum_log_spy3_gross - d.cum_log_spy)
+    assert np.allclose(np.log1p(d.ret_spy3_gross), d.log_ret_spy3_gross)

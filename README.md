@@ -51,7 +51,8 @@ python app.py                            # Dashboard lokal
   brutto/netto, S&P 500 und 60/40, dazu der Anteil der Fenster, in denen SPY3 netto besser war
 * Download-Buttons in der Kopfzeile: PDF-Report mit SINTRO-Logo (Kennzahlen, Vermögens-,
   Drawdown- und Vorsprung-Chart, Attribution, Kalenderjahre, Disclaimer) und Excel-Mappe mit
-  den Rohdaten (Tagesdaten, KPIs, Kalenderjahre, Attribution, Notes). Beide übernehmen den
+  den Rohdaten (Tagesdaten inkl. Log-Renditen und kumulierten Log-Punkten, KPIs, Kalenderjahre,
+  Attribution, Notes). Beide übernehmen den
   gewählten Zeitraum und die eingestellten Gebühren (`spy3/report.py`). matplotlib, reportlab
   und XlsxWriter werden erst beim Export importiert: fehlen sie, läuft das Dashboard weiter und
   die Buttons sind deaktiviert (`pip install -r requirements.txt` behebt das)
