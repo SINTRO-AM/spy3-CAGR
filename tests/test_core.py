@@ -293,3 +293,17 @@ def test_xlsx_export_has_log_columns(tmp_path):
     assert np.allclose(1000 * np.exp(d.cum_log_spy), d.wealth_spy)
     assert np.allclose(d.cum_log_excess_gross, d.cum_log_spy3_gross - d.cum_log_spy)
     assert np.allclose(np.log1p(d.ret_spy3_gross), d.log_ret_spy3_gross)
+
+
+def test_treasury_loader_accepts_returns_only_file(tmp_path):
+    """Nur Datum und Log-Rendite in %: liefert dieselben Tagesrenditen wie die Kurse."""
+    from spy3.data import load_treasury_index
+    prices = tmp_path / "px.csv"
+    prices.write_text("Date\tPX_LAST\tlog return\n01.03.1994\t100\t\n02.03.1994\t101\t0,995%\n"
+                      "03.03.1994\t99,5\t-1,4963%\n", encoding="utf-8")
+    rets = tmp_path / "ret.csv"
+    rets.write_text("Date\tlog return\n01.03.1994\t0%\n02.03.1994\t0,995%\n"
+                    "03.03.1994\t-1,4963%\n", encoding="utf-8")
+    a = load_treasury_index(prices).pct_change().dropna()
+    b_ = load_treasury_index(rets).pct_change().dropna()
+    assert np.allclose(a.to_numpy(), b_.to_numpy(), atol=1e-6)

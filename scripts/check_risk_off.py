@@ -43,7 +43,9 @@ def main():
         for line in _read_text_any(path).splitlines()[:5]:
             print("   |", line[:80])
     elif len(tr):
-        print(f"  {len(tr)} Kurse gelesen, {tr.index[0].date()} bis {tr.index[-1].date()}")
+        mode = ("aus Log-Renditen rekonstruiert" if abs(tr.iloc[0] - 100) < 1e-9
+                else "Kurse (PX_LAST)")
+        print(f"  {len(tr)} Werte gelesen ({mode}), {tr.index[0].date()} bis {tr.index[-1].date()}")
     else:
         print("  Bitte den Bloomberg-Export unter diesem Pfad ablegen oder mit --treasury angeben.")
     cand = sorted(p for p in path.parent.glob("*") if "luattruu" in p.name.lower())

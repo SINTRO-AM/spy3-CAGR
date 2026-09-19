@@ -14,6 +14,7 @@ import re
 import warnings
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 CACHE = Path(__file__).resolve().parent.parent / "data" / "prices.csv"
@@ -92,7 +93,11 @@ def _split(line: str) -> list[str]:
 
 
 def _parse_line(line: str):
-    """Gibt (Datum, Kurs) zurück oder None, wenn die Zeile keine Datenzeile ist."""
+    """Gibt (Datum, Wert, ist_prozent) zurück oder None für Nicht-Datenzeilen.
+
+    Wert ist der erste numerische Eintrag nach dem Datum: ein Kurs (PX_LAST) oder,
+    wenn kein Kurs vorhanden ist, eine Log-Rendite in Prozent (z. B. "-1,51%").
+    """
     parts = _split(line)
     if len(parts) < 2:
         return None
@@ -105,25 +110,49 @@ def _parse_line(line: str):
             break
     else:
         return None
-    val = parts[1].strip()
-    if "," in val and "." in val:          # 1.084,43 -> 1084.43
-        val = val.replace(".", "").replace(",", ".")
-    elif "," in val:                        # 467,8 -> 467.8
-        val = val.replace(",", ".")
-    try:
-        return pd.Timestamp(y, mo, dd), float(val)
-    except (ValueError, TypeError):
-        return None
+    for val in parts[1:]:
+        val = val.strip()
+        if not val:
+            continue
+        is_pct = val.endswith("%")
+        val = val.rstrip("%").strip()
+        if "," in val and "." in val:          # 1.084,43 -> 1084.43
+            val = val.replace(".", "").replace(",", ".")
+        elif "," in val:                        # 467,8 -> 467.8
+            val = val.replace(",", ".")
+        try:
+            return pd.Timestamp(y, mo, dd), float(val), is_pct
+        except ValueError:
+            continue
+    return None
+
+
+def _rows_to_index(rows: dict) -> pd.Series:
+    """Baut aus (Datum -> (Wert, ist_prozent)) eine Kursreihe.
+
+    Liegen Kurse vor, werden sie direkt verwendet. Liegen nur Log-Renditen vor,
+    wird ein Index aus exp(kumulierte Log-Renditen) mit Start 100 gebildet – für
+    die Tagesrenditen im Backtest ist das gleichwertig.
+    """
+    if not rows:
+        return pd.Series(dtype=float, name="LUATTRUU")
+    s = pd.Series({k: v[0] for k, v in rows.items()}).sort_index()
+    pct_share = sum(v[1] for v in rows.values()) / len(rows)
+    if pct_share > 0.5:                              # Log-Renditen in %
+        idx = 100 * np.exp((s / 100).cumsum())
+        return idx.rename("LUATTRUU")
+    return s.rename("LUATTRUU")
 
 
 def load_treasury_index(path: Path = TREASURY_FILE) -> pd.Series:
-    """Bloomberg US Treasury Total Return Index (PX_LAST) aus dem Export.
+    """Bloomberg US Treasury Total Return Index aus dem Export.
 
     Akzeptiert den Rohexport (Tab, Semikolon oder Komma getrennt; Datum als
     dd.mm.yyyy, yyyy-mm-dd oder dd/mm/yyyy; Dezimalkomma oder -punkt; UTF-8,
-    UTF-16 oder Windows-1252) sowie .xlsx/.xls mit den Spalten Date und PX_LAST.
-    Kopfzeilen und weitere Spalten werden ignoriert. Fehlt die Datei, kommt eine
-    leere Reihe zurück.
+    UTF-16 oder Windows-1252) sowie .xlsx/.xls. Enthält die Datei Kurse (PX_LAST),
+    werden diese verwendet; enthält sie nur Datum und Log-Rendite in Prozent,
+    wird daraus eine gleichwertige Kursreihe gebildet. Fehlt die Datei, kommt
+    eine leere Reihe zurück.
     """
     path = Path(path)
     if not path.exists():
@@ -132,25 +161,28 @@ def load_treasury_index(path: Path = TREASURY_FILE) -> pd.Series:
     if path.suffix.lower() in (".xlsx", ".xls"):
         df = pd.read_excel(path, header=None)
         for _, row in df.iterrows():
-            cells = [str(v) for v in row.tolist()[:2] if pd.notna(v)]
-            if len(cells) < 2:
+            vals = [v for v in row.tolist() if pd.notna(v)]
+            if len(vals) < 2:
                 continue
-            d = row.iloc[0]
+            d = vals[0]
             if isinstance(d, pd.Timestamp):
-                try:
-                    rows[d.normalize()] = float(str(row.iloc[1]).replace(",", "."))
-                except ValueError:
-                    pass
+                v = vals[1]
+                if isinstance(v, str):
+                    parsed = _parse_line(f"{d:%d.%m.%Y}\t{v}")
+                    if parsed:
+                        rows[parsed[0]] = (parsed[1], parsed[2])
+                else:
+                    rows[d.normalize()] = (float(v), False)
             else:
-                parsed = _parse_line("\t".join(cells))
+                parsed = _parse_line("\t".join(str(v) for v in vals))
                 if parsed:
-                    rows[parsed[0]] = parsed[1]
+                    rows[parsed[0]] = (parsed[1], parsed[2])
     else:
         for line in _read_text_any(path).splitlines():
             parsed = _parse_line(line.strip())
             if parsed:
-                rows[parsed[0]] = parsed[1]
-    return pd.Series(rows, name="LUATTRUU").sort_index()
+                rows[parsed[0]] = (parsed[1], parsed[2])
+    return _rows_to_index(rows)
 
 
 def prepare_returns(px: pd.DataFrame, treasury: pd.Series | None = None) -> pd.DataFrame:
