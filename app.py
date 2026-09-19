@@ -373,13 +373,14 @@ def update_main(period, scale, mgmt, perf, lang, vw):
                 perf=pct(perf / 100, 0, lang=lang))
     defs_txt = t("lede_defs", lang, cost=f"{PARAMS.cost_bps:.0f}",
                  mgmt=pct(mgmt / 100, 1, lang=lang), perf=pct(perf / 100, 0, lang=lang))
-    # Vermögenschart ohne die SHY-Reihe; Tabelle und Nebencharts behalten sie
-    chart_mixes = {k: v for k, v in mixes.items() if k != t("tsy_label", lang)}
-    fig = plots.wealth_chart(b, chart_mixes, log=scale == "log", lang=lang, compact=compact)
+    # SHY-Reihe weder im Vermögenschart noch in der Tabelle; Drawdown- und
+    # Vorsprung-Chart behalten sie als Referenz
+    shown = {k: v for k, v in mixes.items() if k != t("tsy_label", lang)}
+    fig = plots.wealth_chart(b, shown, log=scale == "log", lang=lang, compact=compact)
     dd = plots.drawdown_chart(b, mixes, lang=lang, compact=compact)
     al = plots.alpha_chart(b, mixes, lang=lang, compact=compact)
     cols = {t("col_gross", lang): b.ret_pf, t("col_net", lang): b.ret_pf_net,
-            "S&P 500": b.ret_bm, **mixes}
+            "S&P 500": b.ret_bm, **shown}
     tbl = m.summary_table(cols, b.ret_bm, b.ret_off).loc[KPI_ORDER]
     hl = (t("col_gross", lang), t("col_net", lang))
     col_tips = {t("col_gross", lang): tip("col_gross", lang),
