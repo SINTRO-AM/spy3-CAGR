@@ -40,8 +40,17 @@ pio.templates["sintro"] = go.layout.Template(layout=dict(
 TEMPLATE = "sintro"
 
 
-def _base(fig: go.Figure, lang: str, **kw) -> go.Figure:
+def _base(fig: go.Figure, lang: str, compact: bool = False, **kw) -> go.Figure:
+    """compact=True: kleinere Schrift, engere Ränder, weniger Ticks – für Smartphones."""
     fig.update_layout(template=TEMPLATE, separators=SEP.get(lang, ",."), **kw)
+    if compact:
+        fig.update_layout(font=dict(size=13),
+                          legend=dict(font=dict(size=11.5), y=1.02, itemwidth=30, tracegroupgap=2),
+                          margin=dict(l=4, r=4, t=22, b=4),
+                          xaxis=dict(tickfont=dict(size=11), nticks=5),
+                          yaxis=dict(tickfont=dict(size=11), nticks=6))
+        if "yaxis2" in fig.layout:              # zweite Achse nur, wenn vorhanden
+            fig.update_layout(yaxis2=dict(tickfont=dict(size=11), title=None, nticks=5))
     return fig
 
 
@@ -59,7 +68,7 @@ def _legend_box(fig: go.Figure, name: str):
 
 
 def wealth_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
-                 log: bool = True, lang: str = "de") -> go.Figure:
+                 log: bool = True, lang: str = "de", compact: bool = False) -> go.Figure:
     """Wert von 1.000 USD; ohne Drawdown (eigener Chart)."""
     fig = go.Figure()
     hov = "%{y:,.0f} USD"
@@ -93,12 +102,12 @@ def wealth_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
                     tickfont=dict(color=VAR_GREY, size=15), linecolor=LINE,
                     tickcolor=LINE, title=dict(text=t("var_axis", lang),
                                                font=dict(color=VAR_GREY, size=15)))
-    return _base(fig, lang, shapes=_risk_off_shapes(bt.position),
+    return _base(fig, lang, compact, shapes=_risk_off_shapes(bt.position),
                  yaxis2=var_axis if "var_1d" in bt else None)
 
 
 def drawdown_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
-                   lang: str = "de") -> go.Figure:
+                   lang: str = "de", compact: bool = False) -> go.Figure:
     fig = go.Figure()
     fig.add_scatter(x=bt.index, y=m.drawdown(bt.ret_bm), name="S&P 500",
                     line=dict(color=SLATE, width=1), fill="tozeroy",
@@ -112,11 +121,11 @@ def drawdown_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
         fig.add_scatter(x=bt.index, y=m.drawdown(bt.ret_pf_net), name=t("net", lang),
                         line=dict(color=NET, width=1.8), hovertemplate="%{y:.1%}")
     fig.update_yaxes(tickformat=".0%")
-    return _base(fig, lang, shapes=_risk_off_shapes(bt.position, RISK_OFF_SOFT))
+    return _base(fig, lang, compact, shapes=_risk_off_shapes(bt.position, RISK_OFF_SOFT))
 
 
 def alpha_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
-                lang: str = "de") -> go.Figure:
+                lang: str = "de", compact: bool = False) -> go.Figure:
     """Vermögen relativ zum S&P 500 (Vielfaches). 3,0x = dreifaches Endvermögen.
 
     Die frühere Darstellung nutzte Log-Punkte: +110 Log-Punkte entsprechen 3,0x.
@@ -136,10 +145,10 @@ def alpha_chart(bt: pd.DataFrame, extra: dict[str, pd.Series] | None = None,
                         hovertemplate=hov)
     fig.add_hline(y=1, line=dict(color=INK, width=1))
     fig.update_yaxes(tickformat=",.1f", ticksuffix="x")
-    return _base(fig, lang, shapes=_risk_off_shapes(bt.position, RISK_OFF_SOFT))
+    return _base(fig, lang, compact, shapes=_risk_off_shapes(bt.position, RISK_OFF_SOFT))
 
 
-def relative_chart(bt: pd.DataFrame, lang: str = "de") -> go.Figure:
+def relative_chart(bt: pd.DataFrame, lang: str = "de", compact: bool = False) -> go.Figure:
     ratio = (1 + bt.ret_pf).cumprod() / (1 + bt.ret_bm).cumprod()
     fig = go.Figure(go.Scatter(x=ratio.index, y=ratio, line=dict(color=NAVY, width=2),
                                name="SPY3 / S&P 500", hovertemplate="%{y:,.3f}"))
@@ -154,7 +163,7 @@ def relative_chart(bt: pd.DataFrame, lang: str = "de") -> go.Figure:
                       annotation_font=dict(size=15, color=MUTED))
     fig.add_hline(y=1, line=dict(color=LINE, width=1))
     wide = ratio.max() / ratio.min() > 4
-    return _base(fig, lang, yaxis_type="log", yaxis_dtick="D2" if wide else None,
+    return _base(fig, lang, compact, yaxis_type="log", yaxis_dtick="D2" if wide else None,
                  yaxis_tickformat=",.2f", showlegend=False)
 
 
@@ -165,10 +174,10 @@ def rolling_excess_chart(bt: pd.DataFrame, years=(3, 5), lang: str = "de") -> go
         fig.add_scatter(x=s.index, y=s, name=t("years_n", lang, y=y),
                         line=dict(color=c, width=1.8), hovertemplate="%{y:+.1%}")
     fig.add_hline(y=0, line=dict(color=INK, width=1))
-    return _base(fig, lang, yaxis_tickformat="+.0%")
+    return _base(fig, lang, compact, yaxis_tickformat="+.0%")
 
 
-def attribution_bars(att: pd.DataFrame, lang: str = "de") -> go.Figure:
+def attribution_bars(att: pd.DataFrame, lang: str = "de", compact: bool = False) -> go.Figure:
     """Beitrag der Krisenphasen zur Überschussrendite (Log-Punkte)."""
     d = att.drop(index=[i for i in att.index if i.startswith(("Gesamt", "Total"))])
     vals = d.iloc[:, 0]
@@ -177,20 +186,20 @@ def attribution_bars(att: pd.DataFrame, lang: str = "de") -> go.Figure:
                            hovertemplate="%{x:+.1%}<extra></extra>"))
     fig.update_xaxes(tickformat="+.0%", zeroline=True, zerolinecolor=INK, zerolinewidth=1)
     fig.update_yaxes(autorange="reversed")
-    return _base(fig, lang, showlegend=False, height=260, hovermode="closest",
+    return _base(fig, lang, compact, showlegend=False, height=260, hovermode="closest",
                  margin=dict(l=8, r=8, t=10, b=8))
 
 
-def cum_excess_chart(bt: pd.DataFrame, lang: str = "de") -> go.Figure:
+def cum_excess_chart(bt: pd.DataFrame, lang: str = "de", compact: bool = False) -> go.Figure:
     ex = excess_log(bt.ret_pf, bt.ret_bm).cumsum()
     fig = go.Figure(go.Scatter(x=ex.index, y=ex, fill="tozeroy",
                                line=dict(color=NAVY, width=1.8),
                                fillcolor="rgba(0,50,116,0.08)", hovertemplate="%{y:+.1%}"))
-    return _base(fig, lang, yaxis_tickformat="+.0%", height=300, showlegend=False)
+    return _base(fig, lang, compact, yaxis_tickformat="+.0%", height=300, showlegend=False)
 
 
 def rolling_chart(series: dict[str, pd.Series], fmt: str, zero_line: bool,
-                  lang: str = "de") -> go.Figure:
+                  lang: str = "de", compact: bool = False) -> go.Figure:
     """series: Name -> Zeitreihe; Stil nach Name (brutto, netto, S&P 500, 60/40)."""
     styles = {
         t("gross", lang): dict(color=NAVY, width=1.1),
@@ -208,4 +217,4 @@ def rolling_chart(series: dict[str, pd.Series], fmt: str, zero_line: bool,
     if zero_line:
         fig.add_hline(y=0, line=dict(color=INK, width=1))
     fig.update_yaxes(tickformat=tick)
-    return _base(fig, lang)
+    return _base(fig, lang, compact)

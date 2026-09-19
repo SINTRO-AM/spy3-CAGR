@@ -78,9 +78,23 @@ def concentration(r: pd.Series, bm: pd.Series, top_k: int = 12) -> float:
     return float(mex.nlargest(top_k).sum() / mex.sum()) if mex.sum() else np.nan
 
 
-def static_mix(bm: pd.Series, off: pd.Series, weight: float) -> pd.Series:
-    """Täglich rebalancierter Mix – fairer Vergleich bei gleicher Aktienquote."""
-    return weight * bm + (1 - weight) * off
+def static_mix(bm: pd.Series, off: pd.Series, weight: float,
+               rebalance: str | None = "ME") -> pd.Series:
+    """Statischer Mix aus Aktien und Anleihen.
+
+    rebalance="ME" (Standard): monatliches Rebalancing wie bei einem echten
+    60/40-Portfolio. Innerhalb des Monats laufen die Gewichte mit den Kursen
+    auseinander, zum Monatsende wird auf die Zielquote zurückgesetzt.
+    rebalance=None: tägliches Rebalancing (Gewichte konstant).
+    """
+    if rebalance is None:
+        return weight * bm + (1 - weight) * off
+    grp = bm.index.to_period(rebalance.replace("E", "") or "M")
+    a = (1 + bm).groupby(grp).cumprod()          # Wertentwicklung je Bein seit Monatsanfang
+    b = (1 + off).groupby(grp).cumprod()
+    value = weight * a + (1 - weight) * b
+    prev = value.groupby(grp).shift(1).fillna(1.0)
+    return (value / prev - 1).rename(bm.name)
 
 
 def timing_test(position: pd.Series, bm: pd.Series, off: pd.Series,

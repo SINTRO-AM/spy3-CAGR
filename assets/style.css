@@ -272,26 +272,71 @@ p { margin: 0; }
 .foot { max-width: var(--maxw); margin: 0 auto; padding: 0 var(--gutter) 32px;
         color: var(--muted); font-size: .78rem; }
 
+/* Tablets: Kopfzeile darf umbrechen, sonst läuft sie über */
+@media (max-width: 1000px) {
+  .topbar { flex-wrap: wrap; gap: 12px; }
+  /* Hinweis überlagert, damit er keinen Platz belegt, aber im Bildschirm bleibt */
+  .controls { position: relative; }
+  .controls > div.ctl--scale { position: static; }
+  .hint { left: 0; top: calc(100% + 8px); width: min(430px, calc(100vw - 32px)); }
+  .hint::before { display: none; }
+  .top-right { width: 100%; justify-content: flex-start; flex-wrap: wrap; gap: 10px; }
+  .signal { flex: 1 1 auto; min-width: 0; }
+  .sig-summary { flex-wrap: wrap; gap: 8px; }
+  .downloads { flex: 0 0 auto; }
+  .sig-pop { left: 0; right: auto; }
+}
+
 @media (max-width: 1100px) {
   .grid, .two-col { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 640px) {
-  .topbar { flex-direction: column; align-items: flex-start; }
-  .sig-pop { left: 0; right: auto; }
+  body { font-size: 15px; }
+  .modebar { display: none !important; }   /* Werkzeugleiste der Charts auf Touchgeräten aus */
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.02rem; }
+  h3 { font-size: 1rem; }
+  .topbar { flex-direction: column; align-items: flex-start; padding: 14px 16px; }
+  .logo { height: 34px; }
   .top-right { width: 100%; justify-content: space-between; align-items: flex-start;
                gap: 10px; flex-wrap: wrap; }
-  .downloads { order: 3; width: 100%; }
-  .dl-btn { flex: 1; justify-content: center; }
   .signal { min-width: 0; flex: 1; }
   .sig-summary { flex-wrap: wrap; gap: 8px; }
-  .logo { height: 36px; }
-  h1 { font-size: 1.5rem; }
-  .hint { position: static; max-width: 100%; margin-top: 4px; }
-  .hint::before { display: none; }
-  .graph-box--main { height: 400px; }
-  .graph-box--side, .graph-box--tab { height: 320px; }
-  .panel { padding: 16px; }
-  .tabs .tab, .tabs .tab--on { margin-right: 16px; }
+  .sig-btn { padding: 7px 14px 7px 12px; font-size: .92rem; }
+  .chip { font-size: .8rem; padding: 3px 8px; }
+  .sig-pop { left: 0; right: auto; }
+  .downloads { order: 3; width: 100%; }
+  .dl-btn { flex: 1; justify-content: center; font-size: .85rem; padding: 9px 10px; }
+  .page { padding-top: 20px; }
+  .intro { margin-bottom: 14px; }
+  .lede { font-size: .92rem; }
+  .lede.defs { font-size: .86rem; }
+  .controls { gap: 10px 16px; }
+  .ctl-lbl { font-size: .88rem; }
+  .seg-lbl, .seg label { padding: 5px 11px; font-size: .86rem; }
+  .fee-wrap { width: 140px; }
+  .panel { padding: 14px; }
+  .panel-head { gap: 2px; }
+  .note { font-size: .88rem; }
+  .note.small { font-size: .82rem; }
+  .graph-box--main { height: 330px; }
+  .graph-box--side, .graph-box--tab { height: 270px; }
+  .graph-box--bars { height: 230px; }
+  .tbl { font-size: .88rem; }
+  .tbl th, .tbl td { padding: 6px 5px; }
+  .kpi-panel { padding: 14px 12px; }
+  .kpi-panel .tbl { font-size: .84rem; }
+  .kpi-panel .tbl th, .kpi-panel .tbl td { padding: 6px 4px; }
+  .tbl-wrap { -webkit-overflow-scrolling: touch; }
+  .facts { gap: 10px 20px; }
+  .fact strong { font-size: 1.4rem; }
+  .fact span { font-size: .82rem; }
+  .tabs { margin-top: 24px; }
+  .tabs .tab, .tabs .tab--on { margin-right: 14px; font-size: .92rem; }
+  .risk-row { margin-top: 14px; }
+  .two-col { gap: 14px; }
+  .foot { font-size: .74rem; }
+}
 }
 @media (prefers-reduced-motion: reduce) {
   *:not(.hint) { transition: none !important; animation: none !important; }

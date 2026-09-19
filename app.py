@@ -263,6 +263,8 @@ server = app.server
 
 app.layout = html.Div([
     dcc.Store(id="lang-pref", storage_type="local", data="en"),
+    dcc.Store(id="viewport", data=1200),
+    dcc.Interval(id="viewport-tick", interval=1500, n_intervals=0),
     html.Header([
         html.A(html.Img(src=app.get_asset_url("sintro-logo.png"),
                         alt="SINTRO Asset Management", className="logo"),
@@ -287,6 +289,12 @@ def choose_lang(_de, _en):
     if ctx.triggered_id is None:
         return no_update
     return ctx.triggered_id.split("-")[1]
+
+
+# Bildschirmbreite melden, damit Charts auf Smartphones kompakter gezeichnet werden
+app.clientside_callback(
+    "function(_) { return window.innerWidth; }",
+    Output("viewport", "data"), Input("viewport-tick", "n_intervals"))
 
 
 # Menü nach Auswahl schließen (natives <details>, daher clientseitig)
@@ -327,8 +335,9 @@ def net_series(mgmt_pct: float, perf_pct: float) -> pd.Series:
               Output("mgmt-fee-val", "children"), Output("perf-fee-val", "children"),
               Input("period", "value"), Input("scale-mode", "value"),
               Input("mgmt-fee", "value"), Input("perf-fee", "value"),
-              Input("lang-pref", "data"))
-def update_main(period, scale, mgmt, perf, lang):
+              Input("lang-pref", "data"), Input("viewport", "data"))
+def update_main(period, scale, mgmt, perf, lang, vw):
+    compact = (vw or 1200) < 820
     mgmt = PARAMS.mgmt_fee * 100 if mgmt is None else float(mgmt)
     perf = PARAMS.perf_fee * 100 if perf is None else float(perf)
     b, mixes = slice_bt(period, lang)
@@ -337,9 +346,9 @@ def update_main(period, scale, mgmt, perf, lang):
                 perf=pct(perf / 100, 0, lang=lang))
     defs_txt = t("lede_defs", lang, cost=f"{PARAMS.cost_bps:.0f}",
                  mgmt=pct(mgmt / 100, 1, lang=lang), perf=pct(perf / 100, 0, lang=lang))
-    fig = plots.wealth_chart(b, mixes, log=scale == "log", lang=lang)
-    dd = plots.drawdown_chart(b, mixes, lang=lang)
-    al = plots.alpha_chart(b, mixes, lang=lang)
+    fig = plots.wealth_chart(b, mixes, log=scale == "log", lang=lang, compact=compact)
+    dd = plots.drawdown_chart(b, mixes, lang=lang, compact=compact)
+    al = plots.alpha_chart(b, mixes, lang=lang, compact=compact)
     cols = {t("col_gross", lang): b.ret_pf, t("col_net", lang): b.ret_pf_net,
             "S&P 500": b.ret_bm, **mixes}
     tbl = m.summary_table(cols, b.ret_bm, b.ret_off).loc[KPI_ORDER]
@@ -355,8 +364,10 @@ def update_main(period, scale, mgmt, perf, lang):
 
 
 @app.callback(Output("tab-body", "children"), Input("analysis-tabs2", "value"),
-              Input("period", "value"), Input("lang-pref", "data"))
-def update_tab(tab, period, lang):
+              Input("period", "value"), Input("lang-pref", "data"),
+              Input("viewport", "data"))
+def update_tab(tab, period, lang, vw):
+    compact = (vw or 1200) < 820
     b, _ = slice_bt(period, lang)
     pf, bm = b.ret_pf, b.ret_bm
     if tab == "gap":
@@ -366,9 +377,9 @@ def update_tab(tab, period, lang):
                     t("share", lang): tip("share", lang)}
         return html.Div([
             section(t("cum_title", lang), t("cum_note", lang),
-                    graph(plots.cum_excess_chart(b, lang)), tip_key="excess_log", lang=lang),
+                    graph(plots.cum_excess_chart(b, lang, compact)), tip_key="excess_log", lang=lang),
             section(t("src_title", lang), t("src_note", lang),
-                    graph_box("bars", fig=plots.attribution_bars(att, lang)),
+                    graph_box("bars", fig=plots.attribution_bars(att, lang, compact)),
                     table(att, lang, fmt=lambda i, v: pct(v, lang=lang),
                           row_label=t("phase", lang), tips=att_tips)),
         ], className="two-col")
@@ -435,8 +446,10 @@ def _rolling(key: str, metric: str, years: int) -> pd.Series:
 @app.callback(Output("roll-graph", "figure"), Output("roll-facts", "children"),
               Output("roll-note", "children"),
               Input("roll-metric", "value"), Input("roll-window", "value"),
-              Input("period", "value"), Input("lang-pref", "data"))
-def update_rolling(metric, years, period, lang):
+              Input("period", "value"), Input("lang-pref", "data"),
+              Input("viewport", "data"))
+def update_rolling(metric, years, period, lang, vw):
+    compact = (vw or 1200) < 820
     metric = metric if metric in rl.METRICS else "sharpe"
     years = int(years or 3)
     b, _ = slice_bt(period, lang)
@@ -446,7 +459,8 @@ def update_rolling(metric, years, period, lang):
              "6040": "60/40"}
     keys = ["gross", "net", "6040"] if metric == "excess" else list(names)
     series = {names[k]: _rolling(k, metric, years).loc[start:] for k in keys}
-    fig = plots.rolling_chart(series, fmt, metric in ("excess", "sharpe", "calmar"), lang)
+    fig = plots.rolling_chart(series, fmt, metric in ("excess", "sharpe", "calmar"),
+                              lang, compact)
 
     net = series[names["net"]]
     show = (lambda v: pct(v, 1, lang=lang)) if fmt == "pct" else (lambda v: dec(v, lang=lang))

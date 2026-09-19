@@ -19,7 +19,7 @@ prüfbar macht:
 | Max. Drawdown | in Log-Punkten | preisbasiert |
 | Transaktionskosten | 1 bp, an zwei falschen Tagen (Signal(t) vs. Signal(t−2)) | 10 bp je Positionswechsel, genau einmal (`--cost`) |
 | Beta / Jensen's Alpha | nicht im Code (Deck) | OLS auf Überschussrenditen |
-| Benchmark-Fairness | nur 100 % SPY | zusätzlich klassisches 60/40-Portfolio (SPY/SHY, vor 07/2002 T-Bills) |
+| Benchmark-Fairness | nur 100 % SPY | zusätzlich klassisches 60/40-Portfolio (SPY/SHY, monatlich rebalanciert, vor 07/2002 T-Bills) |
 | Robustness | – | Krisen-Attribution, Ex-Krisen-Kennzahlen, rollierende Überschussrendite, Konzentration, Zufalls-Timing-Test, Teilperioden |
 
 ## Nutzung

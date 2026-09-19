@@ -65,10 +65,10 @@ TXT: dict[str, tuple[str, str]] = {
                   "high-water mark and the SPY hurdle, crystallised quarterly."),
     # Kennzahlen
     "kpis": ("Kennzahlen", "Key figures"),
-    "kpi_note": ("60/40: 60 % SPY und 40 % SHY, täglich rebalanciert. Sharpe Ratio ohne "
+    "kpi_note": ("60/40: 60 % SPY und 40 % SHY, monatlich rebalanciert. Sharpe Ratio ohne "
                  "risikofreien Satz (rf = 0 %), Beta und Alpha über kurzlaufende "
                  "Staatsanleihen. Vor 07/2002 ersetzen 13-Wochen-T-Bills den SHY.",
-                 "60/40: 60% SPY and 40% SHY, rebalanced daily. Sharpe ratio without a "
+                 "60/40: 60% SPY and 40% SHY, rebalanced monthly. Sharpe ratio without a "
                  "risk-free rate (rf = 0%), beta and alpha against short-term Treasuries. "
                  "Before 07/2002, 13-week T-bills stand in for SHY."),
     "col_gross": ("SPY3 brutto", "SPY3 gross"),
@@ -242,8 +242,10 @@ TIPS: dict[str, tuple[str, str]] = {
                 "(high-water mark, SPY hurdle, quarterly)."),
     "col_bm": ("SPY Total Return, also inklusive reinvestierter Dividenden.",
                "SPY total return, i.e. including reinvested dividends."),
-    "col_mix": ("60 % SPY und 40 % SHY, täglich rebalanciert. Vor 07/2002 T-Bills statt SHY.",
-                "60% SPY and 40% SHY, rebalanced daily. T-bills instead of SHY before 07/2002."),
+    "col_mix": ("60 % SPY und 40 % SHY, zum Monatsende auf die Zielquote zurückgesetzt. "
+                "Vor 07/2002 T-Bills statt SHY.",
+                "60% SPY and 40% SHY, reset to target weights at each month end. T-bills "
+                "instead of SHY before 07/2002."),
     "excess_log": ("Log-Punkte: 110 Log-Punkte entsprechen dem 3,0-fachen Vermögen "
                    "gegenüber der Benchmark (exp(1,10) = 3,0).",
                    "Log points: 110 log points correspond to 3.0x the benchmark wealth "

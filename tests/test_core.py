@@ -39,7 +39,7 @@ def test_no_lookahead_and_single_cost_per_switch():
 def test_beta_alpha_on_static_mix():
     rng = np.random.default_rng(1)
     bm = pd.Series(rng.normal(0.0004, 0.01, 2000), index=IDX)
-    mix = rb.static_mix(bm, pd.Series(0.0, index=IDX), 0.6)
+    mix = rb.static_mix(bm, pd.Series(0.0, index=IDX), 0.6, rebalance=None)
     a, b = m.alpha_beta(mix, bm)
     assert b == pytest.approx(0.6)
     assert a == pytest.approx(0.0, abs=1e-12)
@@ -195,3 +195,24 @@ def test_export_reports_missing_packages(monkeypatch):
     assert rp.missing_packages() == ["reportlab"]
     with pytest.raises(ModuleNotFoundError, match="reportlab"):
         rp.build_pdf(pd.DataFrame(), {}, "de")
+
+
+def test_monthly_rebalancing(bt=None):
+    """Monatliches Rebalancing: Gewichte driften im Monat, Monatsstart exakt 60/40."""
+    idx = pd.bdate_range("2020-01-01", "2020-06-30")
+    rng = np.random.default_rng(9)
+    bm = pd.Series(rng.normal(0.001, 0.015, len(idx)), index=idx)
+    off = pd.Series(rng.normal(0.0001, 0.002, len(idx)), index=idx)
+    monthly = rb.static_mix(bm, off, 0.6)
+    daily = rb.static_mix(bm, off, 0.6, rebalance=None)
+    # Erster Tag eines Monats: identisch zur täglichen Variante (Gewichte frisch gesetzt)
+    starts = idx.to_series().groupby(idx.to_period("M")).min()
+    for d in starts:
+        assert monthly[d] == pytest.approx(daily[d])
+    # Danach laufen die Reihen auseinander, bleiben aber nah beieinander
+    assert not np.allclose(monthly.to_numpy(), daily.to_numpy())
+    assert abs(m.total_return(monthly) - m.total_return(daily)) < 0.02
+    # Innerhalb eines Monats verkettet sich der Mix aus beiden Beinen
+    jan = idx[idx < "2020-02-01"]
+    expected = 0.6 * (1 + bm[jan]).prod() + 0.4 * (1 + off[jan]).prod() - 1
+    assert m.total_return(monthly[jan]) == pytest.approx(expected)
