@@ -43,7 +43,7 @@ def main():
         for line in _read_text_any(path).splitlines()[:5]:
             print("   |", line[:80])
     elif len(tr):
-        mode = ("aus Log-Renditen rekonstruiert" if abs(tr.iloc[0] - 100) < 1e-9
+        mode = ("aus Log-Renditen rekonstruiert" if tr.attrs.get("mode") == "returns"
                 else "Kurse (PX_LAST)")
         print(f"  {len(tr)} Werte gelesen ({mode}), {tr.index[0].date()} bis {tr.index[-1].date()}")
     else:

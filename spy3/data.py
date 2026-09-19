@@ -139,9 +139,12 @@ def _rows_to_index(rows: dict) -> pd.Series:
     s = pd.Series({k: v[0] for k, v in rows.items()}).sort_index()
     pct_share = sum(v[1] for v in rows.values()) / len(rows)
     if pct_share > 0.5:                              # Log-Renditen in %
-        idx = 100 * np.exp((s / 100).cumsum())
-        return idx.rename("LUATTRUU")
-    return s.rename("LUATTRUU")
+        idx = 100 * np.exp((s / 100).cumsum()).rename("LUATTRUU")
+        idx.attrs["mode"] = "returns"
+        return idx
+    s = s.rename("LUATTRUU")
+    s.attrs["mode"] = "prices"
+    return s
 
 
 def load_treasury_index(path: Path = TREASURY_FILE) -> pd.Series:
