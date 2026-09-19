@@ -8,6 +8,7 @@ Risk-Off vor SHY-Start (30.07.2002), in dieser Reihenfolge:
 """
 from __future__ import annotations
 
+import os
 import re
 
 import warnings
@@ -16,8 +17,8 @@ from pathlib import Path
 import pandas as pd
 
 CACHE = Path(__file__).resolve().parent.parent / "data" / "prices.csv"
-TREASURY_FILE = CACHE.parent / "luattruu.csv"
-_ROW = re.compile(r"^(\d{2})\.(\d{2})\.(\d{4})[^\t;,]*[\t;,]\s*([-\d.,]+)")
+# Standardpfad; alternativ per Umgebungsvariable SPY3_TREASURY_FILE überschreiben
+TREASURY_FILE = Path(os.environ.get("SPY3_TREASURY_FILE", CACHE.parent / "luattruu.csv"))
 TBILL = "^IRX"
 COLUMNS = ["risk_on", "risk_off", "tbill_yield"]
 
@@ -52,26 +53,103 @@ def load_prices(
     return px[COLUMNS].dropna(subset=["risk_on"])
 
 
-def load_treasury_index(path: Path = TREASURY_FILE) -> pd.Series:
-    """Bloomberg US Treasury Total Return Index (PX_LAST) aus dem Rohexport.
+def _read_text_any(path: Path) -> str:
+    """Liest Textdateien unabhängig von der Kodierung (UTF-8, UTF-16, Windows-1252)."""
+    raw = Path(path).read_bytes()
+    if raw[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        return raw.decode("utf-16")
+    if b"\x00" in raw[:200]:                        # UTF-16 ohne BOM
+        try:
+            return raw.decode("utf-16-le")
+        except UnicodeDecodeError:
+            pass
+    for enc in ("utf-8-sig", "cp1252", "latin-1"):
+        try:
+            return raw.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return raw.decode("utf-8", errors="ignore")
 
-    Liest Zeilen der Form `29.12.1989<TAB>467,8<TAB>...`; Kopfzeilen und die
-    log-return-Spalte werden ignoriert, Dezimalkomma und -punkt beide akzeptiert.
-    Fehlt die Datei, kommt eine leere Reihe zurück.
+
+_DATE_PATTERNS = [
+    (re.compile(r"^(\d{1,2})\.(\d{1,2})\.(\d{4})"), "dmy"),      # 29.12.1989
+    (re.compile(r"^(\d{4})-(\d{2})-(\d{2})"), "ymd"),              # 1989-12-29
+    (re.compile(r"^(\d{1,2})/(\d{1,2})/(\d{4})"), "dmy"),          # 29/12/1989
+]
+
+
+def _split(line: str) -> list[str]:
+    """Zerlegt eine Zeile; Anführungszeichen schützen Dezimalkommas."""
+    import csv
+    for sep in ("\t", ";", ","):
+        if sep not in line:
+            continue
+        parts = next(csv.reader([line], delimiter=sep, quotechar='"'))
+        parts = [p.strip().strip("'") for p in parts]
+        if len(parts) >= 2 and parts[0] and parts[1]:
+            return parts
+    return [line.strip()]
+
+
+def _parse_line(line: str):
+    """Gibt (Datum, Kurs) zurück oder None, wenn die Zeile keine Datenzeile ist."""
+    parts = _split(line)
+    if len(parts) < 2:
+        return None
+    d = parts[0].strip()
+    for pat, order in _DATE_PATTERNS:
+        m = pat.match(d)
+        if m:
+            a, b, c = m.groups()
+            y, mo, dd = (int(c), int(b), int(a)) if order == "dmy" else (int(a), int(b), int(c))
+            break
+    else:
+        return None
+    val = parts[1].strip()
+    if "," in val and "." in val:          # 1.084,43 -> 1084.43
+        val = val.replace(".", "").replace(",", ".")
+    elif "," in val:                        # 467,8 -> 467.8
+        val = val.replace(",", ".")
+    try:
+        return pd.Timestamp(y, mo, dd), float(val)
+    except (ValueError, TypeError):
+        return None
+
+
+def load_treasury_index(path: Path = TREASURY_FILE) -> pd.Series:
+    """Bloomberg US Treasury Total Return Index (PX_LAST) aus dem Export.
+
+    Akzeptiert den Rohexport (Tab, Semikolon oder Komma getrennt; Datum als
+    dd.mm.yyyy, yyyy-mm-dd oder dd/mm/yyyy; Dezimalkomma oder -punkt; UTF-8,
+    UTF-16 oder Windows-1252) sowie .xlsx/.xls mit den Spalten Date und PX_LAST.
+    Kopfzeilen und weitere Spalten werden ignoriert. Fehlt die Datei, kommt eine
+    leere Reihe zurück.
     """
-    if not Path(path).exists():
+    path = Path(path)
+    if not path.exists():
         return pd.Series(dtype=float, name="LUATTRUU")
     rows = {}
-    for line in Path(path).read_text(encoding="utf-8-sig").splitlines():
-        m = _ROW.match(line.strip())
-        if not m:
-            continue
-        d, mo, y, val = m.groups()
-        val = val.replace(".", "").replace(",", ".") if "," in val else val
-        try:
-            rows[pd.Timestamp(int(y), int(mo), int(d))] = float(val)
-        except ValueError:
-            continue
+    if path.suffix.lower() in (".xlsx", ".xls"):
+        df = pd.read_excel(path, header=None)
+        for _, row in df.iterrows():
+            cells = [str(v) for v in row.tolist()[:2] if pd.notna(v)]
+            if len(cells) < 2:
+                continue
+            d = row.iloc[0]
+            if isinstance(d, pd.Timestamp):
+                try:
+                    rows[d.normalize()] = float(str(row.iloc[1]).replace(",", "."))
+                except ValueError:
+                    pass
+            else:
+                parsed = _parse_line("\t".join(cells))
+                if parsed:
+                    rows[parsed[0]] = parsed[1]
+    else:
+        for line in _read_text_any(path).splitlines():
+            parsed = _parse_line(line.strip())
+            if parsed:
+                rows[parsed[0]] = parsed[1]
     return pd.Series(rows, name="LUATTRUU").sort_index()
 
 

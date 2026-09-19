@@ -9,6 +9,7 @@ mit der T-Bill-Näherung, und stellt die Kennzahlen gegenüber.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -26,18 +27,31 @@ from spy3.strategy import StrategyParams, backtest  # noqa: E402
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--csv", type=Path, default=None)
+    ap.add_argument("--treasury", type=Path, default=None,
+                    help="Pfad zur Bloomberg-Datei (Standard: data/luattruu.csv)")
     a = ap.parse_args()
+    if a.treasury:
+        os.environ["SPY3_TREASURY_FILE"] = str(a.treasury)
     px = (pd.read_csv(a.csv, index_col=0, parse_dates=True) if a.csv else load_prices())
 
-    tr = load_treasury_index()
-    print(f"Treasury-Datei: {TREASURY_FILE} -> {'gefunden' if TREASURY_FILE.exists() else 'FEHLT'}")
-    if len(tr):
+    path = Path(os.environ.get("SPY3_TREASURY_FILE", TREASURY_FILE))
+    tr = load_treasury_index(path)
+    print(f"Treasury-Datei: {path} -> {'gefunden' if path.exists() else 'FEHLT'}")
+    if path.exists() and not len(tr):
+        print("  Datei vorhanden, aber keine Datenzeile erkannt. Erste Zeilen:")
+        from spy3.data import _read_text_any
+        for line in _read_text_any(path).splitlines()[:5]:
+            print("   |", line[:80])
+    elif len(tr):
         print(f"  {len(tr)} Kurse gelesen, {tr.index[0].date()} bis {tr.index[-1].date()}")
     else:
-        print("  keine verwertbaren Zeilen (Format: dd.mm.yyyy<TAB>Kurs, Dezimalkomma erlaubt)")
+        print("  Bitte den Bloomberg-Export unter diesem Pfad ablegen oder mit --treasury angeben.")
+    cand = sorted(p for p in path.parent.glob("*") if "luattruu" in p.name.lower())
+    if not path.exists() and cand:
+        print("  Ähnliche Dateien im Ordner:", ", ".join(p.name for p in cand))
 
     runs = {}
-    for label, treasury in (("Treasury-Index", None), ("T-Bill-Näherung", pd.Series(dtype=float))):
+    for label, treasury in (("Treasury-Index", tr), ("T-Bill-Näherung", pd.Series(dtype=float))):
         rets = prepare_returns(px, treasury=treasury)
         bt = backtest(rets, px["risk_on"], StrategyParams())
         runs[label] = bt

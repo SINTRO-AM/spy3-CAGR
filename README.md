@@ -90,8 +90,10 @@ Dateien sieht alles aus wie bisher.
 ## Daten und Gebühren
 
 * **Risk-Off vor SHY (bis 07/2002):** Bloomberg US Treasury Total Return Index (LUATTRUU) aus
-  `data/luattruu.csv`. Die Datei ist der unveränderte Bloomberg-Export (Datum `dd.mm.yyyy`,
-  Dezimalkomma, Tab-getrennt) und liegt wegen der Bloomberg-Lizenz nicht im Repository.
+  `data/luattruu.csv` (anderer Ort per Umgebungsvariable `SPY3_TREASURY_FILE`). Der Loader
+  liest den Bloomberg-Export unverändert, auch als `.xlsx`, mit Tab, Semikolon oder Komma,
+  Dezimalkomma oder -punkt, in UTF-8, UTF-16 oder Windows-1252. Die Datei liegt wegen der
+  Bloomberg-Lizenz nicht im Repository.
   Fehlt sie, greifen 13-Wochen-T-Bills (`^IRX`), danach 0 %. Welche Quelle tatsächlich gilt,
   zeigen die Startmeldung von `app.py`, die Fußnote unter der Kennzahlentabelle und die Spalte
   `risk_off_source` im Excel-Export. `python scripts/check_risk_off.py` rechnet beide
