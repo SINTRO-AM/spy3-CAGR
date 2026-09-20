@@ -118,6 +118,13 @@ Dateien sieht alles aus wie bisher.
   Damit passt sie zur CAGR-Zeile der Tabelle. Die klassische arithmetische Variante liegt bei
   volatilen Reihen höher (S&P 500: 0,51 statt 0,43). Beta und Jensen's Alpha über SHY bzw. Treasury-Index.
 
+## Audit
+
+`python scripts/audit.py` rechnet die Robustheitsprüfungen auf den geladenen Daten:
+Ausführungsverzögerung, Kostensensitivität, Faktor-Ablation, Zufalls-Timing,
+Parameter-Landschaft mit zufälligen Parametersätzen, Walk-Forward, Deflated Sharpe Ratio,
+Attribution. Ergebnisse und Einordnung siehe `AUDIT.md`.
+
 ## Wie man die Ergebnisse gegenüber dem Manager liest
 
 * **Attribution → „Außerhalb aller Krisen“** ≈ 0 oder negativ ⇒ sein Punkt stimmt: die Rendite-Outperformance
