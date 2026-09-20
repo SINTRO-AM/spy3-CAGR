@@ -41,8 +41,7 @@ TXT: dict[str, tuple[str, str]] = {
     "p_5": ("5 Jahre", "5 years"), "p_3": ("3 Jahre", "3 years"), "p_1": ("1 Jahr", "1 year"),
     # Signal
     "sig_title": ("Details zu den Faktoren anzeigen", "Show factor details"),
-    "sig_asof": ("Signal aus der Schlussauktion am {d}, Ausführung zum selben Schlusskurs.",
-                 "Signal from the closing auction on {d}, executed at the same close."),
+    "sig_asof": ("Signal zum Handelsschluss am {d}.", "Signal as of the close on {d}."),
     "sig_rule": ("Risk Off durch den Risk-Faktor hat Vorrang. Sonst genügt ein Risk-On-Faktor "
                  "für eine Investition in SPY.",
                  "A Risk Off from the risk factor takes precedence. Otherwise one Risk On "
