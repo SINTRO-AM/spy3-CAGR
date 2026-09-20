@@ -10,12 +10,10 @@ TXT: dict[str, tuple[str, str]] = {
              "Backtest {start} to {end}, total return in USD."),
     "lede_defs": ("SPY3 brutto: nach Handelskosten von {cost} bp je Umschichtung. "
                   "SPY3 netto: zusätzlich nach {mgmt} Managementgebühr p.a. und {perf} "
-                  "Performancegebühr. Signal aus der Schlussauktion, Ausführung zum selben "
-                  "Schlusskurs (Näherung); Kurse dividendenbereinigt (Total Return).",
+                  "Performancegebühr.",
                   "SPY3 gross: after trading costs of {cost} bp per switch. "
                   "SPY3 net: additionally after the {mgmt} p.a. management fee and the "
-                  "{perf} performance fee. Signal from the closing auction, executed at the "
-                  "same close (approximation); prices dividend-adjusted (total return)."),
+                  "{perf} performance fee."),
     "lang_menu": ("Sprache", "Language"),
     "period": ("Zeitraum", "Period"),
     "scale": ("Skala", "Scale"),
