@@ -1,5 +1,9 @@
 """Preisdaten laden (yfinance, dividendenbereinigt) mit lokalem CSV-Cache.
 
+Kursbasis: Yahoo-Finance-Schlusskurse mit auto_adjust=True, d. h. um Dividenden und
+Splits bereinigt (Total Return). Dividenden werden NICHT zusätzlich verbucht – eine
+Doppelzählung ist damit ausgeschlossen. Gilt für SPY und SHY gleichermaßen.
+
 Risk-Off vor SHY-Start (30.07.2002), in dieser Reihenfolge:
   1. SHY-Proxy mit gleicher Laufzeit (1–3 Jahre): Bloomberg US Treasury 1-3 Year
      Index (data/lt01truu.csv) oder, wenn nicht vorhanden, synthetische Gesamtrendite

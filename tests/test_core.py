@@ -30,8 +30,10 @@ def test_no_lookahead_and_single_cost_per_switch():
     price = pd.Series(100 * np.exp(np.cumsum(np.full(n, 0.0005))), index=IDX[:n])
     rets = price.pct_change().iloc[1:].to_frame("risk_on").assign(risk_off=0.0)
     bt = backtest(rets, price, StrategyParams(cost_bps=10))
-    # Position ist das um einen Tag verschobene Signal
-    assert (bt.position.iloc[1:].values == bt.signal.shift(1).iloc[1:].values).all()
+    # Signal am Schluss t, Handel am Schluss t+1, Wirkung ab t+2 -> Position = Signal(t-2)
+    assert (bt.position.iloc[2:].values == bt.signal.shift(2).iloc[2:].values).all()
+    old = backtest(rets, price, StrategyParams(cost_bps=10, exec_delay=0))
+    assert (old.position.iloc[1:].values == old.signal.shift(1).iloc[1:].values).all()
     switches = bt.position.diff().abs().sum()
     assert bt.cost.sum() == pytest.approx(switches * 0.001)
 
@@ -334,3 +336,18 @@ def test_risk_off_priority_proxy_first():
                                           "LUATTRUU", "SHY", "SHY"]
     assert r.risk_off.iloc[0] == pytest.approx(0.001)   # erster Proxy-Tag zählt voll
     assert r.risk_off.iloc[3] == pytest.approx(204 / 203 - 1)
+
+
+def test_no_double_dividend_booking():
+    """Renditen kommen ausschließlich aus den bereinigten Schlusskursen; es gibt keinen
+    Dividendenpfad, der zusätzlich verbucht werden könnte."""
+    import inspect
+    from spy3 import data, strategy
+    src = inspect.getsource(data) + inspect.getsource(strategy)
+    assert "auto_adjust=True" in inspect.getsource(data)
+    assert "dividend" not in src.lower().replace("dividendenbereinigt", "").replace(
+        "dividenden", "").replace("dividends", "")
+    idx = pd.bdate_range("2021-01-01", periods=50)
+    px = pd.DataFrame({"risk_on": np.linspace(100, 110, 50), "risk_off": 80.0}, index=idx)
+    r = data.prepare_returns(px, treasury=pd.Series(dtype=float), proxy=pd.Series(dtype=float))
+    assert np.allclose(r.risk_on.to_numpy(), px.risk_on.pct_change().iloc[1:].to_numpy())

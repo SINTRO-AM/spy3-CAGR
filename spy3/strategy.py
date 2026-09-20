@@ -31,12 +31,15 @@ class StrategyParams:
     dd_trigger: float = 1.3     # Preis < 200d-Hoch / 1.3  (≈ -23 %) -> Mean-Reversion
     dd_window: int = 200
     cost_bps: float = 10.0      # je Positionswechsel
+    exec_delay: int = 1         # Handelstage zwischen Signal-Schlusskurs und Ausführung
+                                # (1 = Market-on-Close am Folgetag; 0 = alte Annahme,
+                                #  Handel zum selben Schlusskurs wie das Signal)
     mgmt_fee: float = 0.002     # Managementgebühr p.a., täglich abgegrenzt
     perf_fee: float = 0.10      # Performancegebühr (HWM, Hurdle SPY, quartalsweise)
 
 
 def compute_signal(price: pd.Series, p: StrategyParams = StrategyParams()) -> pd.DataFrame:
-    """Signal am Tagesende t (1 = SPY, 0 = SHY). Gehandelt wird ab t+1."""
+    """Signal am Tagesende t (1 = SPY, 0 = SHY); nur Daten bis einschließlich t."""
     logret = np.log(price / price.shift(1))
     out = pd.DataFrame(index=price.index)
     out["price"] = price
@@ -58,7 +61,8 @@ def backtest(returns: pd.DataFrame, price: pd.Series,
     """returns: Spalten risk_on / risk_off (einfache Renditen), Index = Handelstage."""
     sig = compute_signal(price, p).reindex(returns.index)
     bt = sig.copy()
-    bt["position"] = sig["signal"].shift(1).fillna(0).astype(int)   # kein Look-ahead
+    # Signal am Schluss von t, Ausführung am Schluss von t+exec_delay, Wirkung ab t+exec_delay+1
+    bt["position"] = sig["signal"].shift(1 + p.exec_delay).fillna(0).astype(int)
     switched = bt["position"].diff().fillna(0).ne(0)
     bt["cost"] = switched * p.cost_bps / 1e4
     bt["ret_bm"] = returns["risk_on"]

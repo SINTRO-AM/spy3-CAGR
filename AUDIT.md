@@ -1,4 +1,4 @@
-# Audit des SPY3-Backtests (Stand 20.09.2026)
+# Audit des SPY3-Backtests im Dashboard (Stand 20.09.2026)
 
 Grundlage: echte SPY- und SHY-Kurse aus `backtest.xlsx` (07/1999–02/2024, solange SHY dort
 vorliegt), Bloomberg-Treasury-Index vor 07/2002, Dashboard-Engine mit Standardparametern.
@@ -36,7 +36,36 @@ Dashboard-Engine und Excel-Modell stimmen nach Bereinigung überein: CAGR 12,6 %
   Benchmark höher (0,51 statt 0,43 über 2000–2026).
 - Performancegebühr: HWM, SPY-Hurdle, quartalsweise Kristallisierung, Vortrag – geprüft.
 
-## Robustheit (2000-01 bis 2024-02)
+## Standardkonfiguration seit Commit dieser Version
+
+- Kurse: Yahoo Finance Adjusted Close (auto_adjust), SPY und SHY, Dividenden genau einmal
+  enthalten; SHY ab 30.07.2002, davor Proxy gleicher Laufzeit, sonst Bloomberg-Treasury-Index,
+  sonst T-Bills (Reihenfolge in `spy3/data.py`).
+- Ausführung: Signal aus dem Schlusskurs von t, Handel zum Schlusskurs von t+1 (Market-on-
+  Close), Wirkung ab t+2 (`StrategyParams.exec_delay = 1`).
+- Parameter unverändert 29/198, VaR 50 Tage 5 %/2 %, Mean-Reversion 1,3; 10 bp je Switch.
+
+## Robustheit mit MOC-Ausführung (2000-01 bis 2024-02, echte SPY/SHY-Kurse)
+
+| Test | Ergebnis |
+|---|---|
+| **Basis (MOC t+1)** | **CAGR 11,2 %, Vol 12,9 %, Sharpe 0,87, MaxDD −29,0 %** (SPY: 7,1 %, 19,6 %, 0,36, −55,2 %) |
+| alte Annahme (Handel Schluss t) | CAGR 12,5 %, Sharpe 0,98, MaxDD −20,0 % |
+| Kosten 0 / 25 / 50 bp | Sharpe 0,90 / 0,83 / 0,75 (3,3 Switches p.a.) |
+| ohne Mean-Reversion / ohne VaR-Veto | Sharpe 0,75 / 0,63 (MaxDD −37,9 %) |
+| Zufalls-Timing (500×) | Median 0,30, p < 0,001 |
+| 200 zufällige Parametersätze | Median 0,63, P90 0,74, Max 0,82; Basis 0,87 = Perzentil 100 % |
+| Nachbarn | MA 29/150: 0,74; 29/250: 0,78; VaR 30d: 0,77; 90d: 0,74; DD 1,2: 0,84; 1,4: 0,81 |
+| Teilperioden Sharpe SPY3 vs SPY | 2000–04 1,08/−0,12 · 2005–09 1,10/0,02 · 2010–14 0,95/0,97 · 2015–19 0,73/0,86 · 2020–24 0,52/0,57 |
+| Attribution Log-Überschuss | Dotcom 97 %, GFC 65 %, Covid −26 %, außerhalb Krisen −50 % |
+| 5J-Fenster geschlagen | 45 % · Up/Down-Capture 71 %/38 % · Beta 0,41 |
+
+**Covid 2020 mit MOC-Ausführung:** investiert bis 12.03. (−26,5 % mitgenommen), Risk-Off
+13.03.–16.06. (SPY in dieser Zeit +26,9 %, SPY3 +0,6 %), Wiedereinstieg 17.06. Tief am
+26.06.2020 bei −29,0 %, altes Hoch erst am 29.04.2021 wieder erreicht. Das VaR-Veto schützt
+vor langen Bärenmärkten, nicht vor einem V-förmigen Crash.
+
+## Robustheit (alte Annahme, Handel zum Schluss von t)
 
 | Test | Ergebnis |
 |---|---|
@@ -54,7 +83,7 @@ Dashboard-Engine und Excel-Modell stimmen nach Bereinigung überein: CAGR 12,6 %
 | Rollierende 5J-Fenster geschlagen | 47 % |
 | Attribution Log-Überschuss | Dotcom 87 %, GFC 46 %, außerhalb Krisen **−34 %** |
 
-## Einordnung
+## Einordnung (Dashboard)
 
 - **Der Effekt ist real.** Zufalls-Timing und DSR zeigen: Der Vorteil aus Trendfolge plus
   Volatilitätsveto auf SPY/SHY ist kein Zufallsprodukt. Selbst zufällige Parameter liefern
@@ -62,9 +91,9 @@ Dashboard-Engine und Excel-Modell stimmen nach Bereinigung überein: CAGR 12,6 %
 - **Die Höhe ist optimiert.** Die gewählten Parameter liegen in jeder Landschaft auf dem Maximum
   und über allen 300 Zufallssätzen. Der Mean-Reversion-Trigger 1,3 ist ein Spitzenwert
   (1,2 → 0,87, 1,4 → 0,84). Realistische Out-of-Sample-Erwartung: Sharpe 0,7–0,9, nicht 1,0.
-- **Der Drawdown hängt an der Ausführung.** Ein Tag Verzögerung hebt den Maximaldrawdown von
-  −20 % auf −29 %. 35 % der Risk-Off-Phasen dauern höchstens drei Tage. Wer das Signal aus dem
-  Schlusskurs berechnet, kann nicht zum selben Schlusskurs handeln.
+- **Der Drawdown ist jetzt ehrlich.** Mit MOC-Ausführung liegt er bei −29 % statt −20 %; die
+  frühere Zahl setzte Handel zum selben Schlusskurs voraus, aus dem das Signal stammt. Die
+  Volatilität bleibt bei 12,9 %, die Sharpe Ratio fällt auf 0,87.
 - **Die Outperformance ist regimeabhängig.** Zwei Crashs erklären den gesamten Vorsprung,
   außerhalb der Krisen ist der Beitrag negativ. Das ist das Design (Verlustvermeidung), sollte
   aber genau so kommuniziert werden – nicht als „Alpha über alle Marktzyklen“.
