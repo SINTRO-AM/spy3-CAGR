@@ -104,7 +104,7 @@ def test_rolling_beta_matches_regression(bt):
 
 
 def test_position_only_changes_after_signal(bt):
-    assert (bt.position.iloc[2:].to_numpy() == bt.signal.shift(2).iloc[2:].to_numpy()).all()
+    assert (bt.position.iloc[1:].to_numpy() == bt.signal.shift(1).iloc[1:].to_numpy()).all()
     assert bt.ret_pf[bt.position.eq(0)].std() < bt.ret_pf[bt.position.eq(1)].std()
 
 

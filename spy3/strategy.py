@@ -31,9 +31,11 @@ class StrategyParams:
     dd_trigger: float = 1.3     # Preis < 200d-Hoch / 1.3  (≈ -23 %) -> Mean-Reversion
     dd_window: int = 200
     cost_bps: float = 10.0      # je Positionswechsel
-    exec_delay: int = 1         # Handelstage zwischen Signal-Schlusskurs und Ausführung
-                                # (1 = Market-on-Close am Folgetag; 0 = alte Annahme,
-                                #  Handel zum selben Schlusskurs wie das Signal)
+    exec_delay: int = 0         # Handelstage zwischen Signal-Schlusskurs und Ausführung.
+                                # 0 = Signal aus der Schlussauktion, Ausführung zum selben
+                                #     Schlusskurs (Näherung, in der Praxis nur mit Indikations-
+                                #     preis kurz vor Schluss erreichbar)
+                                # 1 = Market-on-Close am Folgetag (konservative Untergrenze)
     mgmt_fee: float = 0.002     # Managementgebühr p.a., täglich abgegrenzt
     perf_fee: float = 0.10      # Performancegebühr (HWM, Hurdle SPY, quartalsweise)
 

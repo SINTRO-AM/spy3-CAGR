@@ -352,8 +352,9 @@ def build_xlsx(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str = "en") 
         "and performance fee (high-water mark, SPY hurdle, quarterly).",
         "Before 30/07/2002 the risk-off leg uses the Bloomberg US Treasury Total Return "
         "Index (LUATTRUU) instead of SHY; 13-week T-bills only if that file is missing.",
-        "Execution: signal from the close of day t, traded at the close of day t+1 "
-        "(market-on-close); the position earns returns from t+2 onwards. Prices are "
+        "Execution: signal from the closing auction of day t, traded at the same close "
+        "(approximation; in practice this requires an indicative price shortly before the "
+        "close); the position earns returns from t+1 onwards. Prices are "
         "Yahoo Finance adjusted closes (dividends and splits included once; no separate "
         "dividend booking).",
         "Source: SINTRO SPY3 backtest dashboard.",

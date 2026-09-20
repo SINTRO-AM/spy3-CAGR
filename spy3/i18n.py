@@ -10,12 +10,12 @@ TXT: dict[str, tuple[str, str]] = {
              "Backtest {start} to {end}, total return in USD."),
     "lede_defs": ("SPY3 brutto: nach Handelskosten von {cost} bp je Umschichtung. "
                   "SPY3 netto: zusätzlich nach {mgmt} Managementgebühr p.a. und {perf} "
-                  "Performancegebühr. Signal aus dem Schlusskurs, Ausführung am Folgetag "
-                  "zum Schlusskurs (Market-on-Close); Kurse dividendenbereinigt (Total Return).",
+                  "Performancegebühr. Signal aus der Schlussauktion, Ausführung zum selben "
+                  "Schlusskurs (Näherung); Kurse dividendenbereinigt (Total Return).",
                   "SPY3 gross: after trading costs of {cost} bp per switch. "
                   "SPY3 net: additionally after the {mgmt} p.a. management fee and the "
-                  "{perf} performance fee. Signal from the close, executed at the next day's "
-                  "close (market-on-close); prices dividend-adjusted (total return)."),
+                  "{perf} performance fee. Signal from the closing auction, executed at the "
+                  "same close (approximation); prices dividend-adjusted (total return)."),
     "lang_menu": ("Sprache", "Language"),
     "period": ("Zeitraum", "Period"),
     "scale": ("Skala", "Scale"),
@@ -43,10 +43,8 @@ TXT: dict[str, tuple[str, str]] = {
     "p_5": ("5 Jahre", "5 years"), "p_3": ("3 Jahre", "3 years"), "p_1": ("1 Jahr", "1 year"),
     # Signal
     "sig_title": ("Details zu den Faktoren anzeigen", "Show factor details"),
-    "sig_asof": ("Signal zum Handelsschluss am {d}. Ausführung am nächsten Handelstag zum "
-                 "Schlusskurs (Market-on-Close).",
-                 "Signal as of the close on {d}. Executed at the next trading day's close "
-                 "(market-on-close)."),
+    "sig_asof": ("Signal aus der Schlussauktion am {d}, Ausführung zum selben Schlusskurs.",
+                 "Signal from the closing auction on {d}, executed at the same close."),
     "sig_rule": ("Risk Off durch den Risk-Faktor hat Vorrang. Sonst genügt ein Risk-On-Faktor "
                  "für eine Investition in SPY.",
                  "A Risk Off from the risk factor takes precedence. Otherwise one Risk On "

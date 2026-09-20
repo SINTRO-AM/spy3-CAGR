@@ -18,7 +18,7 @@ prüfbar macht:
 | Sharpe | ohne risikofreien Satz | weiterhin rf = 0 %; Beta und Jensen's Alpha über SHY (vor 07/2002: Bloomberg Treasury Index) |
 | Max. Drawdown | in Log-Punkten | preisbasiert |
 | Transaktionskosten | 1 bp, an zwei falschen Tagen (Signal(t) vs. Signal(t−2)) | 10 bp je Positionswechsel, genau einmal (`--cost`) |
-| Ausführung | Handel zum selben Schlusskurs wie das Signal | Signal Schluss t, Handel Schluss t+1 (Market-on-Close), `exec_delay=1` |
+| Ausführung | Handel zum selben Schlusskurs wie das Signal (implizit) | explizit: `exec_delay=0` = Signal aus der Schlussauktion, Handel zum selben Schluss (Näherung); `exec_delay=1` = MOC am Folgetag als konservative Variante |
 | Beta / Jensen's Alpha | nicht im Code (Deck) | OLS auf Überschussrenditen |
 | Benchmark-Fairness | nur 100 % SPY | zusätzlich klassisches 60/40-Portfolio (SPY/SHY, monatlich rebalanciert, vor 07/2002 Bloomberg Treasury Index) |
 | Robustness | – | Krisen-Attribution, Ex-Krisen-Kennzahlen, rollierende Überschussrendite, Konzentration, Zufalls-Timing-Test, Teilperioden |

@@ -41,8 +41,12 @@ Dashboard-Engine und Excel-Modell stimmen nach Bereinigung überein: CAGR 12,6 %
 - Kurse: Yahoo Finance Adjusted Close (auto_adjust), SPY und SHY, Dividenden genau einmal
   enthalten; SHY ab 30.07.2002, davor Proxy gleicher Laufzeit, sonst Bloomberg-Treasury-Index,
   sonst T-Bills (Reihenfolge in `spy3/data.py`).
-- Ausführung: Signal aus dem Schlusskurs von t, Handel zum Schlusskurs von t+1 (Market-on-
-  Close), Wirkung ab t+2 (`StrategyParams.exec_delay = 1`).
+- Ausführung (Standard): Signal aus der Schlussauktion von t, Handel zum selben Schlusskurs,
+  Wirkung ab t+1 (`StrategyParams.exec_delay = 0`). Das ist eine Näherung: In der Praxis
+  entsteht das Signal aus einem Indikationspreis kurz vor Schluss. Die konservative Variante
+  MOC am Folgetag (`exec_delay = 1`) kostet 1,3 Pp. CAGR p.a. und hebt den maximalen
+  Drawdown von −20 % auf −29 %; der Unterschied entsteht an 79 Switch-Tagen, fast die Hälfte
+  davon am 12.03.2020.
 - Parameter unverändert 29/198, VaR 50 Tage 5 %/2 %, Mean-Reversion 1,3; 10 bp je Switch.
 
 ## Robustheit mit MOC-Ausführung (2000-01 bis 2024-02, echte SPY/SHY-Kurse)
