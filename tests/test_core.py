@@ -34,7 +34,7 @@ def test_no_lookahead_and_single_cost_per_switch():
     assert (bt.position.iloc[1:].values == bt.signal.shift(1).iloc[1:].values).all()
     moc = backtest(rets, price, StrategyParams(cost_bps=10, exec_delay=1))
     assert (moc.position.iloc[2:].values == moc.signal.shift(2).iloc[2:].values).all()
-    switches = bt.position.diff().abs().sum()
+    switches = bt.position.diff().abs().sum() + 1      # + Aufbau der Startposition
     assert bt.cost.sum() == pytest.approx(switches * 0.001)
 
 

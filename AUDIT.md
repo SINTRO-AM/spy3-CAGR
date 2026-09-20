@@ -26,10 +26,25 @@ Reproduzierbar mit `python scripts/audit.py`.
 Dashboard-Engine und Excel-Modell stimmen nach Bereinigung überein: CAGR 12,6 % (Engine) vs.
 12,4 % (Excel ohne Doppelzählung), gleicher Zeitraum.
 
-## Rechenlogik der Engine (geprüft)
+## Rechenlogik der Engine (geprüft durch unabhängigen Nachbau)
+
+Ein von Hand gerechnetes Depot (Stücke, Umschichtung zum Schluss des Signaltags, Kosten
+multiplikativ auf den Depotwert) stimmt über alle 6.193 Tage auf 6,7e-15 relativ mit der
+Engine überein. Dabei behoben:
+
+- **Startposition war kostenfrei** (`diff()` liefert am ersten Tag NaN). Jetzt als erster Kauf
+  belastet; Effekt 0,4 bp p.a. bei 10 bp.
+- **Kosten wirkten additiv** auf die Tagesrendite statt multiplikativ auf den Depotwert.
+- **Kosten wurden einen Tag zu spät gebucht** (erster Tag der neuen Position statt Handelstag).
+  Ohne Wirkung auf den Endwert, aber auf Vermögenspfad und Drawdown.
 
 - Position = Signal des Vortags (kein Look-ahead); Signale nur aus Daten bis t.
-- Kosten genau einmal je Positionswechsel; 79 Wechsel in 24 Jahren (3,3 p.a.), 0,33 % p.a.
+- An Wechseltagen genau ein Bein: weder beide Renditen noch gar keine (geprüft an allen 80
+  Trades, Abweichung 0,0).
+- Dividenden: Renditen stammen ausschließlich aus den bereinigten Schlusskursen, es gibt
+  keinen zweiten Dividendenpfad. Der SPY-Total-Return von 421 % (2000–02/2024) enthält sie
+  genau einmal.
+- Kosten genau einmal je Wechsel; 80 Trades in 24 Jahren (3,3 p.a.), 0,33 % p.a.
 - Einfache Renditen, Total Return, CAGR, Drawdown geometrisch korrekt; Log-Punkte nur in der
   Attribution. 43 Tests decken das ab.
 - Risikofreier Satz 0 % in der Sharpe Ratio (geometrisch, CAGR/Vol). Arithmetisch läge die

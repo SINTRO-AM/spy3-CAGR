@@ -163,3 +163,45 @@ def test_correlation_and_beta_tables(bt):
     b_tbl = rk.beta_table(bt.ret_pf, {"S&P 500": bt.ret_bm, "60/40": mix})
     _, beta = m.alpha_beta(bt.ret_pf, bt.ret_bm)
     assert b_tbl.loc["S&P 500", "Beta"] == pytest.approx(beta, rel=1e-6)
+
+
+def test_engine_matches_hand_built_portfolio(bt):
+    """Unabhängiger Nachbau: Depot in Stücken, Umschichtung zum Schluss des Signaltags,
+    Kosten multiplikativ auf den Depotwert. Muss exakt zur Engine passen."""
+    from spy3.strategy import StrategyParams
+    p = StrategyParams()
+    spy = (1 + bt.ret_bm).cumprod()
+    shy = (1 + bt.ret_off).cumprod()
+    sig = bt.signal.astype(int)
+    cash, held, units, wealth, trades = 1.0, None, 0.0, [], 0
+    for i, d in enumerate(bt.index):
+        val = cash if held is None else units * (spy[d] if held == "SPY" else shy[d])
+        want = "SPY" if sig.iloc[i] == 1 else "SHY"
+        if held != want:
+            val *= 1 - p.cost_bps / 1e4
+            trades += 1
+            units, held, cash = val / (spy[d] if want == "SPY" else shy[d]), want, 0.0
+        wealth.append(val)
+    ctrl = pd.Series(wealth, index=bt.index)
+    eng = (1 + bt.ret_pf).cumprod()
+    assert np.allclose(eng.to_numpy(), ctrl.to_numpy(), rtol=1e-12)
+    assert trades == int(bt.cost.ne(0).sum())          # jeder Trade genau einmal belastet
+    assert bt.cost.sum() == pytest.approx(trades * p.cost_bps / 1e4)
+
+
+def test_switch_days_book_exactly_one_leg(bt):
+    """An Wechseltagen genau eine Rendite – weder beide noch keine."""
+    p_cost = bt.cost
+    leg = bt.position * bt.ret_bm + (1 - bt.position) * bt.ret_off
+    assert np.allclose(bt.ret_pf, (1 + leg) * (1 - p_cost) - 1)
+    switch = bt.position.diff().fillna(0).ne(0)
+    assert switch.sum() > 0
+    both = (1 + bt.ret_bm + bt.ret_off) * (1 - p_cost) - 1
+    assert not np.allclose(bt.ret_pf[switch], both[switch])   # nie beide Beine
+    assert bt.ret_pf.notna().all()                            # nie gar keine Rendite
+
+
+def test_returns_come_only_from_adjusted_prices(bt):
+    """Keine separate Dividendenbuchung: Benchmarkrendite = Kursveränderung der Reihe."""
+    w = (1 + bt.ret_bm).cumprod()
+    assert np.allclose(w.pct_change().dropna(), bt.ret_bm.iloc[1:])

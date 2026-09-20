@@ -65,16 +65,23 @@ def backtest(returns: pd.DataFrame, price: pd.Series,
     bt = sig.copy()
     # Signal am Schluss von t, Ausführung am Schluss von t+exec_delay, Wirkung ab t+exec_delay+1
     bt["position"] = sig["signal"].shift(1 + p.exec_delay).fillna(0).astype(int)
-    switched = bt["position"].diff().fillna(0).ne(0)
-    bt["cost"] = switched * p.cost_bps / 1e4
+    # Kosten je Positionswechsel, gebucht am Handelstag: Gehandelt wird zum Schluss des
+    # Tages, an dem sich das Signal ändert – also einen Tag bevor die neue Position trägt.
+    # Der Aufbau der Startposition zählt als erster Kauf.
+    switched = bt["position"].diff().ne(0)
+    switched.iloc[0] = True
+    trade_day = switched.shift(-1, fill_value=False) | pd.Series(
+        [i == 0 for i in range(len(bt))], index=bt.index)
+    bt["cost"] = trade_day * p.cost_bps / 1e4
     bt["ret_bm"] = returns["risk_on"]
     bt["ret_off"] = returns["risk_off"]
     if "risk_off_source" in returns:
         bt["risk_off_source"] = returns["risk_off_source"]
     if "treasury" in returns:
         bt["treasury"] = returns["treasury"]
-    bt["ret_pf"] = (bt["position"] * bt["ret_bm"]
-                    + (1 - bt["position"]) * bt["ret_off"] - bt["cost"])
+    # Kosten wirken multiplikativ auf den Depotwert (exakt), nicht additiv auf die Rendite
+    leg = bt["position"] * bt["ret_bm"] + (1 - bt["position"]) * bt["ret_off"]
+    bt["ret_pf"] = (1 + leg) * (1 - bt["cost"]) - 1
     fees = apply_fees(bt["ret_pf"], bt["ret_bm"], p.mgmt_fee, p.perf_fee)
     bt["ret_pf_net"] = fees["ret_net"]
     bt["perf_fee_paid"] = fees["perf_fee_paid"]
