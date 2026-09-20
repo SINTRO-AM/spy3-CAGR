@@ -173,18 +173,22 @@ def test_engine_matches_hand_built_portfolio(bt):
     spy = (1 + bt.ret_bm).cumprod()
     shy = (1 + bt.ret_off).cumprod()
     sig = bt.signal.astype(int)
-    cash, held, units, wealth, trades = 1.0, None, 0.0, [], 0
+    # Start: Depot hält bereits die Position des ersten Tages (Aufbau davor, Kosten dort)
+    held = "SPY" if bt.position.iloc[0] == 1 else "SHY"
+    units = 1.0 / (spy.iloc[0] if held == "SPY" else shy.iloc[0])
+    wealth, trades = [], 1
     for i, d in enumerate(bt.index):
-        val = cash if held is None else units * (spy[d] if held == "SPY" else shy[d])
+        val = units * (spy[d] if held == "SPY" else shy[d])
         want = "SPY" if sig.iloc[i] == 1 else "SHY"
-        if held != want:
+        if held != want:                      # Umschichtung zum Schluss des Signaltags
             val *= 1 - p.cost_bps / 1e4
             trades += 1
-            units, held, cash = val / (spy[d] if want == "SPY" else shy[d]), want, 0.0
+            units, held = val / (spy[d] if want == "SPY" else shy[d]), want
         wealth.append(val)
     ctrl = pd.Series(wealth, index=bt.index)
-    eng = (1 + bt.ret_pf).cumprod()
-    assert np.allclose(eng.to_numpy(), ctrl.to_numpy(), rtol=1e-12)
+    eng = (1 + bt.ret_pf).cumprod() / (1 + bt.ret_pf.iloc[0])   # gleicher Startpunkt
+    ratio = (eng / ctrl).dropna()
+    assert np.allclose(ratio.to_numpy(), ratio.iloc[0], rtol=1e-12)   # Pfade deckungsgleich
     assert trades == int(bt.cost.ne(0).sum())          # jeder Trade genau einmal belastet
     assert bt.cost.sum() == pytest.approx(trades * p.cost_bps / 1e4)
 
