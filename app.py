@@ -266,6 +266,23 @@ def page(lang: str) -> list:
                          className="panel kpi-panel"),
         ], className="grid"),
         html.Div([
+            html.Section([
+                html.Div([html.H2(t("model_title", lang))], className="h-row"),
+                html.P(t("model_note", lang), className="note"),
+                graph_box("model", "model-graph"),
+            ], className="panel"),
+            html.Section([
+                html.H2(t("roll_side_title", lang)),
+                html.P(t("roll_side_note", lang), className="note"),
+                *[html.Div([html.Div([html.Span(t(k, lang), className="mini-lbl"),
+                                      html.Span(id=f"{gid}-val", className="mini-val")],
+                                     className="mini-head"),
+                           graph_box("mini", gid)], className="mini")
+                  for k, gid in (("rs_sharpe", "mini-sharpe"), ("rs_calmar", "mini-calmar"),
+                                 ("rs_vol", "mini-vol"))],
+            ], className="panel side-panel"),
+        ], className="grid model-row"),
+        html.Div([
             chart_panel("dd_title", "dd_note", "dd-graph", lang, "chart_dd"),
             chart_panel("alpha_title", "alpha_note", "alpha-graph", lang, "chart_alpha"),
         ], className="two-col risk-row"),
@@ -358,6 +375,11 @@ def net_series(mgmt_pct: float, perf_pct: float) -> pd.Series:
 
 @app.callback(Output("wealth", "figure"), Output("kpis", "children"),
               Output("dd-graph", "figure"), Output("alpha-graph", "figure"),
+              Output("model-graph", "figure"),
+              Output("mini-sharpe", "figure"), Output("mini-calmar", "figure"),
+              Output("mini-vol", "figure"),
+              Output("mini-sharpe-val", "children"), Output("mini-calmar-val", "children"),
+              Output("mini-vol-val", "children"),
               Output("fees-note", "children"), Output("lede-defs", "children"),
               Output("mgmt-fee-val", "children"), Output("perf-fee-val", "children"),
               Input("period", "value"), Input("scale-mode", "value"),
@@ -379,6 +401,15 @@ def update_main(period, scale, mgmt, perf, lang, vw):
     fig = plots.wealth_chart(b, shown, log=scale == "log", lang=lang, compact=compact)
     dd = plots.drawdown_chart(b, mixes, lang=lang, compact=compact)
     al = plots.alpha_chart(b, mixes, lang=lang, compact=compact)
+    model = plots.model_chart(b, lang, log=scale == "log", compact=compact)
+    minis, vals = [], []
+    for metric, fmt in (("sharpe", ".2f"), ("calmar", ".2f"), ("vol", ".0%")):
+        s_net = _rolling("net", metric, 3).loc[b.index[0]:b.index[-1]]
+        s_bm = _rolling("sp", metric, 3).loc[b.index[0]:b.index[-1]]
+        minis.append(plots.mini_chart({"SPY3": s_net, "S&P 500": s_bm}, fmt, lang, compact,
+                                      zero_line=metric != "vol"))
+        last = s_net.dropna().iloc[-1] if s_net.notna().any() else float("nan")
+        vals.append(pct(last, 1, lang=lang) if metric == "vol" else dec(last, lang=lang))
     cols = {t("col_gross", lang): b.ret_pf, t("col_net", lang): b.ret_pf_net,
             "S&P 500": b.ret_bm, **shown}
     tbl = m.summary_table(cols, b.ret_bm, b.ret_off).loc[KPI_ORDER]
@@ -404,7 +435,7 @@ def update_main(period, scale, mgmt, perf, lang, vw):
                   tips=col_tips),
             html.P(t("kpi_note", lang) + (" " + tsy_note if tsy_note else ""),
                    className="note small")]
-    return (fig, kpis, dd, al, fee_txt, defs_txt,
+    return (fig, kpis, dd, al, model, *minis, *vals, fee_txt, defs_txt,
             pct(mgmt / 100, 1, lang=lang), pct(perf / 100, 0, lang=lang))
 
 

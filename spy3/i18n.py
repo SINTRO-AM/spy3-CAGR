@@ -51,6 +51,26 @@ TXT: dict[str, tuple[str, str]] = {
     "f_mr": ("Abstand zum {w}-Tage-Hoch: {v}", "Distance from {w}-day high: {v}"),
     # Hauptchart
     "perf": ("Wert einer Investition von 1.000 USD", "Value of a $1,000 investment"),
+    "model_title": ("Inside the SPY3 Model", "Inside the SPY3 Model"),
+    "model_note": ("SPY-Kurs mit den drei Faktoren. Momentum: 30-Tage-Linie über 200-Tage-Linie. "
+                   "Mean-Reversion: Kurs unter der gepunkteten Linie (23 % unter dem 200-Tage-Hoch). "
+                   "Risk: 1-Tages-VaR über 5 % erzwingt Risk-Off, unter 2 % erlaubt immer Risk-On.",
+                   "SPY price with the three factors. Momentum: 30-day above 200-day average. "
+                   "Mean reversion: price below the dotted line (23% under the 200-day high). "
+                   "Risk: 1-day VaR above 5% forces risk-off, below 2% always allows risk-on."),
+    "m_price": ("SPY (Total Return)", "SPY (total return)"),
+    "m_fast": ("30d MA", "30d MA"),
+    "m_slow": ("200d MA", "200d MA"),
+    "m_mr": ("Mean-Reversion-Schwelle", "Mean-reversion trigger"),
+    "m_var": ("1-Tages-VaR 99 % (rechts)", "1-day VaR 99% (right)"),
+    "m_var_high": ("Risk-Off-Schwelle 5 %", "Risk-off threshold 5%"),
+    "m_var_low": ("Low-Vol-Schwelle 2 %", "Low-vol threshold 2%"),
+    "roll_side_title": ("Rollierend, 3 Jahre", "Rolling, 3 years"),
+    "roll_side_note": ("SPY3 netto (grün) gegen S&P 500 (grau).",
+                       "SPY3 net (green) versus S&P 500 (grey)."),
+    "rs_sharpe": ("Sharpe Ratio", "Sharpe ratio"),
+    "rs_calmar": ("Calmar Ratio", "Calmar ratio"),
+    "rs_vol": ("Volatilität p.a.", "Volatility p.a."),
     "perf_note": ("Rot hinterlegt: Strategie hält kurzlaufende US-T-Bills",
                   "Red shading: strategy holds short-term US T-Bills"),
     "tsy_label": ("SHY ETF", "SHY ETF"),

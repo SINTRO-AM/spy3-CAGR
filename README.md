@@ -42,6 +42,9 @@ python app.py                            # Dashboard lokal
 * Wert von 1.000 USD mit zweiter Werteachse rechts für den 1-Tages-VaR (99 %, grau
   gestrichelt): SPY3 vor Gebühren (dünn, blau), SPY3 nach Gebühren (grün), S&P 500 und
   klassisches 60/40-Portfolio; rot markierte Risk-Off-Phasen. Daneben die Kennzahlen in gleicher Höhe (Sharpe Ratio und Max. Drawdown hervorgehoben)
+* „Inside the SPY3 Model“: SPY-Kurs mit 30d/200d-Linie (im Modell 29/198), Mean-Reversion-Schwelle,
+  1-Tages-VaR mit den Schwellen 5 %/2 % auf der zweiten Achse und rot markierten Risk-Off-Phasen;
+  rechts daneben rollierende 3-Jahres-Sharpe, -Calmar und -Volatilität (SPY3 netto vs. S&P 500)
 * Darunter nebeneinander: maximaler Drawdown und Vorsprung gegenüber dem S&P 500 (Vermögen
   relativ zur Benchmark, z. B. 3,0x = dreifaches Endvermögen)
 * Tooltips an Kennzahlen, Spaltenköpfen und Charts (Definition und Einheit)

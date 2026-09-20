@@ -293,3 +293,60 @@ def stress_bars(st: pd.DataFrame, lang: str = "de", compact: bool = False) -> go
     fig.update_yaxes(autorange="reversed")
     return _base(fig, lang, compact, barmode="group", bargap=0.25,
                  height=max(280, 34 * len(st) + 80), hovermode="closest")
+
+
+MR_COLOR = "#B8860B"
+
+
+def model_chart(bt: pd.DataFrame, lang: str = "de", log: bool = True,
+                compact: bool = False) -> go.Figure:
+    """Blick ins Modell: SPY-Kurs mit den Faktoren, VaR auf der zweiten Achse.
+
+    Die gleitenden Durchschnitte laufen im Modell über 29 und 198 Tage; im Chart
+    werden sie der Lesbarkeit halber als 30d/200d bezeichnet.
+    """
+    fig = go.Figure()
+    hov = "%{y:,.2f}"
+    fig.add_scatter(x=bt.index, y=bt.price, name=t("m_price", lang),
+                    line=dict(color=INK, width=1.3), hovertemplate=hov)
+    fig.add_scatter(x=bt.index, y=bt.ma_fast, name=t("m_fast", lang),
+                    line=dict(color=NAVY, width=1.1), hovertemplate=hov)
+    fig.add_scatter(x=bt.index, y=bt.ma_slow, name=t("m_slow", lang),
+                    line=dict(color="#C0392B", width=1.3), hovertemplate=hov)
+    fig.add_scatter(x=bt.index, y=bt.high_disc, name=t("m_mr", lang),
+                    line=dict(color=MR_COLOR, width=1.1, dash="dot"), hovertemplate=hov)
+    fig.add_scatter(x=bt.index, y=bt.var_1d, name=t("m_var", lang), yaxis="y2",
+                    line=dict(color=VAR_GREY, width=1, dash="dash"), opacity=0.85,
+                    hovertemplate="%{y:.2%}")
+    for y, col, key in ((0.05, "#C53A30", "m_var_high"), (0.02, "#1E8A5A", "m_var_low")):
+        fig.add_scatter(x=[bt.index[0], bt.index[-1]], y=[y, y], yaxis="y2", name=t(key, lang),
+                        mode="lines", line=dict(color=col, width=1, dash="dash"),
+                        hoverinfo="skip")
+    _legend_box(fig, t("riskoff", lang))
+    fig.update_yaxes(type="log" if log else "linear", tickformat=",.0f")
+    fig.update_xaxes(showline=True)
+    _base(fig, lang, compact, shapes=_risk_off_shapes(bt.position),
+          yaxis2=dict(overlaying="y", side="right", showgrid=False, zeroline=False,
+                      rangemode="tozero", tickformat=".0%", dtick=0.02, automargin=True,
+                      range=[0, max(0.07, float(bt.var_1d.max()) * 1.1)],
+                      tickfont=dict(color=VAR_GREY, size=13 if not compact else 11),
+                      title=dict(text=t("var_axis", lang),
+                                 font=dict(color=VAR_GREY, size=13 if not compact else 11))))
+    return fig
+
+
+def mini_chart(series: dict[str, pd.Series], fmt: str, lang: str = "de",
+               compact: bool = False, zero_line: bool = False) -> go.Figure:
+    """Kleiner Verlauf für die Seitenleiste: SPY3 netto vs. S&P 500."""
+    styles = [dict(color=NET, width=1.6), dict(color=SLATE, width=1.1)]
+    fig = go.Figure()
+    for (name, s), st in zip(series.items(), styles):
+        fig.add_scatter(x=s.index, y=s, name=name, line=st,
+                        hovertemplate="%{y:" + fmt.strip("%") + ("%}" if "%" in fmt else "}"))
+    if zero_line:
+        fig.add_hline(y=0, line=dict(color=INK, width=0.8))
+    fig.update_yaxes(tickformat=fmt, nticks=4)
+    fig.update_xaxes(nticks=4)
+    _base(fig, lang, compact, height=150, showlegend=False,
+          margin=dict(l=4, r=4, t=4, b=4))
+    return fig

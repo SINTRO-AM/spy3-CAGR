@@ -219,6 +219,17 @@ p { margin: 0; }
 .graph-box--side { height: clamp(300px, 22vw, 420px); }
 .graph-box--tab { height: 360px; }
 .graph-box--bars { height: 260px; margin-bottom: 8px; }
+.model-row { margin-top: 20px; }
+.graph-box--model { height: clamp(400px, 30vw, 560px); }
+.graph-box--mini { height: 150px; }
+.side-panel { display: flex; flex-direction: column; }
+.side-panel .note { margin-bottom: 4px; }
+.mini { padding-top: 8px; border-top: 1px solid var(--line); margin-top: 8px; }
+.mini:first-of-type { border-top: 0; margin-top: 0; }
+.mini-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.mini-lbl { color: var(--muted); font-size: .9rem; }
+.mini-val { color: var(--navy); font-weight: 600; font-size: 1.1rem;
+            font-variant-numeric: tabular-nums; }
 
 /* Tooltips */
 .h-row { display: flex; align-items: center; gap: 8px; }
@@ -320,6 +331,8 @@ p { margin: 0; }
   .note { font-size: .88rem; }
   .note.small { font-size: .82rem; }
   .graph-box--main { height: 330px; }
+  .graph-box--model { height: 320px; }
+  .graph-box--mini { height: 120px; }
   .graph-box--side, .graph-box--tab { height: 270px; }
   .graph-box--bars { height: 230px; }
   .graph-box--mc { height: 260px; }
