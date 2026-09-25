@@ -178,10 +178,15 @@ def signal_card(sig, lang: str) -> html.Div:
                   t("sc_f_mr_on" if ok["dip"] else "sc_f_mr_off", lang, v=P(fall), lim=trig)),
     ]
     if on:
-        active = [t(k, lang) for k, f in (("sc_r_trend", ok["trend"]), ("sc_r_calm", ok["calm"]),
-                                           ("sc_r_dip", ok["dip"])) if f]
-        more = t("sc_next_on_single", lang, r=active[0]) if len(active) == 1 else ""
-        nxt = t("sc_next_on", lang, hi=hi, v=var, more=more)
+        # Ausstieg bei Veto ODER wenn alle derzeit aktiven Gründe gleichzeitig wegfallen
+        ends = []
+        if ok["calm"]:
+            ends.append(t("sc_end_calm", lang, lo=lo))
+        if ok["trend"]:
+            ends.append(t("sc_end_trend", lang, g=P(abs(gap))))
+        if ok["dip"]:
+            ends.append(t("sc_end_dip", lang, lim=trig, f=P(fall)))
+        nxt = t("sc_next_on", lang, hi=hi, v=var, all=t("sc_and_all", lang).join(ends))
     elif not ok["risk_ok"]:
         nxt = t("sc_next_veto", lang, hi=hi, v=var)
     else:
