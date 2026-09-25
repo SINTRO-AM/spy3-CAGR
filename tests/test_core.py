@@ -355,6 +355,7 @@ def test_no_double_dividend_booking():
 
 def test_live_signal_matches_backtest_and_caches():
     from spy3 import live
+    from spy3.strategy import compute_signal
     idx = pd.bdate_range("2019-01-01", "2021-12-31")
     rng = np.random.default_rng(2)
     px = pd.DataFrame({"risk_on": 100 * np.exp(np.cumsum(rng.normal(0.0004, 0.011, len(idx))))},
