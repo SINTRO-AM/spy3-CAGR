@@ -94,6 +94,75 @@ TXT: dict[str, tuple[str, str]] = {
     "sc_and": ("und", "and"),
     "sc_foot": ("Schlusskurs vom {d} · geprüft um {t} Uhr · aktualisiert sich automatisch",
                 "Close of {d} · checked at {t} · updates automatically"),
+    # Faktorkarten (Hover an den einzelnen Signalen)
+    "fc_now": ("Aktuell", "Now"),
+    "fc_rule": ("Regel", "Rule"),
+    "fc_why": ("Wissenschaftlicher Hintergrund", "Scientific background"),
+    "fc_state_on": ("spricht für Risk On", "supports risk on"),
+    "fc_state_off": ("erzwingt Risk Off", "forces risk off"),
+    "fc_state_neutral": ("neutral", "neutral"),
+    "fc_state_mom_off": ("kein Aufwärtstrend", "no uptrend"),
+    "fc_risk_title": ("Risk · Value-at-Risk", "Risk · value at risk"),
+    "fc_risk_now": ("Tagesrisiko (99-%-VaR, 50 Tage): {v}.", "Daily risk (99% VaR, 50 days): {v}."),
+    "fc_risk_rule": ("Über {hi}: Ausstieg, unabhängig von allen anderen Signalen. Unter {lo}: "
+                     "ruhiger Markt, Grund zu investieren. Dazwischen entscheiden Trend und "
+                     "Mean-Reversion.",
+                     "Above {hi}: exit, regardless of all other signals. Below {lo}: calm market, "
+                     "a reason to invest. In between, trend and mean reversion decide."),
+    "fc_risk_why": ("Volatilität tritt in Clustern auf: Ruhige und turbulente Phasen halten an, "
+                    "das Risiko von heute ist deshalb eine gute Prognose für morgen. Aktienquote "
+                    "in Hochvolatilitätsphasen zu senken, hat historisch die risikoadjustierte "
+                    "Rendite erhöht.",
+                    "Volatility clusters: calm and turbulent periods persist, so today's risk is a "
+                    "good forecast of tomorrow's. Reducing equity exposure when volatility is high "
+                    "has historically raised risk-adjusted returns."),
+    "fc_risk_src": ("Engle (1982); Bollerslev (1986); Moreira & Muir (2017), Journal of Finance",
+                    "Engle (1982); Bollerslev (1986); Moreira & Muir (2017), Journal of Finance"),
+    "fc_mom_title": ("Momentum · Trend", "Momentum · trend"),
+    "fc_mom_now": ("30-Tage-Schnitt {v} {dir} dem 200-Tage-Schnitt.",
+                   "30-day average {v} {dir} the 200-day average."),
+    "fc_above": ("über", "above"), "fc_below": ("unter", "below"),
+    "fc_mom_rule": ("Investiert, solange der 30-Tage-Schnitt über dem 200-Tage-Schnitt liegt.",
+                    "Invested while the 30-day average is above the 200-day average."),
+    "fc_mom_why": ("Trends halten über Monate an: Märkte, die gestiegen sind, steigen tendenziell "
+                   "weiter (Time-Series-Momentum). Gleitende Durchschnitte haben das im US-Aktienmarkt "
+                   "über lange Zeiträume erfasst. Erklärung: Anleger reagieren verzögert auf neue "
+                   "Informationen.",
+                   "Trends persist over months: markets that have risen tend to keep rising "
+                   "(time-series momentum). Moving-average rules have captured this in US equities "
+                   "over long periods. Explanation: investors react to new information with a delay."),
+    "fc_mom_src": ("Brock, Lakonishok & LeBaron (1992), Journal of Finance; Moskowitz, Ooi & "
+                   "Pedersen (2012), Journal of Financial Economics",
+                   "Brock, Lakonishok & LeBaron (1992), Journal of Finance; Moskowitz, Ooi & "
+                   "Pedersen (2012), Journal of Financial Economics"),
+    "fc_mr_title": ("Mean-Reversion · Einstiegschance", "Mean reversion · buying opportunity"),
+    "fc_mr_now": ("Kurs {v} unter dem 200-Tage-Hoch; Auslöser bei {lim}.",
+                  "Price {v} below its 200-day high; trigger at {lim}."),
+    "fc_mr_rule": ("Investiert nach einem Rückgang von mindestens {lim} gegenüber dem 200-Tage-Hoch.",
+                   "Invested after a fall of at least {lim} from the 200-day high."),
+    "fc_mr_why": ("Nach extremen Verlusten übertreiben Märkte und erholen sich teilweise wieder. "
+                  "Starke Kursrückgänge erhöhen die erwartete Rendite, tiefe Einbrüche sind daher "
+                  "historisch gute Einstiegszeitpunkte gewesen.",
+                  "After extreme losses markets tend to overshoot and partly recover. Sharp sell-offs "
+                  "raise expected returns, so deep drawdowns have historically been good entry points."),
+    "fc_mr_src": ("De Bondt & Thaler (1985), Journal of Finance; Poterba & Summers (1988), "
+                  "Journal of Financial Economics",
+                  "De Bondt & Thaler (1985), Journal of Finance; Poterba & Summers (1988), "
+                  "Journal of Financial Economics"),
+    "sc_hint": ("Details zu jedem Faktor beim Überfahren der Faktoren rechts.",
+                "Hover over the factors on the right for details."),
+    # Kernaussage
+    "hero_strong": ("Aktienähnliche Rendite bei weniger als halb so tiefen Verlusten.",
+                    "Equity-like returns with less than half the drawdown."),
+    "hero_lower": ("Geringere Verluste als der S&P 500.", "Lower drawdowns than the S&P 500."),
+    "hero_plain": ("SPY3 auf einen Blick.", "SPY3 at a glance."),
+    "hero_sub": ("SPY3 nach allen Gebühren gegenüber dem S&P 500, {a} bis {b}.",
+                 "SPY3 net of all fees versus the S&P 500, {a} to {b}."),
+    "hero_ret": ("Rendite p.a.", "Return p.a."),
+    "hero_dd": ("Maximaler Verlust", "Maximum drawdown"),
+    "hero_sharpe": ("Sharpe Ratio", "Sharpe ratio"),
+    "hero_vs": ("S&P 500: {v}", "S&P 500: {v}"),
+    "hint_close": ("Hinweis schließen", "Close hint"),
     # Methodik
     "meth_title": ("Methodik und Annahmen", "Methodology and assumptions"),
     "meth_data": ("Daten", "Data"),

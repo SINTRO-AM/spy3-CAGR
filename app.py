@@ -140,48 +140,64 @@ def _sc_row(title: str, ok: bool, text: str, gate: bool = False) -> html.Div:
     ], className="sc-row" + (" sc-gate" if gate else ""))
 
 
+def _foot(sig, lang: str) -> html.P:
+    d = sig.asof.strftime("%d.%m.%Y" if lang == "de" else "%b %d, %Y")
+    return html.P(t("sc_foot", lang, d=d, t=sig.checked.strftime("%H:%M")), className="sc-foot")
+
+
 def signal_card(sig, lang: str) -> html.Div:
-    """Erklärung des aktuellen Signals in Alltagssprache, mit den aktuellen Werten."""
-    r, ok = sig.row, sig.reasons
-    P = lambda v, d=1: pct(v, d, lang=lang)
-    on = int(r["signal"]) == 1
-    high = r["high_disc"] * PARAMS.dd_trigger
-    dist = 1 - r["price"] / high
-    trig = 1 - 1 / PARAMS.dd_trigger
-    risk_txt = t("sc_risk_ok" if ok["risk_ok"] else "sc_risk_no", lang,
-                 v=P(r["var_1d"], 2), lim=P(PARAMS.var_high, 0))
-    rows = [
-        html.Div(t("sc_gate", lang), className="sc-group"),
-        _sc_row(t("sc_risk", lang), ok["risk_ok"], risk_txt, gate=True),
-        html.Div(t("sc_any", lang), className="sc-group"),
-        _sc_row(t("sc_trend", lang), ok["trend"],
-                t("sc_trend_yes" if ok["trend"] else "sc_trend_no", lang,
-                  v=pct(abs(r["ma_fast"] / r["ma_slow"] - 1), 1, lang=lang))),
-        _sc_row(t("sc_calm", lang), ok["calm"],
-                t("sc_calm_yes" if ok["calm"] else "sc_calm_no", lang,
-                  v=P(r["var_1d"], 2), lim=P(PARAMS.var_low, 0))),
-        _sc_row(t("sc_dip", lang), ok["dip"],
-                t("sc_dip_yes" if ok["dip"] else "sc_dip_no", lang,
-                  v=P(max(dist, 0.0)), lim=P(trig, 0))),
-    ]
+    """Karte am Risk-On/Off-Button: Regel und Ergebnis in einem Satz."""
+    ok = sig.reasons
+    on = int(sig.row["signal"]) == 1
     if on:
-        whys = [t(k, lang) for k, flag in (("sc_why_trend", ok["trend"]),
-                                            ("sc_why_calm", ok["calm"]),
+        whys = [t(k, lang) for k, flag in (("sc_why_trend", ok["trend"]), ("sc_why_calm", ok["calm"]),
                                             ("sc_why_dip", ok["dip"])) if flag]
-        why = (", ".join(whys[:-1]) + f" {t('sc_and', lang)} " + whys[-1]) if len(whys) > 1 \
-            else whys[0]
+        why = (", ".join(whys[:-1]) + f" {t('sc_and', lang)} " + whys[-1]) if len(whys) > 1 else whys[0]
         result = t("sc_res_on", lang, why=why)
     else:
         result = t("sc_res_veto" if not ok["risk_ok"] else "sc_res_none", lang)
-    d = sig.asof.strftime("%d.%m.%Y" if lang == "de" else "%b %d, %Y")
-    tm = sig.checked.strftime("%H:%M")
     return html.Div([
         html.Div(t("sc_title_on" if on else "sc_title_off", lang), className="sc-title"),
         html.P(t("sc_rule", lang), className="sc-rule"),
-        *rows,
         html.P(result, className="sc-result " + ("on" if on else "off")),
-        html.P(t("sc_foot", lang, d=d, t=tm), className="sc-foot"),
+        html.P(t("sc_hint", lang), className="sc-hint"),
+        _foot(sig, lang),
     ], className="sig-pop", role="tooltip")
+
+
+def factor_card(name: str, state: str, sig, lang: str) -> html.Div:
+    """Karte an einem Faktor: aktueller Wert, Regel, wissenschaftlicher Hintergrund."""
+    r = sig.row
+    P = lambda v, d=1: pct(v, d, lang=lang)                                       # noqa: E731
+    cls = STATE_CLS.get(state, "neutral")
+    if name == "Risk":
+        title, now = t("fc_risk_title", lang), t("fc_risk_now", lang, v=P(r["var_1d"], 2))
+        rule = t("fc_risk_rule", lang, hi=P(PARAMS.var_high, 0), lo=P(PARAMS.var_low, 0))
+        why, src = t("fc_risk_why", lang), t("fc_risk_src", lang)
+        st = t({"on": "fc_state_on", "off": "fc_state_off"}.get(cls, "fc_state_neutral"), lang)
+    elif name == "Momentum":
+        gap = r["ma_fast"] / r["ma_slow"] - 1
+        title = t("fc_mom_title", lang)
+        now = t("fc_mom_now", lang, v=P(abs(gap)), dir=t("fc_above" if gap > 0 else "fc_below", lang))
+        rule, why, src = t("fc_mom_rule", lang), t("fc_mom_why", lang), t("fc_mom_src", lang)
+        st = t("fc_state_on" if cls == "on" else "fc_state_mom_off", lang)
+    else:
+        high = r["high_disc"] * PARAMS.dd_trigger
+        trig = 1 - 1 / PARAMS.dd_trigger
+        title = t("fc_mr_title", lang)
+        now = t("fc_mr_now", lang, v=P(max(1 - r["price"] / high, 0.0)), lim=P(trig, 0))
+        rule, why = t("fc_mr_rule", lang, lim=P(trig, 0)), t("fc_mr_why", lang)
+        src = t("fc_mr_src", lang)
+        st = t("fc_state_on" if cls == "on" else "fc_state_neutral", lang)
+    return html.Div([
+        html.Div([html.Span(title, className="fc-title"),
+                  html.Span(st, className="fc-state " + cls)], className="fc-head"),
+        html.Div([html.Span(t("fc_now", lang), className="fc-lbl"), html.Span(now)], className="fc-row"),
+        html.Div([html.Span(t("fc_rule", lang), className="fc-lbl"), html.Span(rule)], className="fc-row"),
+        html.Div([html.Span(t("fc_why", lang), className="fc-lbl"), html.Span(why),
+                  html.Span(src, className="fc-src")], className="fc-row"),
+        _foot(sig, lang),
+    ], className="sig-pop fc-pop", role="tooltip")
 
 
 def signal_badge(lang: str) -> html.Div:
@@ -189,18 +205,22 @@ def signal_badge(lang: str) -> html.Div:
     r = sig.row
     on = int(r["signal"]) == 1
     f = factor_states(r, PARAMS)
-    chips = [html.Span([html.I(className="led " + STATE_CLS.get(x["state"], "neutral")), n],
-                       className="chip") for n, x in f.items()]
+    chips = [html.Span([
+        html.Span([html.I(className="led " + STATE_CLS.get(x["state"], "neutral")), n], className="chip"),
+        factor_card(n, x["state"], sig, lang),
+    ], className="hov chip-wrap", tabIndex="0") for n, x in f.items()]
     return html.Div([
         html.Div([
-            html.Span([html.I(className="pulse"),
-                       html.Span(ON if on else OFF, className="sig-main"),
-                       html.Span("SPY" if on else "SHY", className="sig-asset")],
-                      className="sig-btn " + ("on" if on else "off")),
+            html.Span([
+                html.Span([html.I(className="pulse"),
+                           html.Span(ON if on else OFF, className="sig-main"),
+                           html.Span("SPY" if on else "SHY", className="sig-asset")],
+                          className="sig-btn " + ("on" if on else "off")),
+                signal_card(sig, lang),
+            ], className="hov btn-wrap", tabIndex="0"),
             html.Span(chips, className="chips"),
         ], className="sig-summary"),
-        signal_card(sig, lang),
-    ], className="signal", tabIndex="0")
+    ], className="signal")
 
 
 def methodology(lang: str) -> html.Details:
@@ -269,7 +289,9 @@ def scale_hint(lang: str) -> html.Div:
         html.Img(src=ROBOT, alt="", className="hint-bot"),
         html.Div([html.Strong(t("hint_title", lang)),
                   html.Span(t("hint_body", lang))], className="hint-text"),
-    ], className="hint", role="note")
+        html.Button("×", id="hint-close", n_clicks=0, className="hint-close",
+                    title=t("hint_close", lang), **{"aria-label": t("hint_close", lang)}),
+    ], id="scale-hint", className="hint", role="note")
 
 
 def chart_panel(title: str, note: str, graph_id: str, lang: str,
@@ -285,7 +307,18 @@ def page(lang: str) -> list:
     fmt_d = "%m/%Y"
     tab = lambda key, val: dcc.Tab(label=t(key, lang), value=val, className="tab",  # noqa: E731
                                    selected_className="tab--on")
+    hero_items = [("hero_ret", "hero-ret"), ("hero_dd", "hero-dd"), ("hero_sharpe", "hero-sh")]
+    hero = html.Section([
+        html.P(id="hero-head", className="hero-head"),
+        html.Div([html.Div([
+            html.Div(id=f"{i}-v", className="hero-num"),
+            html.Div(t(k, lang), className="hero-lbl"),
+            html.Div(id=f"{i}-b", className="hero-bm"),
+        ], className="hero-item") for k, i in hero_items], className="hero-row"),
+        html.P(id="hero-sub", className="hero-sub"),
+    ], className="hero")
     return [
+        hero,
         html.Div([
             html.H1(t("title", lang)),
             html.P(t("lede", lang, start=BT.index[0].strftime(fmt_d),
@@ -389,6 +422,11 @@ def choose_lang(_de, _en):
     return ctx.triggered_id.split("-")[1]
 
 
+app.clientside_callback(
+    "function(n) { return n ? 'hint hint--closed' : window.dash_clientside.no_update; }",
+    Output("scale-hint", "className"), Input("hint-close", "n_clicks"), prevent_initial_call=True)
+
+
 @app.callback(Output("signal", "children"), Input("lang-pref", "data"),
               Input("signal-tick", "n_intervals"))
 def update_signal(lang, _n):
@@ -450,6 +488,10 @@ def net_series(mgmt_pct: float, perf_pct: float) -> pd.Series:
               Output("mini-vol-val", "children"),
               Output("fees-note", "children"), Output("lede-defs", "children"),
               Output("mgmt-fee-val", "children"), Output("perf-fee-val", "children"),
+              Output("hero-head", "children"), Output("hero-sub", "children"),
+              Output("hero-ret-v", "children"), Output("hero-ret-b", "children"),
+              Output("hero-dd-v", "children"), Output("hero-dd-b", "children"),
+              Output("hero-sh-v", "children"), Output("hero-sh-b", "children"),
               Input("period", "value"), Input("scale-mode", "value"),
               Input("mgmt-fee", "value"), Input("perf-fee", "value"),
               Input("lang-pref", "data"), Input("viewport", "data"))
@@ -503,8 +545,21 @@ def update_main(period, scale, mgmt, perf, lang, vw):
                   tips=col_tips),
             html.P(t("kpi_note", lang) + (" " + tsy_note if tsy_note else ""),
                    className="note small")]
+    # Kernaussage: Aussage nur so stark, wie die Zahlen des gewählten Zeitraums sie tragen
+    net, bm = b.ret_pf_net, b.ret_bm
+    c_n, c_b = m.cagr(net), m.cagr(bm)
+    d_n, d_b = m.max_drawdown(net), m.max_drawdown(bm)
+    s_n, s_b = m.sharpe(net), m.sharpe(bm)
+    ratio = abs(d_n) / abs(d_b) if d_b < 0 else 1.0
+    head = ("hero_strong" if ratio < 0.5 and c_n >= 0.9 * c_b
+            else "hero_lower" if ratio < 1 else "hero_plain")
+    fmt_d = "%m/%Y"
+    hero = (t(head, lang), t("hero_sub", lang, a=b.index[0].strftime(fmt_d), b=b.index[-1].strftime(fmt_d)),
+            pct(c_n, 1, lang=lang), t("hero_vs", lang, v=pct(c_b, 1, lang=lang)),
+            pct(d_n, 1, lang=lang), t("hero_vs", lang, v=pct(d_b, 1, lang=lang)),
+            dec(s_n, lang=lang), t("hero_vs", lang, v=dec(s_b, lang=lang)))
     return (fig, kpis, dd, al, model, *minis, *vals, fee_txt, defs_txt,
-            pct(mgmt / 100, 1, lang=lang), pct(perf / 100, 0, lang=lang))
+            pct(mgmt / 100, 1, lang=lang), pct(perf / 100, 0, lang=lang), *hero)
 
 
 

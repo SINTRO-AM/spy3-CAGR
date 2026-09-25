@@ -359,12 +359,63 @@ p { margin: 0; }
 }
 @keyframes hint-fade { 0%, 95% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
 
-/* Signal-Karte: erscheint beim Überfahren (Desktop) bzw. Antippen (Touch) */
-.signal { position: relative; outline: none; }
+/* Signal-Karten: je Element eigene Karte beim Überfahren (Desktop) bzw. Antippen (Touch) */
+.signal { position: relative; }
 .signal .sig-summary { cursor: default; }
-.signal .sig-pop { display: none; }
-@media (hover: hover) { .signal:hover .sig-pop { display: block; } }
-.signal:focus-within .sig-pop, .signal:focus .sig-pop { display: block; }
+.hov { position: relative; outline: none; display: inline-flex; }
+.hov > .sig-pop { display: none; }
+@media (hover: hover) { .hov:hover > .sig-pop { display: block; } }
+.hov:focus > .sig-pop, .hov:focus-within > .sig-pop { display: block; }
+.chip-wrap .chip { cursor: help; }
+.chip-wrap:hover .chip, .chip-wrap:focus .chip { border-color: var(--navy); }
+.btn-wrap > .sig-pop { left: 0; right: auto; }
+.chip-wrap > .sig-pop { left: 50%; right: auto; transform: translateX(-50%); }
+.fc-pop { width: 400px; }
+.fc-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+           padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.fc-title { font-weight: 600; font-size: 1rem; }
+.fc-state { font-size: .8rem; font-weight: 600; white-space: nowrap; }
+.fc-state.on { color: var(--green); } .fc-state.off { color: var(--red); } .fc-state.neutral { color: var(--muted); }
+.fc-row { display: grid; grid-template-columns: 1fr; gap: 1px; padding: 6px 0; font-size: .86rem;
+          line-height: 1.45; border-bottom: 1px solid var(--line); }
+.fc-row:last-of-type { border-bottom: 0; }
+.fc-lbl { font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.fc-src { font-size: .76rem; color: var(--muted); font-style: italic; margin-top: 2px; }
+.sc-hint { margin: 8px 0 0; font-size: .8rem; color: var(--muted); }
+
+/* Roboter-Hinweis: manuell schließbar */
+.hint-close { position: absolute; top: 6px; right: 8px; width: 24px; height: 24px; padding: 0;
+              border: 0; border-radius: 50%; background: transparent; color: var(--muted);
+              font-size: 1.15rem; line-height: 1; cursor: pointer; }
+.hint-close:hover { background: var(--surface); color: var(--ink); }
+.hint { padding-right: 36px; }
+.hint--closed { display: none !important; }
+
+/* Kernaussage */
+.hero { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius);
+        padding: 22px 26px 18px; margin-bottom: 22px; border-top: 4px solid var(--navy); }
+.hero-head { font-size: 1.45rem; font-weight: 500; color: var(--ink); margin: 0 0 16px; line-height: 1.3; }
+.hero-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.hero-item { padding-left: 16px; border-left: 3px solid var(--line); }
+.hero-item:first-child { border-left-color: var(--green); }
+.hero-item:nth-child(2) { border-left-color: var(--navy); }
+.hero-item:nth-child(3) { border-left-color: var(--navy); }
+.hero-num { font-size: 2.6rem; font-weight: 600; color: var(--navy); line-height: 1.1;
+            font-variant-numeric: tabular-nums; }
+.hero-lbl { font-size: .95rem; font-weight: 500; margin-top: 4px; }
+.hero-bm { font-size: .88rem; color: var(--muted); }
+.hero-sub { margin: 14px 0 0; font-size: .82rem; color: var(--muted); }
+@media (max-width: 640px) {
+  .hero { padding: 16px 16px 14px; }
+  .hero-head { font-size: 1.15rem; }
+  .hero-row { gap: 10px; }
+  .hero-item { padding-left: 8px; }
+  .hero-num { font-size: 1.55rem; }
+  .hero-lbl { font-size: .8rem; }
+  .hero-bm { font-size: .74rem; }
+  .fc-pop, .sig-pop { width: min(360px, calc(100vw - 32px)); }
+  .chip-wrap > .sig-pop { left: 0; transform: none; }
+}
 .sig-pop { width: 420px; }
 .sc-title { font-weight: 600; font-size: 1.02rem; margin-bottom: 4px; }
 .sc-rule { color: var(--muted); font-size: .88rem; line-height: 1.45; margin: 0 0 8px; }
@@ -405,4 +456,11 @@ p { margin: 0; }
   .meth-list { grid-template-columns: 1fr; gap: 2px; }
   .meth-list dd { margin-bottom: 10px; }
   .sig-pop { width: auto; }
+}
+
+/* Smartphone: Signal- und Faktorkarten über die volle Breite der Signalzeile */
+@media (max-width: 640px) {
+  .signal .hov { position: static; }
+  .signal .sig-pop, .signal .fc-pop { left: 0; right: 0; width: auto; max-width: none;
+                                      transform: none; }
 }
