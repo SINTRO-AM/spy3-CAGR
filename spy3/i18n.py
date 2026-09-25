@@ -151,17 +151,6 @@ TXT: dict[str, tuple[str, str]] = {
                   "Journal of Financial Economics"),
     "sc_hint": ("Details zu jedem Faktor beim Überfahren der Faktoren rechts.",
                 "Hover over the factors on the right for details."),
-    # Kernaussage
-    "hero_strong": ("Aktienähnliche Rendite bei weniger als halb so tiefen Verlusten.",
-                    "Equity-like returns with less than half the drawdown."),
-    "hero_lower": ("Geringere Verluste als der S&P 500.", "Lower drawdowns than the S&P 500."),
-    "hero_plain": ("SPY3 auf einen Blick.", "SPY3 at a glance."),
-    "hero_sub": ("SPY3 nach allen Gebühren gegenüber dem S&P 500, {a} bis {b}.",
-                 "SPY3 net of all fees versus the S&P 500, {a} to {b}."),
-    "hero_ret": ("Rendite p.a.", "Return p.a."),
-    "hero_dd": ("Maximaler Verlust", "Maximum drawdown"),
-    "hero_sharpe": ("Sharpe Ratio", "Sharpe ratio"),
-    "hero_vs": ("S&P 500: {v}", "S&P 500: {v}"),
     "hint_close": ("Hinweis schließen", "Close hint"),
     # Methodik
     "meth_title": ("Methodik und Annahmen", "Methodology and assumptions"),

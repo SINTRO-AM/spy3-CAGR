@@ -53,10 +53,6 @@ python app.py                            # Dashboard lokal
 * Rollierende Performance (`spy3/rolling.py`): Überschussrendite, Rendite p.a., Volatilität,
   Sharpe Ratio, Calmar Ratio, Max. Drawdown und Beta über 1, 3 oder 5 Jahre, jeweils für SPY3
   brutto/netto, S&P 500 und 60/40, dazu der Anteil der Fenster, in denen SPY3 netto besser war
-* Kernaussage ganz oben: ein Satz und drei große Zahlen (Rendite p.a., maximaler Verlust,
-  Sharpe Ratio, jeweils SPY3 netto gegen S&P 500) für den gewählten Zeitraum und die gewählten
-  Gebühren. Der Satz passt sich an: „weniger als halb so tiefe Verluste“ nur, wenn die Zahlen es
-  tragen
 * Aktuelles Signal oben: Der Risk-On/Off-Button erklärt Regel und Ergebnis; jeder Faktor-Chip
   hat eine eigene Karte mit aktuellem Wert, Regel und wissenschaftlichem Hintergrund samt
   Quellen (Engle 1982, Bollerslev 1986, Moreira & Muir 2017; Brock, Lakonishok & LeBaron 1992,

@@ -307,18 +307,7 @@ def page(lang: str) -> list:
     fmt_d = "%m/%Y"
     tab = lambda key, val: dcc.Tab(label=t(key, lang), value=val, className="tab",  # noqa: E731
                                    selected_className="tab--on")
-    hero_items = [("hero_ret", "hero-ret"), ("hero_dd", "hero-dd"), ("hero_sharpe", "hero-sh")]
-    hero = html.Section([
-        html.P(id="hero-head", className="hero-head"),
-        html.Div([html.Div([
-            html.Div(id=f"{i}-v", className="hero-num"),
-            html.Div(t(k, lang), className="hero-lbl"),
-            html.Div(id=f"{i}-b", className="hero-bm"),
-        ], className="hero-item") for k, i in hero_items], className="hero-row"),
-        html.P(id="hero-sub", className="hero-sub"),
-    ], className="hero")
     return [
-        hero,
         html.Div([
             html.H1(t("title", lang)),
             html.P(t("lede", lang, start=BT.index[0].strftime(fmt_d),
@@ -488,10 +477,6 @@ def net_series(mgmt_pct: float, perf_pct: float) -> pd.Series:
               Output("mini-vol-val", "children"),
               Output("fees-note", "children"), Output("lede-defs", "children"),
               Output("mgmt-fee-val", "children"), Output("perf-fee-val", "children"),
-              Output("hero-head", "children"), Output("hero-sub", "children"),
-              Output("hero-ret-v", "children"), Output("hero-ret-b", "children"),
-              Output("hero-dd-v", "children"), Output("hero-dd-b", "children"),
-              Output("hero-sh-v", "children"), Output("hero-sh-b", "children"),
               Input("period", "value"), Input("scale-mode", "value"),
               Input("mgmt-fee", "value"), Input("perf-fee", "value"),
               Input("lang-pref", "data"), Input("viewport", "data"))
@@ -545,21 +530,8 @@ def update_main(period, scale, mgmt, perf, lang, vw):
                   tips=col_tips),
             html.P(t("kpi_note", lang) + (" " + tsy_note if tsy_note else ""),
                    className="note small")]
-    # Kernaussage: Aussage nur so stark, wie die Zahlen des gewählten Zeitraums sie tragen
-    net, bm = b.ret_pf_net, b.ret_bm
-    c_n, c_b = m.cagr(net), m.cagr(bm)
-    d_n, d_b = m.max_drawdown(net), m.max_drawdown(bm)
-    s_n, s_b = m.sharpe(net), m.sharpe(bm)
-    ratio = abs(d_n) / abs(d_b) if d_b < 0 else 1.0
-    head = ("hero_strong" if ratio < 0.5 and c_n >= 0.9 * c_b
-            else "hero_lower" if ratio < 1 else "hero_plain")
-    fmt_d = "%m/%Y"
-    hero = (t(head, lang), t("hero_sub", lang, a=b.index[0].strftime(fmt_d), b=b.index[-1].strftime(fmt_d)),
-            pct(c_n, 1, lang=lang), t("hero_vs", lang, v=pct(c_b, 1, lang=lang)),
-            pct(d_n, 1, lang=lang), t("hero_vs", lang, v=pct(d_b, 1, lang=lang)),
-            dec(s_n, lang=lang), t("hero_vs", lang, v=dec(s_b, lang=lang)))
     return (fig, kpis, dd, al, model, *minis, *vals, fee_txt, defs_txt,
-            pct(mgmt / 100, 1, lang=lang), pct(perf / 100, 0, lang=lang), *hero)
+            pct(mgmt / 100, 1, lang=lang), pct(perf / 100, 0, lang=lang))
 
 
 
