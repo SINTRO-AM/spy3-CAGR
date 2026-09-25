@@ -444,3 +444,10 @@ p { margin: 0; }
   .signal .sig-pop, .signal .fc-pop { left: 0; right: 0; width: auto; max-width: none;
                                       transform: none; }
 }
+
+/* Signalkarte: Faktorzeilen und Ausblick */
+.sc-mark.veto { background: var(--red); }
+.sc-result { display: grid; gap: 2px; font-weight: 400; }
+.sc-result .fc-lbl { color: inherit; opacity: .85; }
+.fc-pop { width: 340px; }
+.fc-src { font-size: .76rem; color: var(--muted); font-style: italic; margin: 0; }

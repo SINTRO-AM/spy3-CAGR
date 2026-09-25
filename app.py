@@ -145,22 +145,53 @@ def _foot(sig, lang: str) -> html.P:
     return html.P(t("sc_foot", lang, d=d, t=sig.checked.strftime("%H:%M")), className="sc-foot")
 
 
-def signal_card(sig, lang: str) -> html.Div:
-    """Karte am Risk-On/Off-Button: Regel und Ergebnis in einem Satz."""
-    ok = sig.reasons
-    on = int(sig.row["signal"]) == 1
-    if on:
-        whys = [t(k, lang) for k, flag in (("sc_why_trend", ok["trend"]), ("sc_why_calm", ok["calm"]),
-                                            ("sc_why_dip", ok["dip"])) if flag]
-        why = (", ".join(whys[:-1]) + f" {t('sc_and', lang)} " + whys[-1]) if len(whys) > 1 else whys[0]
-        result = t("sc_res_on", lang, why=why)
-    else:
-        result = t("sc_res_veto" if not ok["risk_ok"] else "sc_res_none", lang)
+def _mark_row(ok: bool, name: str, text: str, veto: bool = False) -> html.Div:
     return html.Div([
-        html.Div(t("sc_title_on" if on else "sc_title_off", lang), className="sc-title"),
-        html.P(t("sc_rule", lang), className="sc-rule"),
-        html.P(result, className="sc-result " + ("on" if on else "off")),
-        html.P(t("sc_hint", lang), className="sc-hint"),
+        html.Span("✓" if ok else "✕", className="sc-mark " + ("ok" if ok else ("veto" if veto else "no"))),
+        html.Div([html.Span(name, className="sc-name"), html.Span(text, className="sc-text")]),
+    ], className="sc-row")
+
+
+def signal_card(sig, lang: str) -> html.Div:
+    """Karte am Risk-On/Off-Button: das aktuelle Signal Faktor für Faktor erklärt."""
+    r, ok = sig.row, sig.reasons
+    P = lambda v, d=1: pct(v, d, lang=lang)                                       # noqa: E731
+    on = int(r["signal"]) == 1
+    hi, lo = P(PARAMS.var_high, 0), P(PARAMS.var_low, 0)
+    var = P(r["var_1d"], 2)
+    gap = r["ma_fast"] / r["ma_slow"] - 1
+    high = r["high_disc"] * PARAMS.dd_trigger
+    fall = max(1 - r["price"] / high, 0.0)
+    trig = P(1 - 1 / PARAMS.dd_trigger, 0)
+
+    if not ok["risk_ok"]:
+        risk_txt, risk_ok = t("sc_f_risk_veto", lang, v=var, hi=hi), False
+    elif ok["calm"]:
+        risk_txt, risk_ok = t("sc_f_risk_calm", lang, v=var, lo=lo), True
+    else:
+        risk_txt, risk_ok = t("sc_f_risk_mid", lang, v=var, hi=hi, lo=lo), True
+    rows = [
+        _mark_row(risk_ok, "Risk", risk_txt, veto=not ok["risk_ok"]),
+        _mark_row(ok["trend"], "Momentum",
+                  t("sc_f_mom_on" if ok["trend"] else "sc_f_mom_off", lang, v=P(abs(gap)))),
+        _mark_row(ok["dip"], "Mean-Reversion",
+                  t("sc_f_mr_on" if ok["dip"] else "sc_f_mr_off", lang, v=P(fall), lim=trig)),
+    ]
+    if on:
+        active = [t(k, lang) for k, f in (("sc_r_trend", ok["trend"]), ("sc_r_calm", ok["calm"]),
+                                           ("sc_r_dip", ok["dip"])) if f]
+        more = t("sc_next_on_single", lang, r=active[0]) if len(active) == 1 else ""
+        nxt = t("sc_next_on", lang, hi=hi, v=var, more=more)
+    elif not ok["risk_ok"]:
+        nxt = t("sc_next_veto", lang, hi=hi, v=var)
+    else:
+        nxt = t("sc_next_none", lang, g=P(abs(gap)), lo=lo, v=var, lim=trig)
+    return html.Div([
+        html.Div(t("sc_lead_on" if on else "sc_lead_off", lang), className="sc-title"),
+        html.P(t("sc_logic", lang), className="sc-rule"),
+        *rows,
+        html.Div([html.Span(t("sc_next", lang), className="fc-lbl"), html.Span(nxt)],
+                 className="sc-result " + ("on" if on else "off")),
         _foot(sig, lang),
     ], className="sig-pop", role="tooltip")
 
@@ -194,8 +225,8 @@ def factor_card(name: str, state: str, sig, lang: str) -> html.Div:
                   html.Span(st, className="fc-state " + cls)], className="fc-head"),
         html.Div([html.Span(t("fc_now", lang), className="fc-lbl"), html.Span(now)], className="fc-row"),
         html.Div([html.Span(t("fc_rule", lang), className="fc-lbl"), html.Span(rule)], className="fc-row"),
-        html.Div([html.Span(t("fc_why", lang), className="fc-lbl"), html.Span(why),
-                  html.Span(src, className="fc-src")], className="fc-row"),
+        html.Div([html.Span(t("fc_why", lang), className="fc-lbl"),
+                  html.Span([why, " ", html.Span(f"({src})", className="fc-src")])], className="fc-row"),
         _foot(sig, lang),
     ], className="sig-pop fc-pop", role="tooltip")
 

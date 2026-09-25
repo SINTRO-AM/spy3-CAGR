@@ -94,63 +94,69 @@ TXT: dict[str, tuple[str, str]] = {
     "sc_and": ("und", "and"),
     "sc_foot": ("Schlusskurs vom {d} · geprüft um {t} Uhr · aktualisiert sich automatisch",
                 "Close of {d} · checked at {t} · updates automatically"),
-    # Faktorkarten (Hover an den einzelnen Signalen)
+    # Faktorkarten (Hover an den einzelnen Signalen) – kurz
     "fc_now": ("Aktuell", "Now"),
     "fc_rule": ("Regel", "Rule"),
-    "fc_why": ("Wissenschaftlicher Hintergrund", "Scientific background"),
+    "fc_why": ("Warum", "Why"),
     "fc_state_on": ("spricht für Risk On", "supports risk on"),
     "fc_state_off": ("erzwingt Risk Off", "forces risk off"),
     "fc_state_neutral": ("neutral", "neutral"),
     "fc_state_mom_off": ("kein Aufwärtstrend", "no uptrend"),
-    "fc_risk_title": ("Risk · Value-at-Risk", "Risk · value at risk"),
-    "fc_risk_now": ("Tagesrisiko (99-%-VaR, 50 Tage): {v}.", "Daily risk (99% VaR, 50 days): {v}."),
-    "fc_risk_rule": ("Über {hi}: Ausstieg, unabhängig von allen anderen Signalen. Unter {lo}: "
-                     "ruhiger Markt, Grund zu investieren. Dazwischen entscheiden Trend und "
-                     "Mean-Reversion.",
-                     "Above {hi}: exit, regardless of all other signals. Below {lo}: calm market, "
-                     "a reason to invest. In between, trend and mean reversion decide."),
-    "fc_risk_why": ("Volatilität tritt in Clustern auf: Ruhige und turbulente Phasen halten an, "
-                    "das Risiko von heute ist deshalb eine gute Prognose für morgen. Aktienquote "
-                    "in Hochvolatilitätsphasen zu senken, hat historisch die risikoadjustierte "
-                    "Rendite erhöht.",
-                    "Volatility clusters: calm and turbulent periods persist, so today's risk is a "
-                    "good forecast of tomorrow's. Reducing equity exposure when volatility is high "
-                    "has historically raised risk-adjusted returns."),
-    "fc_risk_src": ("Engle (1982); Bollerslev (1986); Moreira & Muir (2017), Journal of Finance",
-                    "Engle (1982); Bollerslev (1986); Moreira & Muir (2017), Journal of Finance"),
-    "fc_mom_title": ("Momentum · Trend", "Momentum · trend"),
-    "fc_mom_now": ("30-Tage-Schnitt {v} {dir} dem 200-Tage-Schnitt.",
-                   "30-day average {v} {dir} the 200-day average."),
+    "fc_risk_title": ("Risk", "Risk"),
+    "fc_risk_now": ("Tages-VaR {v}", "Daily VaR {v}"),
+    "fc_risk_rule": ("Über {hi}: Ausstieg. Unter {lo}: Einstieg.", "Above {hi}: exit. Below {lo}: invest."),
+    "fc_risk_why": ("Volatilität tritt in Clustern auf; wer in turbulenten Phasen Risiko reduziert, "
+                    "verbessert die risikoadjustierte Rendite.",
+                    "Volatility clusters; cutting exposure in turbulent phases improves risk-adjusted returns."),
+    "fc_risk_src": ("Engle 1982; Moreira & Muir 2017", "Engle 1982; Moreira & Muir 2017"),
+    "fc_mom_title": ("Momentum", "Momentum"),
+    "fc_mom_now": ("30-Tage-Schnitt {v} {dir} 200-Tage-Schnitt", "30-day average {v} {dir} 200-day average"),
     "fc_above": ("über", "above"), "fc_below": ("unter", "below"),
-    "fc_mom_rule": ("Investiert, solange der 30-Tage-Schnitt über dem 200-Tage-Schnitt liegt.",
-                    "Invested while the 30-day average is above the 200-day average."),
-    "fc_mom_why": ("Trends halten über Monate an: Märkte, die gestiegen sind, steigen tendenziell "
-                   "weiter (Time-Series-Momentum). Gleitende Durchschnitte haben das im US-Aktienmarkt "
-                   "über lange Zeiträume erfasst. Erklärung: Anleger reagieren verzögert auf neue "
-                   "Informationen.",
-                   "Trends persist over months: markets that have risen tend to keep rising "
-                   "(time-series momentum). Moving-average rules have captured this in US equities "
-                   "over long periods. Explanation: investors react to new information with a delay."),
-    "fc_mom_src": ("Brock, Lakonishok & LeBaron (1992), Journal of Finance; Moskowitz, Ooi & "
-                   "Pedersen (2012), Journal of Financial Economics",
-                   "Brock, Lakonishok & LeBaron (1992), Journal of Finance; Moskowitz, Ooi & "
-                   "Pedersen (2012), Journal of Financial Economics"),
-    "fc_mr_title": ("Mean-Reversion · Einstiegschance", "Mean reversion · buying opportunity"),
-    "fc_mr_now": ("Kurs {v} unter dem 200-Tage-Hoch; Auslöser bei {lim}.",
-                  "Price {v} below its 200-day high; trigger at {lim}."),
-    "fc_mr_rule": ("Investiert nach einem Rückgang von mindestens {lim} gegenüber dem 200-Tage-Hoch.",
-                   "Invested after a fall of at least {lim} from the 200-day high."),
-    "fc_mr_why": ("Nach extremen Verlusten übertreiben Märkte und erholen sich teilweise wieder. "
-                  "Starke Kursrückgänge erhöhen die erwartete Rendite, tiefe Einbrüche sind daher "
-                  "historisch gute Einstiegszeitpunkte gewesen.",
-                  "After extreme losses markets tend to overshoot and partly recover. Sharp sell-offs "
-                  "raise expected returns, so deep drawdowns have historically been good entry points."),
-    "fc_mr_src": ("De Bondt & Thaler (1985), Journal of Finance; Poterba & Summers (1988), "
-                  "Journal of Financial Economics",
-                  "De Bondt & Thaler (1985), Journal of Finance; Poterba & Summers (1988), "
-                  "Journal of Financial Economics"),
-    "sc_hint": ("Details zu jedem Faktor beim Überfahren der Faktoren rechts.",
-                "Hover over the factors on the right for details."),
+    "fc_mom_rule": ("Investiert, solange 30 Tage über 200 Tage.", "Invested while 30-day is above 200-day."),
+    "fc_mom_why": ("Trends halten an, weil Anleger verzögert auf Informationen reagieren.",
+                   "Trends persist because investors react to information with a delay."),
+    "fc_mom_src": ("Moskowitz, Ooi & Pedersen 2012", "Moskowitz, Ooi & Pedersen 2012"),
+    "fc_mr_title": ("Mean-Reversion", "Mean reversion"),
+    "fc_mr_now": ("{v} unter dem 200-Tage-Hoch, Auslöser {lim}", "{v} below the 200-day high, trigger {lim}"),
+    "fc_mr_rule": ("Investiert nach einem Rückgang von mindestens {lim}.",
+                   "Invested after a fall of at least {lim}."),
+    "fc_mr_why": ("Märkte übertreiben nach extremen Verlusten und erholen sich teilweise.",
+                  "Markets overreact to extreme losses and partly recover."),
+    "fc_mr_src": ("De Bondt & Thaler 1985", "De Bondt & Thaler 1985"),
+    # Hauptkarte: aktuelles Signal Faktor für Faktor
+    "sc_lead_on": ("SPY3 ist im S&P 500 investiert.", "SPY3 is invested in the S&P 500."),
+    "sc_lead_off": ("SPY3 hält kurzlaufende US-Staatsanleihen.", "SPY3 holds short-term US Treasuries."),
+    "sc_logic": ("Investiert wird, wenn das Risiko unter der Grenze liegt und mindestens ein Faktor "
+                 "einen Grund liefert.",
+                 "The model invests when risk is below the limit and at least one factor gives a reason."),
+    "sc_f_risk_veto": ("Tages-VaR {v} über der Grenze von {hi} – Ausstieg erzwungen.",
+                       "Daily VaR {v} above the {hi} limit – exit forced."),
+    "sc_f_risk_calm": ("Tages-VaR {v} unter {lo} – ruhiger Markt, Grund zu investieren.",
+                       "Daily VaR {v} below {lo} – calm market, a reason to invest."),
+    "sc_f_risk_mid": ("Tages-VaR {v} – unter der Grenze von {hi}, aber nicht unter {lo}.",
+                      "Daily VaR {v} – below the {hi} limit, but not below {lo}."),
+    "sc_f_mom_on": ("30-Tage-Schnitt {v} über dem 200-Tage-Schnitt – Aufwärtstrend.",
+                    "30-day average {v} above the 200-day average – uptrend."),
+    "sc_f_mom_off": ("30-Tage-Schnitt {v} unter dem 200-Tage-Schnitt – kein Trend.",
+                     "30-day average {v} below the 200-day average – no trend."),
+    "sc_f_mr_on": ("Kurs {v} unter dem Hoch – Einstiegschance aktiv.",
+                   "Price {v} below its high – buying opportunity active."),
+    "sc_f_mr_off": ("Kurs {v} unter dem Hoch – Auslöser erst bei {lim}.",
+                    "Price {v} below its high – trigger only at {lim}."),
+    "sc_next": ("Was das Signal ändert", "What would change the signal"),
+    "sc_next_veto": ("Rückkehr, sobald der Tages-VaR unter {hi} fällt (aktuell {v}) und ein Faktor einen "
+                     "Grund liefert.",
+                     "Re-entry once daily VaR falls below {hi} (now {v}) and a factor gives a reason."),
+    "sc_next_none": ("Einstieg, wenn der 30-Tage-Schnitt den 200-Tage-Schnitt übersteigt (Abstand {g}), "
+                     "der Tages-VaR unter {lo} fällt (aktuell {v}) oder der Kurs {lim} unter das Hoch fällt.",
+                     "Entry if the 30-day average rises above the 200-day average (gap {g}), daily VaR "
+                     "falls below {lo} (now {v}) or the price falls {lim} below its high."),
+    "sc_next_on": ("Ausstieg, wenn der Tages-VaR über {hi} steigt (aktuell {v}){more}.",
+                   "Exit if daily VaR rises above {hi} (now {v}){more}."),
+    "sc_next_on_single": (" oder der einzige aktive Grund entfällt ({r})",
+                          " or the only active reason falls away ({r})"),
+    "sc_r_trend": ("Aufwärtstrend", "uptrend"), "sc_r_calm": ("ruhiger Markt", "calm market"),
+    "sc_r_dip": ("Einstiegschance", "buying opportunity"),
     "hint_close": ("Hinweis schließen", "Close hint"),
     # Methodik
     "meth_title": ("Methodik und Annahmen", "Methodology and assumptions"),
