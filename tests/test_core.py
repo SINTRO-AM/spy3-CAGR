@@ -351,3 +351,31 @@ def test_no_double_dividend_booking():
     px = pd.DataFrame({"risk_on": np.linspace(100, 110, 50), "risk_off": 80.0}, index=idx)
     r = data.prepare_returns(px, treasury=pd.Series(dtype=float), proxy=pd.Series(dtype=float))
     assert np.allclose(r.risk_on.to_numpy(), px.risk_on.pct_change().iloc[1:].to_numpy())
+
+
+def test_live_signal_matches_backtest_and_caches():
+    from spy3 import live
+    idx = pd.bdate_range("2019-01-01", "2021-12-31")
+    rng = np.random.default_rng(2)
+    px = pd.DataFrame({"risk_on": 100 * np.exp(np.cumsum(rng.normal(0.0004, 0.011, len(idx))))},
+                      index=idx)
+    calls = []
+
+    def loader(refresh):
+        calls.append(refresh)
+        return px
+
+    live.reset_cache()
+    s1 = live.current_signal(loader)
+    exp = compute_signal(px["risk_on"]).iloc[-1]
+    assert s1.asof == idx[-1] and int(s1.row["signal"]) == int(exp["signal"])
+    assert s1.reasons["risk_ok"] == bool(exp["var_1d"] < StrategyParams().var_high)
+    live.current_signal(loader)                   # zweiter Aufruf: aus dem Cache
+    assert calls == [True]
+
+    def broken(refresh):
+        raise ConnectionError("offline")
+    live.reset_cache()
+    s3 = live.current_signal(broken, fallback=px["risk_on"])
+    assert s3.asof == idx[-1]                      # ohne Netz: Rückfall auf vorhandene Kurse
+    live.reset_cache()

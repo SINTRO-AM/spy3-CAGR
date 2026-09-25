@@ -52,6 +52,97 @@ TXT: dict[str, tuple[str, str]] = {
     # Hauptchart
     "perf": ("Wert einer Investition von 1.000 USD", "Value of a $1,000 investment"),
     "model_title": ("Inside the SPY3 Model", "Inside the SPY3 Model"),
+    # Signal-Karte (Hover)
+    "sc_title_on": ("Warum Risk On?", "Why risk on?"),
+    "sc_title_off": ("Warum Risk Off?", "Why risk off?"),
+    "sc_rule": ("SPY3 hält den S&P 500, solange das Marktrisiko tragbar ist und mindestens ein "
+                "Grund für eine Investition vorliegt. Sonst wechselt es in kurzlaufende "
+                "US-Staatsanleihen.",
+                "SPY3 holds the S&P 500 as long as market risk is acceptable and at least one "
+                "reason to invest applies. Otherwise it moves into short-term US Treasuries."),
+    "sc_gate": ("Voraussetzung", "Requirement"),
+    "sc_any": ("Mindestens ein Grund", "At least one reason"),
+    "sc_risk": ("Risikogrenze", "Risk limit"),
+    "sc_risk_ok": ("Tagesrisiko {v} – unter der Grenze von {lim}.",
+                   "Daily risk {v} – below the {lim} limit."),
+    "sc_risk_no": ("Tagesrisiko {v} – über der Grenze von {lim}. Das Modell steigt aus, "
+                   "unabhängig von allen anderen Signalen.",
+                   "Daily risk {v} – above the {lim} limit. The model stays out, regardless "
+                   "of all other signals."),
+    "sc_trend": ("Aufwärtstrend", "Uptrend"),
+    "sc_trend_yes": ("30-Tage-Schnitt {v} über dem 200-Tage-Schnitt.",
+                     "30-day average {v} above the 200-day average."),
+    "sc_trend_no": ("30-Tage-Schnitt {v} unter dem 200-Tage-Schnitt.",
+                    "30-day average {v} below the 200-day average."),
+    "sc_calm": ("Ruhiger Markt", "Calm market"),
+    "sc_calm_yes": ("Tagesrisiko {v} unter {lim}.", "Daily risk {v} below {lim}."),
+    "sc_calm_no": ("Tagesrisiko {v}, Schwelle {lim}.", "Daily risk {v}, threshold {lim}."),
+    "sc_dip": ("Einstiegschance", "Buying opportunity"),
+    "sc_dip_yes": ("Kurs {v} unter dem 200-Tage-Hoch, Auslöser ab {lim}.",
+                   "Price {v} below its 200-day high, trigger at {lim}."),
+    "sc_dip_no": ("Kurs {v} unter dem 200-Tage-Hoch, Auslöser erst ab {lim}.",
+                  "Price {v} below its 200-day high, trigger only at {lim}."),
+    "sc_res_on": ("Ergebnis: investiert im S&P 500 – Risiko tragbar, {why}.",
+                  "Result: invested in the S&P 500 – risk acceptable, {why}."),
+    "sc_res_veto": ("Ergebnis: in Staatsanleihen – das Tagesrisiko liegt über der Grenze.",
+                    "Result: in Treasuries – daily risk is above the limit."),
+    "sc_res_none": ("Ergebnis: in Staatsanleihen – Risiko tragbar, aber kein Grund zu investieren.",
+                    "Result: in Treasuries – risk acceptable, but no reason to invest."),
+    "sc_why_trend": ("Aufwärtstrend", "uptrend"),
+    "sc_why_calm": ("ruhiger Markt", "calm market"),
+    "sc_why_dip": ("Einstiegschance nach starkem Rückgang", "buying opportunity after a sharp fall"),
+    "sc_and": ("und", "and"),
+    "sc_foot": ("Schlusskurs vom {d} · geprüft um {t} Uhr · aktualisiert sich automatisch",
+                "Close of {d} · checked at {t} · updates automatically"),
+    # Methodik
+    "meth_title": ("Methodik und Annahmen", "Methodology and assumptions"),
+    "meth_data": ("Daten", "Data"),
+    "meth_data_t": ("Tägliche Schlusskurse von Yahoo Finance, um Dividenden und Splits bereinigt: "
+                    "SPY (S&P-500-ETF) und SHY (US-Staatsanleihen mit 1–3 Jahren Laufzeit). "
+                    "Vor dem Start des SHY im Juli 2002 dient ein Treasury-Index gleicher "
+                    "Laufzeit als Ersatz. Dividenden fließen genau einmal ein.",
+                    "Daily closing prices from Yahoo Finance, adjusted for dividends and splits: "
+                    "SPY (S&P 500 ETF) and SHY (US Treasuries, 1–3 years). Before SHY launched "
+                    "in July 2002, a Treasury index of the same maturity stands in. Dividends "
+                    "are included exactly once."),
+    "meth_signal": ("Signal", "Signal"),
+    "meth_signal_t": ("Täglich aus den Schlusskursen berechnet. Investiert wird, wenn das "
+                      "Tagesrisiko (99-%-Value-at-Risk über 50 Tage) unter 5 % liegt und "
+                      "mindestens eines gilt: 30-Tage-Schnitt über 200-Tage-Schnitt, "
+                      "Tagesrisiko unter 2 % oder Kurs mindestens 23 % unter seinem "
+                      "200-Tage-Hoch. Sonst hält das Portfolio SHY.",
+                      "Computed daily from closing prices. The model invests when daily risk "
+                      "(99% value at risk over 50 days) is below 5% and at least one of the "
+                      "following holds: 30-day above 200-day average, daily risk below 2%, or "
+                      "price at least 23% below its 200-day high. Otherwise the portfolio holds "
+                      "SHY."),
+    "meth_costs": ("Kosten und Gebühren", "Costs and fees"),
+    "meth_costs_t": ("10 bp Handelskosten je Umschichtung. Die Netto-Reihe zieht zusätzlich "
+                     "0,2 % Managementgebühr p.a. und 10 % Performancegebühr auf die "
+                     "Überrendite gegenüber dem SPY ab, mit High-Water-Mark und "
+                     "quartalsweiser Abrechnung.",
+                     "10 bp trading costs per switch. The net series additionally deducts a "
+                     "0.2% p.a. management fee and a 10% performance fee on returns above SPY, "
+                     "with a high-water mark and quarterly crystallisation."),
+    "meth_metrics": ("Kennzahlen", "Metrics"),
+    "meth_metrics_t": ("Renditen geometrisch verkettet. Sharpe Ratio = CAGR ÷ Volatilität "
+                       "ohne risikofreien Satz. Drawdown aus dem Vermögensverlauf. Beta und "
+                       "Jensen's Alpha gegenüber SHY als risikofreier Anlage.",
+                       "Returns compounded geometrically. Sharpe ratio = CAGR ÷ volatility "
+                       "without a risk-free rate. Drawdown from the wealth path. Beta and "
+                       "Jensen's alpha measured against SHY as the risk-free asset."),
+    "meth_robust": ("Robustheit", "Robustness"),
+    "meth_robust_t": ("Zum Vergleich: Wird der Wechsel zwischen SPY und SHY zufällig "
+                      "gesetzt, bei gleicher Investitionsquote, liegt die Sharpe Ratio im "
+                      "Median bei 0,3. Das Ergebnis des Modells ist damit kein Zufall "
+                      "(p < 0,001).",
+                       "For comparison: if the switches between SPY and SHY are placed at "
+                      "random, at the same investment ratio, the median Sharpe ratio is 0.3. "
+                      "The model's result is therefore not down to chance (p < 0.001)."),
+    "meth_note": ("Bis August 2023 simulierte Wertentwicklung, danach Live-Betrieb. Vergangene "
+                  "oder simulierte Ergebnisse sind kein verlässlicher Indikator für die Zukunft.",
+                  "Simulated performance up to August 2023, live operation thereafter. Past or "
+                  "simulated results are not a reliable indicator of future results."),
     "model_note": ("SPY-Kurs mit den drei Faktoren. Momentum: 30-Tage-Linie über 200-Tage-Linie. "
                    "Mean-Reversion: Kurs unter der gepunkteten Linie (23 % unter dem 200-Tage-Hoch). "
                    "Risk: 1-Tages-VaR über 5 % erzwingt Risk-Off, unter 2 % erlaubt immer Risk-On.",

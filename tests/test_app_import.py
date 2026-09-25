@@ -33,6 +33,8 @@ def test_app_imports_and_builds_layout(monkeypatch, synthetic_prices):
     # Rendering-Callbacks laufen ohne Fehler durch
     page = app.render("en")
     assert page[0] and page[1]
+    badge = app.update_signal("en", 0)
+    assert badge is not None
     fig, kpis, dd, al, *_ = app.update_main("all", "linear", 0.2, 10, "en", "wide")
     assert fig.data and kpis and dd.data and al.data
     for tab in ("roll", "gap", "ex", "years", "risk", "timing"):

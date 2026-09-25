@@ -53,6 +53,12 @@ python app.py                            # Dashboard lokal
 * Rollierende Performance (`spy3/rolling.py`): Überschussrendite, Rendite p.a., Volatilität,
   Sharpe Ratio, Calmar Ratio, Max. Drawdown und Beta über 1, 3 oder 5 Jahre, jeweils für SPY3
   brutto/netto, S&P 500 und 60/40, dazu der Anteil der Fenster, in denen SPY3 netto besser war
+* Aktuelles Signal oben: Beim Überfahren (auf Touchgeräten beim Antippen) erklärt eine Karte
+  in Alltagssprache, warum das Modell gerade investiert ist oder nicht – Risikogrenze plus drei
+  mögliche Gründe, jeweils mit aktuellem Wert und Schwelle. Das Signal wird unabhängig vom
+  Backtest laufend aus den neuesten Schlusskursen berechnet (`spy3/live.py`, Kurse höchstens
+  alle 30 Minuten neu geladen, ohne Netz Rückfall auf den Cache)
+* Methodik-Abschnitt zum Aufklappen unter Chart und Kennzahlen
 * Download-Buttons in der Kopfzeile: PDF-Report mit SINTRO-Logo (Kennzahlen, Vermögens-,
   Drawdown- und Vorsprung-Chart, Attribution, Kalenderjahre, Disclaimer) und Excel-Mappe mit
   den Rohdaten (Tagesdaten inkl. Log-Renditen und kumulierten Log-Punkten, KPIs, Kalenderjahre,

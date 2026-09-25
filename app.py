@@ -9,7 +9,7 @@ from dash import Dash, Input, Output, State, ctx, dcc, html, no_update
 from scripts.run_report import build
 from functools import lru_cache
 
-from spy3 import (metrics as m, plots, report as rp, risk as rk, robustness as rb,
+from spy3 import (live, metrics as m, plots, report as rp, risk as rk, robustness as rb,
                   rolling as rl)
 from functools import lru_cache
 
@@ -127,38 +127,96 @@ def seg(id_, options, value):
 
 
 # ---------- Kopfzeile -------------------------------------------------------
-def signal_badge(lang: str) -> html.Details:
-    row = BT.iloc[-1]
-    on = int(row.signal) == 1
-    f = factor_states(row, PARAMS)
-    details = {
-        "Risk": t("f_var", lang, v=pct(row.var_1d, 2, lang=lang)),
-        "Momentum": t("f_mom", lang, f=PARAMS.fast_ma, s=PARAMS.slow_ma,
-                      v=pct(row.ma_fast / row.ma_slow - 1, signed=True, lang=lang)),
-        "Mean-Reversion": t("f_mr", lang, w=PARAMS.dd_window,
-                            v=pct(row.price / (row.high_disc * PARAMS.dd_trigger) - 1,
-                                  signed=True, lang=lang)),
-    }
+def _live():
+    """Aktuelles Signal; bei fehlendem Netz der letzte Stand bzw. der Backtest."""
+    return live.current_signal(lambda refresh: load_prices(refresh=refresh), PARAMS,
+                               fallback=BT.price)
+
+
+def _sc_row(title: str, ok: bool, text: str, gate: bool = False) -> html.Div:
+    return html.Div([
+        html.Span("✓" if ok else "✕", className="sc-mark " + ("ok" if ok else "no")),
+        html.Div([html.Span(title, className="sc-name"), html.Span(text, className="sc-text")]),
+    ], className="sc-row" + (" sc-gate" if gate else ""))
+
+
+def signal_card(sig, lang: str) -> html.Div:
+    """Erklärung des aktuellen Signals in Alltagssprache, mit den aktuellen Werten."""
+    r, ok = sig.row, sig.reasons
+    P = lambda v, d=1: pct(v, d, lang=lang)
+    on = int(r["signal"]) == 1
+    high = r["high_disc"] * PARAMS.dd_trigger
+    dist = 1 - r["price"] / high
+    trig = 1 - 1 / PARAMS.dd_trigger
+    risk_txt = t("sc_risk_ok" if ok["risk_ok"] else "sc_risk_no", lang,
+                 v=P(r["var_1d"], 2), lim=P(PARAMS.var_high, 0))
+    rows = [
+        html.Div(t("sc_gate", lang), className="sc-group"),
+        _sc_row(t("sc_risk", lang), ok["risk_ok"], risk_txt, gate=True),
+        html.Div(t("sc_any", lang), className="sc-group"),
+        _sc_row(t("sc_trend", lang), ok["trend"],
+                t("sc_trend_yes" if ok["trend"] else "sc_trend_no", lang,
+                  v=pct(abs(r["ma_fast"] / r["ma_slow"] - 1), 1, lang=lang))),
+        _sc_row(t("sc_calm", lang), ok["calm"],
+                t("sc_calm_yes" if ok["calm"] else "sc_calm_no", lang,
+                  v=P(r["var_1d"], 2), lim=P(PARAMS.var_low, 0))),
+        _sc_row(t("sc_dip", lang), ok["dip"],
+                t("sc_dip_yes" if ok["dip"] else "sc_dip_no", lang,
+                  v=P(max(dist, 0.0)), lim=P(trig, 0))),
+    ]
+    if on:
+        whys = [t(k, lang) for k, flag in (("sc_why_trend", ok["trend"]),
+                                            ("sc_why_calm", ok["calm"]),
+                                            ("sc_why_dip", ok["dip"])) if flag]
+        why = (", ".join(whys[:-1]) + f" {t('sc_and', lang)} " + whys[-1]) if len(whys) > 1 \
+            else whys[0]
+        result = t("sc_res_on", lang, why=why)
+    else:
+        result = t("sc_res_veto" if not ok["risk_ok"] else "sc_res_none", lang)
+    d = sig.asof.strftime("%d.%m.%Y" if lang == "de" else "%b %d, %Y")
+    tm = sig.checked.strftime("%H:%M")
+    return html.Div([
+        html.Div(t("sc_title_on" if on else "sc_title_off", lang), className="sc-title"),
+        html.P(t("sc_rule", lang), className="sc-rule"),
+        *rows,
+        html.P(result, className="sc-result " + ("on" if on else "off")),
+        html.P(t("sc_foot", lang, d=d, t=tm), className="sc-foot"),
+    ], className="sig-pop", role="tooltip")
+
+
+def signal_badge(lang: str) -> html.Div:
+    sig = _live()
+    r = sig.row
+    on = int(r["signal"]) == 1
+    f = factor_states(r, PARAMS)
     chips = [html.Span([html.I(className="led " + STATE_CLS.get(x["state"], "neutral")), n],
-                       className="chip", title=f"{n}: {x['state']}") for n, x in f.items()]
-    rows = [html.Div([
-        html.Span(n, className="f-name"),
-        html.Span(x["state"], className="f-state " + STATE_CLS.get(x["state"], "neutral")),
-        html.Span(details[n], className="f-detail"),
-    ], className="f-row") for n, x in f.items()]
-    date = LAST.strftime("%d.%m.%Y" if lang == "de" else "%b %d, %Y")
-    return html.Details([
-        html.Summary([
+                       className="chip") for n, x in f.items()]
+    return html.Div([
+        html.Div([
             html.Span([html.I(className="pulse"),
                        html.Span(ON if on else OFF, className="sig-main"),
                        html.Span("SPY" if on else "SHY", className="sig-asset")],
                       className="sig-btn " + ("on" if on else "off")),
             html.Span(chips, className="chips"),
-        ], className="sig-summary", title=t("sig_title", lang)),
-        html.Div([html.P(t("sig_asof", lang, d=date), className="note small"), *rows,
-                  html.P(t("sig_rule", lang), className="note small")],
-                 className="sig-pop"),
-    ], className="signal")
+        ], className="sig-summary"),
+        signal_card(sig, lang),
+    ], className="signal", tabIndex="0")
+
+
+def methodology(lang: str) -> html.Details:
+    """Kurzer Methodik-Abschnitt zum Aufklappen."""
+    items = [("meth_data", "meth_data_t"), ("meth_signal", "meth_signal_t"),
+             ("meth_costs", "meth_costs_t"), ("meth_metrics", "meth_metrics_t"),
+             ("meth_robust", "meth_robust_t")]
+    return html.Details([
+        html.Summary([html.Span(t("meth_title", lang)), html.Span("", className="meth-chev")],
+                     className="meth-sum"),
+        html.Div([
+            html.Dl([el for k, v in items
+                     for el in (html.Dt(t(k, lang)), html.Dd(t(v, lang)))], className="meth-list"),
+            html.P(t("meth_note", lang), className="note small"),
+        ], className="meth-body"),
+    ], className="panel meth")
 
 
 EXPORT_MISSING = rp.missing_packages()
@@ -265,6 +323,7 @@ def page(lang: str) -> list:
             html.Section([html.H2(t("kpis", lang)), html.Div(id="kpis")],
                          className="panel kpi-panel"),
         ], className="grid"),
+        methodology(lang),
         html.Div([
             html.Section([
                 html.Div([html.H2(t("model_title", lang))], className="h-row"),
@@ -303,6 +362,7 @@ app.layout = html.Div([
     dcc.Store(id="lang-pref", storage_type="local", data="en"),
     dcc.Store(id="viewport", data="wide"),
     dcc.Interval(id="viewport-tick", interval=2000, n_intervals=0),
+    dcc.Interval(id="signal-tick", interval=10 * 60 * 1000, n_intervals=0),
     html.Header([
         html.A(html.Img(src=app.get_asset_url("sintro-logo.png"),
                         alt="SINTRO Asset Management", className="logo"),
@@ -329,6 +389,14 @@ def choose_lang(_de, _en):
     return ctx.triggered_id.split("-")[1]
 
 
+@app.callback(Output("signal", "children"), Input("lang-pref", "data"),
+              Input("signal-tick", "n_intervals"))
+def update_signal(lang, _n):
+    """Aktuelles Signal; der Timer löst alle 10 Minuten eine Prüfung aus, neu geladen
+    werden die Kurse höchstens alle 30 Minuten (spy3.live.REFRESH_MIN)."""
+    return signal_badge(lang if lang in LANGS else "en")
+
+
 # Bildschirmbreite melden, damit Charts auf Smartphones kompakter gezeichnet werden
 # Nur die Stufe melden (kompakt/breit), nicht die Pixelbreite: sonst löst jede
 # Pixeländerung ein Neuzeichnen der Reiterinhalte aus und der Chart flackert.
@@ -352,7 +420,7 @@ app.clientside_callback(
     Output("lang-menu", "title"), Input("lang-pref", "data"))
 
 
-@app.callback(Output("page", "children"), Output("signal", "children"),
+@app.callback(Output("page", "children"),
               Output("footer", "children"), Output("lang-current", "children"),
               Output("dl-pdf-lbl", "children"), Output("dl-xlsx-lbl", "children"),
               *[Output(f"lang-{c}", "className") for c in LANGS],
@@ -360,7 +428,7 @@ app.clientside_callback(
 def render(lang):
     lang = lang if lang in LANGS else "en"
     opts = ["lang-opt is-current" if c == lang else "lang-opt" for c in LANGS]
-    return (page(lang), signal_badge(lang), t("footer", lang), lang.upper(),
+    return (page(lang), t("footer", lang), lang.upper(),
             t("dl_pdf", lang), t("dl_xlsx", lang), *opts)
 
 
@@ -413,7 +481,7 @@ def update_main(period, scale, mgmt, perf, lang, vw):
     cols = {t("col_gross", lang): b.ret_pf, t("col_net", lang): b.ret_pf_net,
             "S&P 500": b.ret_bm, **shown}
     tbl = m.summary_table(cols, b.ret_bm, b.ret_off).loc[KPI_ORDER]
-    hl = (t("col_gross", lang), t("col_net", lang))
+    hl = (t("col_net", lang),)
     col_tips = {t("col_gross", lang): tip("col_gross", lang),
                 t("col_net", lang): tip("col_net", lang),
                 "S&P 500": tip("col_bm", lang), "60/40": tip("col_mix", lang),
