@@ -48,7 +48,7 @@ PERIODS = {"all": None, "10": 10, "5": 5, "3": 3, "1": 1}
 STATE_CLS = {ON: "on", OFF: "off"}
 PERSIST = dict(persistence=True, persistence_type="session")
 KPI_ORDER = ["Total Return", "CAGR", "Volatilität p.a.", "Sharpe Ratio", "Calmar", "Beta",
-             "Jensen's Alpha p.a.", "Up-Capture", "Down-Capture", "Max. Drawdown"]
+             "Jensen's Alpha p.a.", "Max. Drawdown"]
 KPI_EMPHASIS = {"Sharpe Ratio", "Max. Drawdown"}
 ROLL_SERIES = {"gross": BT.ret_pf, "net": BT.ret_pf_net, "sp": BT.ret_bm,
                "6040": R["mixes"]["60/40"]}
