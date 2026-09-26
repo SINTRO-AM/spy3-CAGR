@@ -47,8 +47,20 @@ def _base(fig: go.Figure, lang: str, compact: bool = False, **kw) -> go.Figure:
     """compact=True: kleinere Schrift, engere Ränder, weniger Ticks – für Smartphones."""
     fig.update_layout(template=TEMPLATE, separators=SEP.get(lang, ",."), **kw)
     if compact:
+        short = {t("gross", lang): t("gross_s", lang), t("net", lang): t("net_s", lang),
+                 t("var_line", lang): "VaR", t("m_var", lang): "VaR", t("m_price", lang): "SPY",
+                 t("m_mr", lang): t("mr_s", lang)}
+        hide = {t("m_var_high", lang), t("m_var_low", lang)}
+        for tr in fig.data:
+            if tr.name in hide:
+                tr.showlegend = False
+            elif tr.name in short:
+                tr.name = short[tr.name]
         fig.update_layout(font=dict(size=13),
-                          legend=dict(font=dict(size=11.5), y=1.02, itemwidth=30, tracegroupgap=2),
+                          legend=dict(font=dict(size=10.5), orientation="h", x=-0.02,
+                                      xanchor="left", y=1.02, yanchor="bottom",
+                                      entrywidth=88, entrywidthmode="pixels",
+                                      itemwidth=30, tracegroupgap=0),
                           margin=dict(l=4, r=4, t=22, b=4),
                           xaxis=dict(tickfont=dict(size=11), nticks=5),
                           yaxis=dict(tickfont=dict(size=11), nticks=6))
@@ -323,7 +335,8 @@ def model_chart(bt: pd.DataFrame, lang: str = "de", log: bool = True,
                         mode="lines", line=dict(color=col, width=1, dash="dash"),
                         hoverinfo="skip")
     _legend_box(fig, t("riskoff", lang))
-    fig.update_yaxes(type="log" if log else "linear", tickformat=",.0f")
+    fig.update_yaxes(type="log" if log else "linear", tickformat=",.0f",
+                     dtick="D2" if log else None)          # log: nur 1-2-5-Ticks je Dekade
     fig.update_xaxes(showline=True)
     _base(fig, lang, compact, shapes=_risk_off_shapes(bt.position),
           yaxis2=dict(overlaying="y", side="right", showgrid=False, zeroline=False,

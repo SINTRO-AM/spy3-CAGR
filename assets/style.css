@@ -451,3 +451,34 @@ p { margin: 0; }
 .sc-result .fc-lbl { color: inherit; opacity: .85; }
 .fc-pop { width: 340px; }
 .fc-src { font-size: .76rem; color: var(--muted); font-style: italic; margin: 0; }
+
+/* ---------- Smartphone-Feinschliff ---------- */
+@media (max-width: 640px) {
+  /* Kopfzeile kompakt: Logo und Sprache in einer Zeile, darunter Signal, dann Downloads */
+  .topbar { position: relative; padding: 12px 16px 12px; gap: 10px; }
+  .logo { height: 30px; }
+  .top-right { gap: 8px; }
+  .lang-menu { position: absolute; top: 10px; right: 12px; }
+  .lang-btn { padding: 5px 10px; }
+  .signal { width: 100%; }
+  .sig-summary { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .sig-btn { padding: 6px 12px 6px 10px; font-size: .9rem; }
+  .downloads { width: 100%; gap: 8px; }
+  .dl-btn { flex: 1; justify-content: center; padding: 7px 8px; font-size: .8rem; }
+
+  /* Auswahlleisten umbrechen statt seitlich zu scrollen – alle Optionen sichtbar */
+  #period, #roll-metric { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+                          overflow: visible; border-radius: 16px; width: 100%; }
+  #period label, #roll-metric label { justify-content: center; text-align: center;
+                                      padding: 7px 4px; font-size: .84rem; border-radius: 12px; }
+  .ctl { width: 100%; }
+  .ctl--scale { width: auto; }
+
+  /* Reiterleiste: sanfte Ausblendung rechts zeigt, dass sie seitlich weitergeht */
+  .tabs { -webkit-mask-image: linear-gradient(to right, #000 82%, transparent);
+          mask-image: linear-gradient(to right, #000 82%, transparent); }
+
+  /* Charts: etwas mehr Höhe, weil die Legende jetzt kompakt ist */
+  .graph-box--main { height: 340px; }
+  .graph-box--model { height: 330px; }
+}

@@ -363,9 +363,9 @@ def page(lang: str) -> list:
                                      for k in PERIODS], "all")]),
             html.Div([html.Span([t("scale", lang), info("scale_tip", lang)],
                                 className="ctl-lbl"),
-                      seg("scale-mode", [{"label": t("linear", lang), "value": "linear"},
-                                         {"label": t("log", lang), "value": "log"}],
-                          "linear"),
+                      seg("scale-sel", [{"label": t("log", lang), "value": "log"},
+                                        {"label": t("linear", lang), "value": "linear"}],
+                          "log"),
                       scale_hint(lang)], className="ctl ctl--scale"),
             html.Div([html.Span([t("mgmt_fee", lang), html.B(id="mgmt-fee-val"),
                                  info("fee_tip", lang)], className="ctl-lbl"),
@@ -520,7 +520,7 @@ def net_series(mgmt_pct: float, perf_pct: float) -> pd.Series:
               Output("mini-vol-val", "children"),
               Output("fees-note", "children"), Output("lede-defs", "children"),
               Output("mgmt-fee-val", "children"), Output("perf-fee-val", "children"),
-              Input("period", "value"), Input("scale-mode", "value"),
+              Input("period", "value"), Input("scale-sel", "value"),
               Input("mgmt-fee", "value"), Input("perf-fee", "value"),
               Input("lang-pref", "data"), Input("viewport", "data"))
 def update_main(period, scale, mgmt, perf, lang, vw):
