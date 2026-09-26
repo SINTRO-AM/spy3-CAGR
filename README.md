@@ -28,7 +28,8 @@ prüfbar macht:
 ```bash
 pip install -r requirements.txt
 python -m pytest -q                      # Unit-Tests (ohne Netz)
-python scripts/run_report.py --refresh   # Daten via yfinance, Report in reports/
+python scripts/run_report.py --refresh   # neue abgeschlossene Handelstage anhängen, Report in reports/
+python scripts/run_report.py --rebuild   # gesamte Kurshistorie bewusst neu laden
 python app.py                            # Dashboard lokal
 ```
 
@@ -98,6 +99,17 @@ Die Oberfläche nutzt **Garet**, mit Jost als Rückfall. Garet ist lizenzpflicht
 deshalb nicht im Repository: Schriftdateien nach `assets/fonts/` legen (Details in der README
 dort), dann greifen sowohl Dashboard als auch PDF-Report automatisch darauf zu. Ohne die
 Dateien sieht alles aus wie bisher.
+
+## Stabile Kursdaten
+
+Die Kurshistorie in `data/prices.csv` ist eingefroren. Aktualisierungen (Live-Signal alle 30
+Minuten, `--refresh`) hängen nur abgeschlossene Handelstage nach dem letzten gespeicherten Datum
+an; der laufende Handelstag wird erst nach 17:00 Uhr New Yorker Zeit übernommen. Neue Kurse
+werden am letzten gemeinsamen Tag auf das gespeicherte Niveau verkettet, nachträgliche
+Umskalierungen oder Lücken bei Yahoo verändern die Historie deshalb nicht. Ein Tag wird nur
+übernommen, wenn SPY und SHY beide einen Kurs haben. Die Datei wird atomar geschrieben, parallele
+Server-Prozesse lesen nie einen halben Stand. Kennzahlen ändern sich damit höchstens um einen
+neuen Handelstag. Die gesamte Historie lädt nur `--rebuild` neu.
 
 ## Daten und Gebühren
 
