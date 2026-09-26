@@ -104,12 +104,15 @@ def main():
     ap.add_argument("--csv", type=Path, default=None)
     ap.add_argument("--lang", choices=["en", "de"], default="en")
     ap.add_argument("--net", action="store_true", help="Netto-Reihe einzeichnen")
-    ap.add_argument("--refresh", action="store_true")
+    ap.add_argument("--refresh", action="store_true",
+                    help="neue abgeschlossene Handelstage anhängen (Historie bleibt)")
+    ap.add_argument("--rebuild", action="store_true",
+                    help="gesamte Kurshistorie neu laden")
     ap.add_argument("--out", type=Path, default=ROOT / "reports")
     a = ap.parse_args()
 
     px = (pd.read_csv(a.csv, index_col=0, parse_dates=True) if a.csv
-          else load_prices(refresh=a.refresh))
+          else load_prices(refresh=a.refresh, rebuild=a.rebuild))
     bt = backtest(prepare_returns(px), px["risk_on"], StrategyParams())
     fig = build(bt, px["risk_on"], a.lang, a.net)
 

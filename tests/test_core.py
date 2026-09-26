@@ -380,3 +380,58 @@ def test_live_signal_matches_backtest_and_caches():
     s3 = live.current_signal(broken, fallback=px["risk_on"])
     assert s3.asof == idx[-1]                      # ohne Netz: Rückfall auf vorhandene Kurse
     live.reset_cache()
+
+
+# ---------- Stabile Kurshistorie ---------------------------------------------
+def _cache_frame():
+    idx = pd.bdate_range("2024-01-01", "2024-03-29")
+    rng = np.random.default_rng(11)
+    return pd.DataFrame({
+        "risk_on": 400 * np.exp(np.cumsum(rng.normal(0.0004, 0.01, len(idx)))),
+        "risk_off": 80 * np.exp(np.cumsum(rng.normal(0.0001, 0.001, len(idx)))),
+        "tbill_yield": 5.0}, index=idx)
+
+
+def test_incremental_update_keeps_history_frozen():
+    from spy3.data import _append_new_sessions
+    cached = _cache_frame()
+    # Yahoo liefert: umskalierte Historie (Dividende), eine Lücke weiter hinten und neue Tage
+    fresh_idx = pd.bdate_range("2024-03-01", "2024-04-05")
+    base = cached.reindex(fresh_idx)
+    new = pd.bdate_range("2024-04-01", "2024-04-05")
+    base.loc[new, "risk_on"] = cached.risk_on.iloc[-1] * np.array([1.01, 1.02, 1.0, 1.03, 1.04])
+    base.loc[new, "risk_off"] = cached.risk_off.iloc[-1] * np.array([1.0, 1.001, 1.002, np.nan, 1.004])
+    fresh = base * 0.97                        # Yahoo hat alle Kurse umskaliert
+    fresh["tbill_yield"] = 5.1
+    fresh.loc["2024-03-05", "risk_off"] = np.nan   # Lücke in der alten Historie
+    out = _append_new_sessions(cached, fresh)
+    # Historie exakt unverändert
+    pd.testing.assert_frame_equal(out.loc[cached.index], cached, check_freq=False)
+    # nur vollständige neue Tage bis zur ersten Lücke (04.04. fehlt SHY)
+    assert list(out.index[len(cached):]) == list(pd.bdate_range("2024-04-01", "2024-04-03"))
+    # Renditen der neuen Tage entsprechen genau den gelieferten (Skalierung neutral)
+    r = out.risk_on.pct_change().loc["2024-04-01":]
+    assert r.iloc[0] == pytest.approx(0.01) and r.iloc[1] == pytest.approx(1.02 / 1.01 - 1)
+
+
+def test_intraday_row_is_dropped_until_close():
+    from spy3.data import _completed_sessions
+    px = _cache_frame()
+    last = px.index[-1]
+    during = pd.Timestamp(last.date()).replace(hour=11).tz_localize("America/New_York")
+    after = pd.Timestamp(last.date()).replace(hour=18).tz_localize("America/New_York")
+    assert _completed_sessions(px, during).index[-1] < last
+    assert _completed_sessions(px, after).index[-1] == last
+
+
+def test_refresh_without_network_keeps_cache(tmp_path, monkeypatch):
+    from spy3 import data
+    cache = tmp_path / "prices.csv"
+    _cache_frame().to_csv(cache)
+
+    def offline(*a, **k):
+        raise ConnectionError("offline")
+    monkeypatch.setattr(data, "_download", offline)
+    with pytest.warns(UserWarning):
+        px = data.load_prices(start="2024-01-01", refresh=True, cache=cache)
+    assert len(px) == len(_cache_frame())

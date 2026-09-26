@@ -62,13 +62,16 @@ def fmt(df: pd.DataFrame) -> str:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--refresh", action="store_true")
+    ap.add_argument("--refresh", action="store_true",
+                    help="neue abgeschlossene Handelstage anhängen (Historie bleibt)")
+    ap.add_argument("--rebuild", action="store_true",
+                    help="gesamte Kurshistorie neu laden")
     ap.add_argument("--cost", type=float, default=10.0)
     ap.add_argument("--csv", type=Path, default=None,
                     help="eigene CSV mit Spalten Date,risk_on,risk_off")
     a = ap.parse_args()
     px = (pd.read_csv(a.csv, index_col=0, parse_dates=True) if a.csv
-          else load_prices(refresh=a.refresh))
+          else load_prices(refresh=a.refresh, rebuild=a.rebuild))
     r = build(px, a.cost)
     bt = r["bt"]
     print(f"Zeitraum {bt.index[0].date()} – {bt.index[-1].date()} | "

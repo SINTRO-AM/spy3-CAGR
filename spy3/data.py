@@ -34,6 +34,74 @@ TBILL = "^IRX"
 COLUMNS = ["risk_on", "risk_off", "tbill_yield"]
 
 
+def _download(tickers: list[str], start: str | None = None, end: str | None = None,
+              period: str | None = None) -> pd.DataFrame:
+    import yfinance as yf  # erst hier importieren -> Tests laufen ohne Netz
+
+    kw = dict(auto_adjust=True, progress=False)
+    raw = (yf.download(tickers, period=period, **kw) if period
+           else yf.download(tickers, start=start, end=end, **kw))["Close"]
+    raw.index = pd.to_datetime(raw.index).tz_localize(None)
+    return raw
+
+
+def _completed_sessions(px: pd.DataFrame, now: pd.Timestamp | None = None) -> pd.DataFrame:
+    """Entfernt den laufenden Handelstag: Solange die US-Börse nicht geschlossen ist
+    (17:00 Uhr New York, danach sind die Schlusskurse bei Yahoo final), ist der letzte
+    Kurs ein Intraday-Kurs und würde bei jedem Neuladen einen anderen Wert liefern."""
+    if px.empty:
+        return px
+    now = now if now is not None else pd.Timestamp.now(tz="America/New_York")
+    if now.tzinfo is not None:
+        now = now.tz_convert("America/New_York").tz_localize(None)
+    if px.index[-1].normalize() == now.normalize() and now.hour < 17:
+        return px.iloc[:-1]
+    return px
+
+
+def _append_new_sessions(cached: pd.DataFrame, fresh: pd.DataFrame) -> pd.DataFrame:
+    """Hängt nur Tage NACH dem letzten Cache-Datum an; die Historie bleibt unverändert.
+
+    Preise werden verkettet: Die neuen Kurse werden am letzten gemeinsamen Tag auf das
+    Niveau des Caches skaliert. Nachträgliche Dividenden-Umskalierungen von Yahoo
+    verändern die gespeicherte Historie damit nie. Ein neuer Tag wird nur übernommen,
+    wenn SPY und SHY beide einen Kurs haben; bei der ersten Lücke wird abgebrochen.
+    """
+    last = cached.index.max()
+    out = cached.copy()
+    new_rows = {}
+    for col in ("risk_on", "risk_off"):
+        f = fresh[col].dropna()
+        anchor = f.index[f.index <= last]
+        if not len(anchor):
+            return cached
+        a = anchor.max()
+        base = cached[col].loc[:a].dropna()
+        if base.empty:
+            return cached
+        new_rows[col] = f.loc[f.index > last] * (base.iloc[-1] / f.loc[a])
+    idx = new_rows["risk_on"].index.union(new_rows["risk_off"].index)
+    add = pd.DataFrame(new_rows).reindex(idx)
+    complete = add.notna().all(axis=1)
+    if not complete.all():                                  # bis zur ersten Lücke
+        first_gap = complete.idxmin() if (~complete).any() else None
+        add = add.loc[add.index < first_gap] if first_gap is not None else add
+    if add.empty:
+        return cached
+    tb = fresh.get("tbill_yield")
+    add["tbill_yield"] = tb.reindex(add.index) if tb is not None else float("nan")
+    return pd.concat([out, add[COLUMNS]]).sort_index()
+
+
+def _write_atomic(px: pd.DataFrame, cache: Path) -> None:
+    """Schreibt erst in eine Temporärdatei und benennt dann um – ein paralleler
+    Server-Prozess liest nie eine halb geschriebene Datei."""
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    tmp = cache.with_suffix(".tmp")
+    px[COLUMNS].to_csv(tmp)
+    os.replace(tmp, cache)
+
+
 def load_prices(
     start: str = "2000-01-01",
     end: str | None = None,
@@ -41,23 +109,36 @@ def load_prices(
     risk_off: str = "SHY",
     refresh: bool = False,
     cache: Path = CACHE,
+    rebuild: bool = False,
 ) -> pd.DataFrame:
-    """DataFrame mit risk_on / risk_off (Total-Return-Preise) und tbill_yield (%)."""
+    """DataFrame mit risk_on / risk_off (Total-Return-Preise) und tbill_yield (%).
+
+    refresh=True  aktualisiert inkrementell: nur abgeschlossene Handelstage nach dem
+                  letzten Cache-Datum werden angehängt, die Historie bleibt eingefroren.
+    rebuild=True  lädt die gesamte Historie neu (nur bewusst verwenden).
+    Ohne Cache wird einmalig die gesamte Historie geladen.
+    """
     px = None
-    if cache.exists() and not refresh:
+    if cache.exists() and not rebuild:
         px = pd.read_csv(cache, index_col=0, parse_dates=True)
         if "tbill_yield" not in px:          # alter Cache ohne T-Bill-Daten
             px = None
     if px is None:
-        import yfinance as yf  # erst hier importieren -> Tests laufen ohne Netz
-
-        raw = yf.download([risk_on, risk_off, TBILL], start=start, end=end,
-                          auto_adjust=True, progress=False)["Close"]
-        px = raw.rename(columns={risk_on: "risk_on", risk_off: "risk_off",
-                                 TBILL: "tbill_yield"})
-        px.index = pd.to_datetime(px.index).tz_localize(None)
-        cache.parent.mkdir(parents=True, exist_ok=True)
-        px[COLUMNS].to_csv(cache)
+        raw = _download([risk_on, risk_off, TBILL], start=start, end=end)
+        px = raw.rename(columns={risk_on: "risk_on", risk_off: "risk_off", TBILL: "tbill_yield"})
+        px = _completed_sessions(px)
+        _write_atomic(px, cache)
+    elif refresh:
+        try:
+            raw = _download([risk_on, risk_off, TBILL], period="1mo")
+            fresh = _completed_sessions(raw.rename(columns={
+                risk_on: "risk_on", risk_off: "risk_off", TBILL: "tbill_yield"}))
+            updated = _append_new_sessions(px, fresh)
+            if len(updated) > len(px):
+                _write_atomic(updated, cache)
+                px = updated
+        except Exception as exc:              # kein Netz, Yahoo-Störung: Cache bleibt gültig
+            warnings.warn(f"Kurs-Update fehlgeschlagen, Cache bleibt: {exc}", stacklevel=2)
     px = px.loc[start:end] if end else px.loc[start:]
     if "tbill_yield" not in px:
         px = px.assign(tbill_yield=float("nan"))
