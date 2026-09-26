@@ -44,7 +44,9 @@ if "risk_off_source" in BT:
     print(f"Risk-Off vor SHY (30.07.2002): {_src}  "
           f"[Treasury-Datei: {'ja' if TSY_INFO.get('pre_src') == 'LUATTRUU' else 'NEIN'}]")
 LAST = BT.index[-1]
-PERIODS = {"all": None, "10": 10, "5": 5, "3": 3, "1": 1}
+# Zeitraum: Anzahl Jahre bis zum Datenende oder festes Startdatum ("si" = seit Auflage)
+INCEPTION = "2023-09-01"
+PERIODS = {"all": None, "10": 10, "5": 5, "3": 3, "1": 1, "si": INCEPTION}
 STATE_CLS = {ON: "on", OFF: "off"}
 PERSIST = dict(persistence=True, persistence_type="session")
 KPI_ORDER = ["Total Return", "CAGR", "Volatilität p.a.", "Sharpe Ratio", "Calmar", "Beta",
@@ -63,8 +65,13 @@ GLOBE = "data:image/svg+xml;base64," + base64.b64encode(
 
 # ---------- Hilfsfunktionen -------------------------------------------------
 def slice_bt(period: str, lang: str):
-    yrs = PERIODS.get(period)
-    start = BT.index[0] if yrs is None else LAST - pd.DateOffset(years=yrs)
+    p = PERIODS.get(period)
+    if p is None:
+        start = BT.index[0]
+    elif isinstance(p, str):
+        start = pd.Timestamp(p)
+    else:
+        start = LAST - pd.DateOffset(years=p)
     b = BT.loc[start:]
     mixes = {(t("tsy_label", lang) if n == "Treasury" else n): s.loc[start:]
              for n, s in R["mixes"].items()}

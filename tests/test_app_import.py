@@ -39,3 +39,22 @@ def test_app_imports_and_builds_layout(monkeypatch, synthetic_prices):
     assert fig.data and kpis and dd.data and al.data
     for tab in ("roll", "gap", "ex", "years", "risk", "timing"):
         assert app.update_tab(tab, "all", "en", "wide") is not None
+
+
+def test_since_inception_period(monkeypatch, synthetic_prices):
+    import spy3.data as d
+    idx = pd.bdate_range("2000-01-03", "2026-01-30")
+    rng = np.random.default_rng(3)
+    px = pd.DataFrame({"risk_on": 100 * np.exp(np.cumsum(rng.normal(0.0003, 0.011, len(idx)))),
+                       "risk_off": np.where(idx < "2002-07-30", np.nan,
+                                            80 * np.exp(np.cumsum(np.full(len(idx), 6e-5)))),
+                       "tbill_yield": 3.0}, index=idx)
+    monkeypatch.setattr(d, "load_prices", lambda **k: px)
+    monkeypatch.setattr(d, "load_assets", lambda **k: pd.DataFrame())
+    monkeypatch.setattr(d, "load_short_treasury_returns", lambda: pd.Series(dtype=float))
+    sys.modules.pop("app", None)
+    app = importlib.import_module("app")
+    b, _ = app.slice_bt("si", "en")
+    assert b.index[0] >= pd.Timestamp("2023-09-01") and b.index[0] <= pd.Timestamp("2023-09-05")
+    out = app.update_main("si", "linear", 0.2, 10, "en", "wide")
+    assert out[0].data

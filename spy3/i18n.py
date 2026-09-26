@@ -39,6 +39,7 @@ TXT: dict[str, tuple[str, str]] = {
     "linear": ("Linear", "Linear"),
     "p_all": ("Gesamt", "Full"), "p_10": ("10 Jahre", "10 years"),
     "p_5": ("5 Jahre", "5 years"), "p_3": ("3 Jahre", "3 years"), "p_1": ("1 Jahr", "1 year"),
+    "p_si": ("Seit Auflage", "Since inception"),
     # Signal
     "sig_title": ("Details zu den Faktoren anzeigen", "Show factor details"),
     "sig_asof": ("Signal zum Handelsschluss am {d}.", "Signal as of the close on {d}."),

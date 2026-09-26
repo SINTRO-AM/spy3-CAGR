@@ -69,7 +69,7 @@ python app.py                            # Dashboard lokal
   die Buttons sind deaktiviert (`pip install -r requirements.txt` behebt das)
 * Regler für Managementgebühr (0–2,0 % p.a.) und Performancegebühr (0–30 %); die Netto-Reihe,
   die Kennzahlen und alle Charts rechnen sofort neu (brutto bleibt unverändert)
-* Zeitraum- und Skalenumschalter (Standard: linear), mit kurzem Hinweis zur Log-/Linear-Skala
+* Zeitraum- (Gesamt, 10, 5, 3, 1 Jahr, seit Auflage 09/2023) und Skalenumschalter (Standard: linear), mit kurzem Hinweis zur Log-/Linear-Skala
   beim Laden und einem Tooltip an der Skala
   (blendet sich nach 10 Sekunden aus, reines CSS); Zahlenformate je Sprache (`spy3/formatting.py`),
   Texte in `spy3/i18n.py`
