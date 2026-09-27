@@ -1,130 +1,143 @@
 # SPY3 — Systematic 3-Factor US Equity Strategy
 
-**SINTRO Asset Management** · Research, backtesting and investor analytics for SPY3
+*by SINTRO Asset Management*
 
-SPY3 is SINTRO's first Systematic-Traded Fund (STF): a fully rule-based strategy that holds the
-S&P 500 in normal and rising markets and moves into short-term US Treasuries when market risk
-is elevated. The objective is equity-like returns with materially lower drawdowns — a higher
-Sharpe ratio, not a bet against the index. The strategy has been managed live since
-September 2023.
+Most of the damage in equity investing happens in a handful of bad years. SPY3 is built
+around that simple observation.
 
-This repository contains the complete research and analytics stack behind SPY3: the backtest
-engine, the validation suite and the interactive dashboard used with investors.
+SPY3 aims to deliver consistent returns while staying out of the big crises. In normal and
+rising markets it holds the S&P 500. When risk builds up, it moves into short-term US
+Treasuries and waits until conditions improve. No discretion, no gut feeling: every decision
+follows fixed rules and is executed automatically.
+
+Over 26 years of backtesting, SPY3 has been a significantly better choice than a passive
+S&P 500 investment in terms of risk/reward and drawdowns. The strategy has been running live
+since Sep 2023.
+
+This repo is the research and analytics stack behind it: backtest engine, validation suite
+and the dashboard we use with investors.
 
 ---
 
-## Results at a glance
+## The numbers
 
-| January 2000 – September 2026 | SPY3 (net of all fees) | S&P 500 (SPY) |
+**Jan 2000 – Sep 2026, SPY3 net of all fees vs. S&P 500**
+
+| | SPY3 | S&P 500 |
 |---|---|---|
 | Return p.a. (CAGR) | 12.7% | 8.3% |
-| Volatility p.a. | 12.3% | 19.3% |
+| Vol p.a. | 12.3% | 19.3% |
 | Sharpe ratio | 1.04 | 0.43 |
-| Maximum drawdown | −20.1% | −55.2% |
+| Max. DD | −20.1% | −55.2% |
 
-*Simulated performance based on the model rules, after trading costs of 10 bp per switch,
-a 0.20% management fee and a 10% performance fee. Figures as of 17 September 2026; the
-dashboard always shows the current data. Past or simulated performance is not a reliable
-indicator of future results.*
+Put simply: more return, about a third less volatility and less than half the worst loss.
 
-The advantage is earned where it matters most for long-term investors: in market crises.
+And here's where the difference comes from:
 
-| Crisis (S&P 500 peak to trough) | SPY3 net | S&P 500 |
+| Crisis (S&P 500 peak to trough) | SPY3 | S&P 500 |
 |---|---|---|
-| Dot-com crash (03/2000 – 10/2002) | +16.9% | −47.2% |
-| Global financial crisis (10/2007 – 03/2009) | +2.5% | −54.8% |
-| Covid crash (02/2020 – 03/2020) | −18.2% | −33.4% |
-| 2022 bear market (01/2022 – 10/2022) | −12.5% | −24.1% |
+| Dot-com crash, 03/2000 – 10/2002 | +16.9% | −47.2% |
+| Global financial crisis, 10/2007 – 03/2009 | +2.5% | −54.8% |
+| Covid crash, 02/2020 – 03/2020 | −18.2% | −33.4% |
+| 2022 bear market, 01/2022 – 10/2022 | −12.5% | −24.1% |
+
+*Simulated performance based on the model rules, after 10 bp trading costs per switch, a
+0.20% p.a. mgmt fee and a 10% perf fee. Figures as of 17 Sep 2026 — the dashboard always shows
+the latest data. Past or simulated performance is not a reliable indicator of future results.*
 
 ---
 
-## How SPY3 decides
+## How it works
 
-Every trading day the model evaluates one requirement and three reasons to invest, based on
-closing prices:
+Every trading day, SPY3 asks one question first and three more after that.
 
-| | Factor | Condition |
-|---|---|---|
-| Requirement | **Risk** | Daily 99% value-at-risk (50-day window) below 5% |
-| Reason 1 | **Momentum** | 30-day moving average above the 200-day moving average |
-| Reason 2 | **Calm market** | Daily value-at-risk below 2% |
-| Reason 3 | **Mean reversion** | Price at least 23% below its 200-day high |
+**1. Is the risk acceptable?** If the daily 99% VaR (50-day window) is above 5%, SPY3 is out
+of equities — full stop, whatever the other signals say.
 
-SPY3 holds the S&P 500 (SPY) when the requirement and at least one reason are met; otherwise
-it holds short-term US Treasuries (SHY). Each factor builds on established research:
-volatility clustering (Engle 1982; Moreira & Muir 2017), time-series momentum (Moskowitz,
-Ooi & Pedersen 2012) and overreaction after extreme losses (De Bondt & Thaler 1985).
+**2. Is there a reason to be invested?** At least one of these has to be true:
 
-Details: [docs/METHODOLOGY.md](docs/METHODOLOGY.md)
+- **Uptrend** — the 30-day MA is above the 200-day MA
+- **Calm market** — daily VaR is below 2%
+- **Buying opportunity** — the price is at least 23% below its 200-day high
 
----
+If both checks pass, SPY3 holds SPY. Otherwise it holds SHY (1–3y US Treasuries). On average
+that means about three switches a year.
 
-## Built to be verified
+None of this is new magic. Each factor rests on well-documented research: volatility
+clusters (Engle 1982; Moreira & Muir 2017), trends persist (Moskowitz, Ooi & Pedersen 2012)
+and markets overreact after extreme losses (De Bondt & Thaler 1985). What SPY3 adds is a
+disciplined combination of the three.
 
-Institutional investors rightly distrust backtests. SPY3's engine is designed to be checked:
-
-- **Independent replication.** A hand-built share-by-share portfolio matches the engine on
-  every one of 6,193 trading days to within 10⁻¹⁴.
-- **No look-ahead.** Signals use only information available at the close of the signal day.
-- **Costs and fees modelled explicitly.** Every switch is charged once; management and
-  performance fees follow the actual fee terms (high-water mark, SPY hurdle, quarterly
-  crystallisation).
-- **Not luck.** With randomly placed switches at the same investment ratio, the median Sharpe
-  ratio is 0.30; SPY3's result is significant at p < 0.001.
-- **52 automated tests** cover return arithmetic, costs, fees, data handling and the dashboard.
-
-The full validation — including parameter sensitivity, walk-forward tests and known
-limitations — is documented in [docs/VALIDATION.md](docs/VALIDATION.md).
+The full methodology is in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 
 ---
 
-## Investor dashboard
+## Why you can trust the backtest
 
-The dashboard presents SPY3 against the S&P 500 and a classic 60/40 portfolio:
+We know that backtests are easy to make look good. So we built this one to be checked:
 
-- **Live signal** with a plain-language explanation of each factor, its current value, its
-  threshold and what would change the signal; updated automatically from the latest close
-- **Performance** since 2000, since inception or over 1, 3, 5 and 10 years, on a logarithmic
-  or linear scale, with adjustable fees
-- **Key figures** (net and gross), drawdowns, lead over the index, calendar-year returns
-- **Inside the SPY3 Model:** price, moving averages, mean-reversion trigger and value-at-risk
-  with all thresholds, plus rolling Sharpe, Calmar and volatility
-- **Risk analysis:** stress tests, VaR and expected shortfall, Monte Carlo simulation and
-  correlations with other asset classes
-- **Downloads:** PDF report with SINTRO branding and an Excel file with all daily data
-- English and German, optimised for desktop and mobile
+- **Rebuilt by hand.** An independent, share-by-share portfolio reproduces the engine on all
+  6,193 trading days to the 14th decimal.
+- **No look-ahead.** Signals only use what was known at the close of that day.
+- **Real costs.** Every switch costs 10 bp, including the first purchase. Fees follow the
+  actual terms: high-water mark, SPY hurdle, quarterly crystallisation.
+- **Not luck.** Switch at random with the same equity exposure and you get a median Sharpe
+  ratio of 0.30. SPY3's result is significant at p < 0.001.
+- **52 automated tests** keep all of this in check on every change.
+
+We're also upfront about the limits — simulated history before Sep 2023, parameter
+sensitivity, execution assumptions and fast V-shaped crashes. It's all in
+[docs/VALIDATION.md](docs/VALIDATION.md).
 
 ---
 
-## For the team: getting started
+## The dashboard
+
+What investors see:
+
+- **Today's signal**, with a plain-English explanation of each factor, its current value
+  and what would flip it — updated from the latest close
+- **Performance** since 2000, since inception, or over 1, 3, 5 and 10 yrs — log or linear
+  scale, with adjustable fees
+- **Key figures** net and gross, drawdowns, lead over the S&P 500, calendar-year returns
+- **Inside the SPY3 Model** — price, MAs, mean-reversion trigger and VaR with all thresholds,
+  plus rolling Sharpe, Calmar and vol
+- **Risk** — stress tests, VaR & expected shortfall, Monte Carlo, correlations with other
+  asset classes
+- **Downloads** — branded PDF report and an Excel file with every daily data point
+- English & German, desktop & mobile
+
+---
+
+## For the team
 
 ```bash
 pip install -r requirements.txt
-python -m pytest -q                      # full test suite, no network required
-python app.py                            # dashboard at http://127.0.0.1:8050
-python scripts/run_report.py --refresh   # append new closing prices, write reports/
-python scripts/audit.py                  # validation suite on the current data
+python -m pytest -q                      # full test suite, no network needed
+python app.py                            # dashboard on http://127.0.0.1:8050
+python scripts/run_report.py --refresh   # append new closes, write reports/
+python scripts/audit.py                  # rerun the validation suite
 ```
 
-Production: `gunicorn app:server` (see `Procfile`).
+In production we run `gunicorn app:server` (see `Procfile`).
 
-**Data.** Prices come from Yahoo Finance (dividend- and split-adjusted closes) and are cached
+**About the data.** Prices are Yahoo Finance closes, adjusted for dividends and splits, cached
 in `data/prices.csv`. The history is frozen: updates only append completed trading days, so
-figures never shift retroactively. `--rebuild` reloads the full history deliberately. For
-the period before SHY's launch in July 2002, the engine uses a Treasury proxy of comparable
-maturity; licensed Bloomberg files are kept locally in `data/` and are never committed.
+past numbers never shift. Use `--rebuild` if you really want to reload everything. Before
+SHY launched in Jul 2002, a Treasury proxy of the same maturity stands in. Licensed
+Bloomberg files live locally in `data/` and never get committed.
 
-| Path | Purpose |
+| Where | What |
 |---|---|
-| `app.py` | Dash dashboard |
-| `spy3/strategy.py` | Signal logic and backtest engine |
-| `spy3/data.py` | Price loading, frozen history, risk-off data sources |
-| `spy3/fees.py` | Management and performance fees |
-| `spy3/metrics.py` | Return and risk metrics |
-| `spy3/robustness.py`, `spy3/rolling.py`, `spy3/risk.py` | Attribution, rolling metrics, stress tests, Monte Carlo |
-| `spy3/live.py` | Current signal from the latest close |
-| `spy3/report.py` | PDF and Excel exports |
-| `scripts/` | Reports, presentation charts, data checks, validation suite |
+| `app.py` | The dashboard |
+| `spy3/strategy.py` | Signal logic & backtest engine |
+| `spy3/data.py` | Prices, frozen history, risk-off data sources |
+| `spy3/fees.py` | Mgmt & perf fees |
+| `spy3/metrics.py` | Return & risk metrics |
+| `spy3/robustness.py`, `rolling.py`, `risk.py` | Attribution, rolling metrics, stress tests, Monte Carlo |
+| `spy3/live.py` | Today's signal |
+| `spy3/report.py` | PDF & Excel exports |
+| `scripts/` | Reports, presentation charts, data checks, validation |
 | `tests/` | Automated tests |
 | `docs/` | Methodology, validation, changelog |
 
@@ -132,18 +145,17 @@ maturity; licensed Bloomberg files are kept locally in `data/` and are never com
 
 ## About SINTRO
 
-SINTRO Asset Management GmbH builds Systematic-Traded Funds: investment strategies in which
-every decision follows transparent, scientifically grounded rules and is executed
-automatically. SPY3 is distributed by SINTRO as a tied agent under the liability umbrella of
-INNO INVEST.
+At SINTRO we build Systematic-Traded Funds (STFs): strategies where every decision follows
+transparent, research-based rules and runs automatically. SPY3 is the first of them. SINTRO
+distributes it as a tied agent under the liability umbrella of INNO INVEST.
 
-SINTRO Asset Management GmbH · Kettenhofweg 26 · 60325 Frankfurt am Main · [www.sintro.eu](https://www.sintro.eu)
+SINTRO Asset Management GmbH · Kettenhofweg 26 · 60325 Frankfurt am Main · [sintro.eu](https://www.sintro.eu)
 
 ---
 
-*Important information: This repository and the dashboard are provided for information
-purposes and for discussions with professional investors. They do not constitute investment
-advice, an offer or a solicitation. Performance shown is simulated unless stated otherwise.
-Past or simulated performance is not a reliable indicator of future results.*
+*This repo and the dashboard are for information and for discussions with professional
+investors. Nothing here is investment advice, an offer or a solicitation. Performance is
+simulated unless stated otherwise. Past or simulated performance is not a reliable indicator
+of future results.*
 
-© 2026 SINTRO Asset Management GmbH. All rights reserved. Proprietary — not for redistribution.
+© 2026 SINTRO Asset Management GmbH. All rights reserved.
