@@ -26,8 +26,8 @@ TXT: dict[str, tuple[str, str]] = {
     "dl_note": ("Report und Rohdaten enthalten den gewählten Zeitraum und die eingestellten "
                 "Gebühren.",
                 "Report and raw data reflect the selected period and the fee settings."),
-    "mgmt_fee": ("Managementgebühr", "Management fee"),
-    "perf_fee": ("Performancegebühr", "Performance fee"),
+    "mgmt_fee": ("Mgt Fee", "Mgt Fee"),
+    "perf_fee": ("Perf Fee", "Perf Fee"),
     "log": ("Logarithmisch", "Logarithmic"),
     "hint_title": ("Tipp zur Skala", "A note on the scale"),
     "hint_body": ("Logarithmisch: gleiche Abstände bedeuten gleiche prozentuale "
