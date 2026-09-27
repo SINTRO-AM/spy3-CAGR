@@ -1,4 +1,4 @@
-"""Texte für das Dashboard (Deutsch/Englisch)."""
+"""Dashboard texts in German and English."""
 from __future__ import annotations
 
 LANGS = {"de": "Deutsch", "en": "English"}

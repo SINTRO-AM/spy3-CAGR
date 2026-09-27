@@ -1,10 +1,10 @@
-"""Robustheits-Audit des SPY3-Backtests auf den geladenen Daten.
+"""Validation suite for the SPY3 backtest (see docs/VALIDATION.md).
 
-    python scripts/audit.py              # Cache / yfinance
-    python scripts/audit.py --csv x.csv  # eigene Kursdatei (Date, risk_on, risk_off[, tbill_yield])
+    python scripts/audit.py              # current data (cache / Yahoo Finance)
+    python scripts/audit.py --csv x.csv  # own price file (Date, risk_on, risk_off[, tbill_yield])
 
-Prüft: Ausführungsverzögerung, Kosten, Faktor-Ablation, Zufalls-Timing, Parameter-
-Landschaft, Walk-Forward, Deflated Sharpe Ratio, Teilperioden und Attribution.
+Checks execution delay, trading costs, factor ablation, random timing, the parameter
+landscape, walk-forward behaviour, the deflated Sharpe ratio and the return attribution.
 """
 from __future__ import annotations
 

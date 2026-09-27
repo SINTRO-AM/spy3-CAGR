@@ -1,4 +1,4 @@
-"""Plotly-Charts im SINTRO-Stil (zweisprachig)."""
+"""Plotly charts in SINTRO style (German and English)."""
 from __future__ import annotations
 
 import numpy as np

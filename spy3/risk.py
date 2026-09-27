@@ -1,7 +1,4 @@
-"""Risikoanalysen: Stresstests, VaR/CVaR, Monte-Carlo, Korrelationen.
-
-Bewusst ohne Abhängigkeit zu spy3.plots, damit keine Importschleife entsteht.
-"""
+"""Risk analysis: stress tests, VaR and expected shortfall, Monte Carlo, correlations."""
 from __future__ import annotations
 
 import numpy as np

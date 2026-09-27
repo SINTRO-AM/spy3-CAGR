@@ -1,10 +1,8 @@
-"""Prüft, welche Quelle das Risk-Off-Bein vor SHY verwendet, und beziffert den Effekt.
+"""Shows which data source the risk-off leg uses before SHY's launch (July 2002) and
+quantifies its effect by comparing the configured source with the T-bill fallback.
 
-    python scripts/check_risk_off.py            # Daten aus dem Cache / yfinance
-    python scripts/check_risk_off.py --csv x.csv
-
-Rechnet den Backtest zweimal: mit data/luattruu.csv (Bloomberg-Treasury-Index) und
-mit der T-Bill-Näherung, und stellt die Kennzahlen gegenüber.
+    python scripts/check_risk_off.py
+    python scripts/check_risk_off.py --treasury path/to/export.csv
 """
 from __future__ import annotations
 

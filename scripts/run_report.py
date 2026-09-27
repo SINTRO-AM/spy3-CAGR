@@ -1,8 +1,8 @@
-"""Erzeugt den Robustness-Report (Konsole + HTML unter reports/).
+"""Performance and robustness report (console and HTML under reports/).
 
-    python scripts/run_report.py              # nutzt data/prices.csv oder lädt via yfinance
-    python scripts/run_report.py --refresh    # Daten neu laden
-    python scripts/run_report.py --cost 10    # bp je Switch
+    python scripts/run_report.py              # cached data
+    python scripts/run_report.py --refresh    # append new completed trading days
+    python scripts/run_report.py --rebuild    # reload the full price history
 """
 from __future__ import annotations
 

@@ -1,9 +1,4 @@
-"""Kennzahlen – geometrisch korrekt und mit Risikofreiem Satz.
-
-Alter Code: 'Total Return' = Summe der Log-Renditen (z. B. 3.50 -> als "350 %"
-ausgewiesen; tatsächlich exp(3.50)-1 ≈ 3.200 %), 'Annualized Return' = mittlere
-Log-Rendite, Sharpe ohne risikofreien Satz, Drawdown in Log-Punkten.
-"""
+"""Return and risk metrics, compounded geometrically (see docs/METHODOLOGY.md)."""
 from __future__ import annotations
 
 import numpy as np

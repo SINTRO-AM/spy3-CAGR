@@ -1,8 +1,5 @@
-"""Tests zur Frage des Hedge-Fund-Managers:
-"Kommt die Outperformance nur aus 2002 und 2008 – bleibt der Abstand danach gleich?"
-
-Im Log-Raum bedeutet "Abstand bleibt gleich": keine Überschussrendite außerhalb der
-Krisen. Die Funktionen hier machen das messbar.
+"""Robustness analysis: crisis attribution, results excluding crises, rolling excess
+returns, random-timing test and sub-period statistics.
 """
 from __future__ import annotations
 

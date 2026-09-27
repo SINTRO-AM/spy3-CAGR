@@ -1,16 +1,16 @@
-"""Preisdaten laden (yfinance, dividendenbereinigt) mit lokalem CSV-Cache.
+"""Price data for SPY3: loading, frozen history and risk-off data sources.
 
-Kursbasis: Yahoo-Finance-Schlusskurse mit auto_adjust=True, d. h. um Dividenden und
-Splits bereinigt (Total Return). Dividenden werden NICHT zusätzlich verbucht – eine
-Doppelzählung ist damit ausgeschlossen. Gilt für SPY und SHY gleichermaßen.
+Prices are Yahoo Finance closes adjusted for dividends and splits (auto_adjust=True), so
+dividends enter exactly once. The cached history in data/prices.csv is frozen; updates only
+append completed trading days.
 
-Risk-Off vor SHY-Start (30.07.2002), in dieser Reihenfolge:
-  1. SHY-Proxy mit gleicher Laufzeit (1–3 Jahre): Bloomberg US Treasury 1-3 Year
-     Index (data/lt01truu.csv) oder, wenn nicht vorhanden, synthetische Gesamtrendite
-     aus den FRED-Renditen DGS1/DGS2/DGS3 (data/fred_yields.csv)
-  2. Bloomberg US Treasury Total Return Index, alle Laufzeiten (data/luattruu.csv)
-  3. 13-wöchige US-T-Bills (^IRX): Tagesrendite (1 + y/100)^(1/252) - 1
-  4. 0 %
+Risk-off leg before SHY's launch (30 July 2002), in order of priority:
+  1. Treasury proxy of comparable maturity (1–3 years): Bloomberg US Treasury 1-3 Year Index
+     (data/lt01truu.csv) or a constant-maturity total return from FRED yields DGS1/DGS2/DGS3
+     (data/fred_yields.csv)
+  2. Bloomberg US Treasury Total Return Index, all maturities (data/luattruu.csv)
+  3. 13-week US T-bills (^IRX): daily return (1 + y/100)^(1/252) - 1
+  4. 0%
 """
 from __future__ import annotations
 

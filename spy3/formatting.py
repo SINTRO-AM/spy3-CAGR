@@ -1,4 +1,4 @@
-"""Zahlenformate je Sprache (de: 1.234,5 % / en: 1,234.5%)."""
+"""Number formats per language (de: 1.234,5 % / en: 1,234.5%)."""
 from __future__ import annotations
 
 import math

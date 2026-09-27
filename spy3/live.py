@@ -1,9 +1,8 @@
-"""Aktuelles Signal, laufend aktualisiert.
+"""Current SPY3 signal, recomputed from the latest completed close.
 
-Das Dashboard rechnet den Backtest einmal beim Start. Das Signal oben rechts soll
-dagegen den jeweils letzten Schlusskurs widerspiegeln. Dieses Modul lädt die Kurse
-bei Bedarf neu (höchstens alle `REFRESH` Minuten) und berechnet das Signal direkt
-aus dem SPY-Kurs – mit derselben Funktion wie der Backtest.
+The backtest is computed once at start-up; the signal in the header reflects the latest
+close. Prices are refreshed at most every REFRESH_MIN minutes using the same signal function
+as the backtest. Without network access the last known state remains in place.
 """
 from __future__ import annotations
 

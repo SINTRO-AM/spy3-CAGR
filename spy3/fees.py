@@ -1,15 +1,4 @@
-"""Gebühren: Managementgebühr und Performancegebühr.
-
-Performancegebühr (Standardausgestaltung)
-* Satz 10 % auf die Wertentwicklung über der Referenz
-* Referenz = max(High-Water-Mark, Hurdle); Hurdle = HWM fortgeschrieben mit der
-  Total-Return-Entwicklung des SPY seit der letzten Gebührenzahlung
-* Tägliche Abgrenzung im NAV, Kristallisierung zum Quartalsende
-* Minderperformance wird vorgetragen: HWM und Hurdle-Startpunkt werden nur
-  zurückgesetzt, wenn tatsächlich eine Gebühr kristallisiert
-* Managementgebühr wird täglich vor der Performancegebühr abgegrenzt
-Modelliert wird ein Anteil, der zum Start des Backtests gezeichnet wurde.
-"""
+"""Fees: daily management fee and quarterly performance fee above SPY with a high-water mark."""
 from __future__ import annotations
 
 import numpy as np

@@ -1,4 +1,7 @@
-"""SPY3 Dashboard (lokal: `python app.py`, Deployment: `gunicorn app:server`)."""
+"""SPY3 investor dashboard by SINTRO Asset Management.
+
+Local: `python app.py` (http://127.0.0.1:8050). Production: `gunicorn app:server`.
+"""
 from __future__ import annotations
 
 import base64

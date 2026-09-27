@@ -1,15 +1,7 @@
-"""Korrigierte Fassung des Performance-Charts aus dem Deck.
+"""Presentation chart for investor materials: value of USD 1,000 on a log scale, SPY3
+gross and net, 200-day average, value-at-risk and the live start, as HTML, PNG and SVG.
 
-Gegenüber der alten Version:
-  * Linke Achse zeigt den Wert einer Anlage von 1.000 USD auf logarithmischer Skala
-    statt kumulierter Log-Renditen, die als Prozent beschriftet waren. Die Log-Skala
-    ist im Achsentitel benannt, gleiche Abstände bedeuten gleiche prozentuale Änderung.
-  * Kurvenform identisch zur alten Darstellung, aber jeder Punkt direkt ablesbar.
-  * 200-Tage-Linie auf dem Kurs des Benchmarks, nicht auf einer Renditereihe.
-  * Live-Track-Record ab 09/2023 markiert, Netto-Reihe nach Gebühren ergänzt.
-  * VaR bleibt auf der rechten Achse, mit Schwellen für Risk-Off und Low-Vol.
-
-    python scripts/deck_chart.py                 # Daten aus dem Cache oder yfinance
+    python scripts/deck_chart.py
     python scripts/deck_chart.py --csv data.csv --lang de --net
 """
 from __future__ import annotations

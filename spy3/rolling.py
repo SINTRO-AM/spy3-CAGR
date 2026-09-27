@@ -1,4 +1,4 @@
-"""Rollierende Kennzahlen (Fenster in Jahren, 252 Handelstage je Jahr)."""
+"""Rolling metrics over windows of 1, 3 or 5 years (252 trading days per year)."""
 from __future__ import annotations
 
 import numpy as np

@@ -1,8 +1,8 @@
-"""Lädt die FRED-Renditen (DGS1/DGS2/DGS3), baut den SHY-Proxy und prüft ihn gegen
-den echten SHY ab 07/2002. Danach steht der Proxy dem Backtest zur Verfügung.
+"""Builds the pre-2002 SHY proxy from Federal Reserve constant-maturity yields
+(DGS1/DGS2/DGS3) and compares it with the actual SHY ETF from July 2002 onwards.
 
-    python scripts/check_shy_proxy.py            # lädt FRED (einmalig) und vergleicht
-    python scripts/check_shy_proxy.py --refresh  # FRED neu laden
+    python scripts/check_shy_proxy.py            # load FRED yields once and compare
+    python scripts/check_shy_proxy.py --refresh  # reload FRED yields
 """
 from __future__ import annotations
 

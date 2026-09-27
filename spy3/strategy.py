@@ -1,13 +1,11 @@
-"""SPY3-Signal und Backtest.
+"""SPY3 signal and backtest engine (see docs/METHODOLOGY.md).
 
-Signal-Logik 1:1 aus SPY3_Dash_web übernommen (Risk / Momentum / Mean-Reversion).
-Korrigiert gegenüber dem alten Code:
-  * Transaktionskosten fallen genau einmal pro Positionswechsel an
-    (alt: Vergleich Signal(t) vs. Signal(t-2) -> Kosten an zwei Tagen, Timing verschoben)
-  * Kostensatz konfigurierbar; Default 10 bp je Switch (wie im Deck angegeben;
-    alter Code rechnete 1 bp)
-  * Portfoliorenditen werden als einfache Renditen gerechnet und erst für Charts
-    in Log-Renditen umgewandelt.
+  * Signal: VaR veto above 5%; otherwise invested if the 30/200-day trend is up, VaR is
+    below 2%, or the price is at least 23% below its 200-day high.
+  * Execution: signal from the close of day t, new position from t+1 (`exec_delay=0`);
+    `exec_delay=1` trades one day later.
+  * Trading costs: charged once per switch on the portfolio value (default 10 bp).
+  * Returns are simple returns throughout; log returns are used for VaR estimation only.
 """
 from __future__ import annotations
 
@@ -22,7 +20,7 @@ from .fees import apply_fees
 
 @dataclass(frozen=True)
 class StrategyParams:
-    fast_ma: int = 29           # Legacy-Werte aus SPY3_Dash_web (≈30/200)
+    fast_ma: int = 29           # 30-day average (29 trading days)
     slow_ma: int = 198
     vol_window: int = 50
     var_conf: float = 0.99

@@ -1,162 +1,149 @@
-# SPY3 Backtest & Robustness (v2)
+# SPY3 — Systematic 3-Factor US Equity Strategy
 
-Nachfolger von [`SINTRO-AM/SPY3_Dash_web`](https://github.com/SINTRO-AM/SPY3_Dash_web).
-Signal-Logik unverändert (Risk / Momentum / Mean-Reversion, SPY ↔ SHY), aber mit korrigierter
-Kennzahlenberechnung und einem Robustness-Modul, das das Feedback eines Hedge-Fund-Managers
-prüfbar macht:
+**SINTRO Asset Management** · Research, backtesting and investor analytics for SPY3
 
-> *"Die Outperformance kommt aus 2002 und 2008. Wenn die Strategie funktioniert, müsste der
-> Chart exponentieller aussehen – der Abstand bleibt langfristig gleich."*
+SPY3 is SINTRO's first Systematic-Traded Fund (STF): a fully rule-based strategy that holds the
+S&P 500 in normal and rising markets and moves into short-term US Treasuries when market risk
+is elevated. The objective is equity-like returns with materially lower drawdowns — a higher
+Sharpe ratio, not a bet against the index. The strategy has been managed live since
+September 2023.
 
-## Was sich gegenüber v1 ändert
+This repository contains the complete research and analytics stack behind SPY3: the backtest
+engine, the validation suite and the interactive dashboard used with investors.
 
-| Thema | v1 | v2 |
+---
+
+## Results at a glance
+
+| January 2000 – September 2026 | SPY3 (net of all fees) | S&P 500 (SPY) |
 |---|---|---|
-| Performance-Chart | kumulierte **Log**-Renditen auf linearer Achse | Vermögen (Wert von 1 USD), Log-Skala umschaltbar |
-| "Total Return" | Summe der Log-Renditen (3,50 → als „350 %“ gezeigt) | `∏(1+r) − 1` |
-| "Annualized Return" | Ø Log-Rendite × 252 | CAGR |
-| Sharpe | ohne risikofreien Satz | weiterhin rf = 0 %; Beta und Jensen's Alpha über SHY (vor 07/2002: Bloomberg Treasury Index) |
-| Max. Drawdown | in Log-Punkten | preisbasiert |
-| Transaktionskosten | 1 bp, an zwei falschen Tagen (Signal(t) vs. Signal(t−2)) | 10 bp je Positionswechsel, genau einmal (`--cost`) |
-| Ausführung | Handel zum selben Schlusskurs wie das Signal (implizit) | explizit: `exec_delay=0` = Signal aus der Schlussauktion, Handel zum selben Schluss (Näherung); `exec_delay=1` = MOC am Folgetag als konservative Variante |
-| Beta / Jensen's Alpha | nicht im Code (Deck) | OLS auf Überschussrenditen |
-| Benchmark-Fairness | nur 100 % SPY | zusätzlich klassisches 60/40-Portfolio (SPY/SHY, monatlich rebalanciert, vor 07/2002 Bloomberg Treasury Index) |
-| Robustness | – | Krisen-Attribution, Ex-Krisen-Kennzahlen, rollierende Überschussrendite, Konzentration, Zufalls-Timing-Test, Teilperioden |
+| Return p.a. (CAGR) | 12.7% | 8.3% |
+| Volatility p.a. | 12.3% | 19.3% |
+| Sharpe ratio | 1.04 | 0.43 |
+| Maximum drawdown | −20.1% | −55.2% |
 
-## Nutzung
+*Simulated performance based on the model rules, after trading costs of 10 bp per switch,
+a 0.20% management fee and a 10% performance fee. Figures as of 17 September 2026; the
+dashboard always shows the current data. Past or simulated performance is not a reliable
+indicator of future results.*
+
+The advantage is earned where it matters most for long-term investors: in market crises.
+
+| Crisis (S&P 500 peak to trough) | SPY3 net | S&P 500 |
+|---|---|---|
+| Dot-com crash (03/2000 – 10/2002) | +16.9% | −47.2% |
+| Global financial crisis (10/2007 – 03/2009) | +2.5% | −54.8% |
+| Covid crash (02/2020 – 03/2020) | −18.2% | −33.4% |
+| 2022 bear market (01/2022 – 10/2022) | −12.5% | −24.1% |
+
+---
+
+## How SPY3 decides
+
+Every trading day the model evaluates one requirement and three reasons to invest, based on
+closing prices:
+
+| | Factor | Condition |
+|---|---|---|
+| Requirement | **Risk** | Daily 99% value-at-risk (50-day window) below 5% |
+| Reason 1 | **Momentum** | 30-day moving average above the 200-day moving average |
+| Reason 2 | **Calm market** | Daily value-at-risk below 2% |
+| Reason 3 | **Mean reversion** | Price at least 23% below its 200-day high |
+
+SPY3 holds the S&P 500 (SPY) when the requirement and at least one reason are met; otherwise
+it holds short-term US Treasuries (SHY). Each factor builds on established research:
+volatility clustering (Engle 1982; Moreira & Muir 2017), time-series momentum (Moskowitz,
+Ooi & Pedersen 2012) and overreaction after extreme losses (De Bondt & Thaler 1985).
+
+Details: [docs/METHODOLOGY.md](docs/METHODOLOGY.md)
+
+---
+
+## Built to be verified
+
+Institutional investors rightly distrust backtests. SPY3's engine is designed to be checked:
+
+- **Independent replication.** A hand-built share-by-share portfolio matches the engine on
+  every one of 6,193 trading days to within 10⁻¹⁴.
+- **No look-ahead.** Signals use only information available at the close of the signal day.
+- **Costs and fees modelled explicitly.** Every switch is charged once; management and
+  performance fees follow the actual fee terms (high-water mark, SPY hurdle, quarterly
+  crystallisation).
+- **Not luck.** With randomly placed switches at the same investment ratio, the median Sharpe
+  ratio is 0.30; SPY3's result is significant at p < 0.001.
+- **52 automated tests** cover return arithmetic, costs, fees, data handling and the dashboard.
+
+The full validation — including parameter sensitivity, walk-forward tests and known
+limitations — is documented in [docs/VALIDATION.md](docs/VALIDATION.md).
+
+---
+
+## Investor dashboard
+
+The dashboard presents SPY3 against the S&P 500 and a classic 60/40 portfolio:
+
+- **Live signal** with a plain-language explanation of each factor, its current value, its
+  threshold and what would change the signal; updated automatically from the latest close
+- **Performance** since 2000, since inception or over 1, 3, 5 and 10 years, on a logarithmic
+  or linear scale, with adjustable fees
+- **Key figures** (net and gross), drawdowns, lead over the index, calendar-year returns
+- **Inside the SPY3 Model:** price, moving averages, mean-reversion trigger and value-at-risk
+  with all thresholds, plus rolling Sharpe, Calmar and volatility
+- **Risk analysis:** stress tests, VaR and expected shortfall, Monte Carlo simulation and
+  correlations with other asset classes
+- **Downloads:** PDF report with SINTRO branding and an Excel file with all daily data
+- English and German, optimised for desktop and mobile
+
+---
+
+## For the team: getting started
 
 ```bash
 pip install -r requirements.txt
-python -m pytest -q                      # Unit-Tests (ohne Netz)
-python scripts/run_report.py --refresh   # neue abgeschlossene Handelstage anhängen, Report in reports/
-python scripts/run_report.py --rebuild   # gesamte Kurshistorie bewusst neu laden
-python app.py                            # Dashboard lokal
+python -m pytest -q                      # full test suite, no network required
+python app.py                            # dashboard at http://127.0.0.1:8050
+python scripts/run_report.py --refresh   # append new closing prices, write reports/
+python scripts/audit.py                  # validation suite on the current data
 ```
 
-## Dashboard
+Production: `gunicorn app:server` (see `Procfile`).
 
-`python app.py` startet das Dashboard unter http://127.0.0.1:8050 (Deployment: `gunicorn app:server`).
+**Data.** Prices come from Yahoo Finance (dividend- and split-adjusted closes) and are cached
+in `data/prices.csv`. The history is frozen: updates only append completed trading days, so
+figures never shift retroactively. `--rebuild` reloads the full history deliberately. For
+the period before SHY's launch in July 2002, the engine uses a Treasury proxy of comparable
+maturity; licensed Bloomberg files are kept locally in `data/` and are never committed.
 
-* Kopfzeile: SINTRO-Logo, Signal-Button (Risk On grün / Risk Off rot) mit den Faktoren Risk,
-  Momentum und Mean-Reversion (Klick zeigt die Werte) sowie Sprachmenü Deutsch/Englisch
-  (Auswahl bleibt im Browser gespeichert)
-* Wert von 1.000 USD mit zweiter Werteachse rechts für den 1-Tages-VaR (99 %, grau
-  gestrichelt): SPY3 vor Gebühren (dünn, blau), SPY3 nach Gebühren (grün), S&P 500 und
-  klassisches 60/40-Portfolio; rot markierte Risk-Off-Phasen. Daneben die Kennzahlen in gleicher Höhe (Sharpe Ratio und Max. Drawdown hervorgehoben)
-* „Inside the SPY3 Model“: SPY-Kurs mit 30d/200d-Linie (im Modell 29/198), Mean-Reversion-Schwelle,
-  1-Tages-VaR mit den Schwellen 5 %/2 % auf der zweiten Achse und rot markierten Risk-Off-Phasen;
-  rechts daneben rollierende 3-Jahres-Sharpe, -Calmar und -Volatilität (SPY3 netto vs. S&P 500)
-* Darunter nebeneinander: maximaler Drawdown und Vorsprung gegenüber dem S&P 500 (Vermögen
-  relativ zur Benchmark, z. B. 3,0x = dreifaches Endvermögen)
-* Tooltips an Kennzahlen, Spaltenköpfen und Charts (Definition und Einheit)
-* Reiter (Standard: Rollierende Performance mit 3-Jahres-Sharpe-Ratio): Rollierende
-  Performance, Abstand zum Markt, Ohne Krisen, Kalenderjahre, Timing-Test
-* Rollierende Performance (`spy3/rolling.py`): Überschussrendite, Rendite p.a., Volatilität,
-  Sharpe Ratio, Calmar Ratio, Max. Drawdown und Beta über 1, 3 oder 5 Jahre, jeweils für SPY3
-  brutto/netto, S&P 500 und 60/40, dazu der Anteil der Fenster, in denen SPY3 netto besser war
-* Aktuelles Signal oben: Der Risk-On/Off-Button erklärt Regel und Ergebnis; jeder Faktor-Chip
-  hat eine eigene Karte mit aktuellem Wert, Regel und wissenschaftlichem Hintergrund samt
-  Quellen (Engle 1982, Bollerslev 1986, Moreira & Muir 2017; Brock, Lakonishok & LeBaron 1992,
-  Moskowitz, Ooi & Pedersen 2012; De Bondt & Thaler 1985, Poterba & Summers 1988). Das Signal wird unabhängig vom
-  Backtest laufend aus den neuesten Schlusskursen berechnet (`spy3/live.py`, Kurse höchstens
-  alle 30 Minuten neu geladen, ohne Netz Rückfall auf den Cache)
-* Methodik-Abschnitt zum Aufklappen unter Chart und Kennzahlen
-* Download-Buttons in der Kopfzeile: PDF-Report mit SINTRO-Logo (Kennzahlen, Vermögens-,
-  Drawdown- und Vorsprung-Chart, Attribution, Kalenderjahre, Disclaimer) und Excel-Mappe mit
-  den Rohdaten (Tagesdaten inkl. Log-Renditen und kumulierten Log-Punkten, KPIs, Kalenderjahre,
-  Attribution, Notes). Beide übernehmen den
-  gewählten Zeitraum und die eingestellten Gebühren (`spy3/report.py`). matplotlib, reportlab
-  und XlsxWriter werden erst beim Export importiert: fehlen sie, läuft das Dashboard weiter und
-  die Buttons sind deaktiviert (`pip install -r requirements.txt` behebt das)
-* Regler für Managementgebühr (0–2,0 % p.a.) und Performancegebühr (0–30 %); die Netto-Reihe,
-  die Kennzahlen und alle Charts rechnen sofort neu (brutto bleibt unverändert)
-* Zeitraum- (Gesamt, 10, 5, 3, 1 Jahr, seit Auflage 09/2023) und Skalenumschalter (Standard: logarithmisch), mit kurzem Hinweis zur Log-/Linear-Skala
-  beim Laden und einem Tooltip an der Skala
-  (blendet sich nach 10 Sekunden aus, reines CSS); Zahlenformate je Sprache (`spy3/formatting.py`),
-  Texte in `spy3/i18n.py`
+| Path | Purpose |
+|---|---|
+| `app.py` | Dash dashboard |
+| `spy3/strategy.py` | Signal logic and backtest engine |
+| `spy3/data.py` | Price loading, frozen history, risk-off data sources |
+| `spy3/fees.py` | Management and performance fees |
+| `spy3/metrics.py` | Return and risk metrics |
+| `spy3/robustness.py`, `spy3/rolling.py`, `spy3/risk.py` | Attribution, rolling metrics, stress tests, Monte Carlo |
+| `spy3/live.py` | Current signal from the latest close |
+| `spy3/report.py` | PDF and Excel exports |
+| `scripts/` | Reports, presentation charts, data checks, validation suite |
+| `tests/` | Automated tests |
+| `docs/` | Methodology, validation, changelog |
 
-## Chart fürs Deck
+---
 
-`python scripts/deck_chart.py --lang de --net` erzeugt die korrigierte Fassung des
-Performance-Charts aus dem Pitch-Deck als HTML, PNG und SVG unter `reports/`. Gegenüber der
-alten Folie: Wert einer Anlage von 1.000 USD auf logarithmischer Skala statt kumulierter
-Log-Renditen mit Prozent-Beschriftung, 200-Tage-Linie auf dem Kurs statt auf einer
-Renditereihe, Netto-Reihe nach Gebühren und Markierung des Live-Track-Records ab 09/2023.
-VaR und Schwellen bleiben auf der rechten Achse. PNG/SVG brauchen `kaleido`
-(`pip install kaleido`, danach einmalig `plotly_get_chrome`); ohne das entsteht nur die
-HTML-Datei.
+## About SINTRO
 
-## Einheiten: Log-Punkte vs. Vielfaches
+SINTRO Asset Management GmbH builds Systematic-Traded Funds: investment strategies in which
+every decision follows transparent, scientifically grounded rules and is executed
+automatically. SPY3 is distributed by SINTRO as a tied agent under the liability umbrella of
+INNO INVEST.
 
-Die Attribution rechnet in Log-Punkten, weil sich nur so die Beiträge der Phasen exakt zum
-Gesamtwert addieren. Umrechnung: `exp(x)`. 110 Log-Punkte entsprechen dem 3,0-fachen Vermögen
-gegenüber der Benchmark, was zu Total Returns von 2.423 % und 737 % passt
-(25.225 / 8.367 = 3,01). Der Vorsprung-Chart zeigt deshalb das Vielfache, nicht die Log-Punkte.
+SINTRO Asset Management GmbH · Kettenhofweg 26 · 60325 Frankfurt am Main · [www.sintro.eu](https://www.sintro.eu)
 
-## Schrift
+---
 
-Die Oberfläche nutzt **Garet**, mit Jost als Rückfall. Garet ist lizenzpflichtig und liegt
-deshalb nicht im Repository: Schriftdateien nach `assets/fonts/` legen (Details in der README
-dort), dann greifen sowohl Dashboard als auch PDF-Report automatisch darauf zu. Ohne die
-Dateien sieht alles aus wie bisher.
+*Important information: This repository and the dashboard are provided for information
+purposes and for discussions with professional investors. They do not constitute investment
+advice, an offer or a solicitation. Performance shown is simulated unless stated otherwise.
+Past or simulated performance is not a reliable indicator of future results.*
 
-## Stabile Kursdaten
-
-Die Kurshistorie in `data/prices.csv` ist eingefroren. Aktualisierungen (Live-Signal alle 30
-Minuten, `--refresh`) hängen nur abgeschlossene Handelstage nach dem letzten gespeicherten Datum
-an; der laufende Handelstag wird erst nach 17:00 Uhr New Yorker Zeit übernommen. Neue Kurse
-werden am letzten gemeinsamen Tag auf das gespeicherte Niveau verkettet, nachträgliche
-Umskalierungen oder Lücken bei Yahoo verändern die Historie deshalb nicht. Ein Tag wird nur
-übernommen, wenn SPY und SHY beide einen Kurs haben. Die Datei wird atomar geschrieben, parallele
-Server-Prozesse lesen nie einen halben Stand. Kennzahlen ändern sich damit höchstens um einen
-neuen Handelstag. Die gesamte Historie lädt nur `--rebuild` neu.
-
-## Daten und Gebühren
-
-* **Risk-Off vor SHY (bis 07/2002):** ein Proxy mit gleicher Laufzeit wie der SHY (1–3 Jahre),
-  in dieser Reihenfolge: Bloomberg US Treasury 1-3 Year Index (`data/lt01truu.csv`, gleiches
-  Format wie unten); sonst eine synthetische Gesamtrendite aus den FRED-Renditen DGS1/DGS2/DGS3
-  (`python scripts/check_shy_proxy.py` lädt sie einmalig und vergleicht den Proxy mit dem echten
-  SHY ab 2002); sonst der Bloomberg US Treasury Total Return Index (LUATTRUU) aus
-  `data/luattruu.csv` (anderer Ort per Umgebungsvariable `SPY3_TREASURY_FILE`). Der Loader
-  liest den Bloomberg-Export unverändert, auch als `.xlsx`, mit Tab, Semikolon oder Komma,
-  Dezimalkomma oder -punkt, in UTF-8, UTF-16 oder Windows-1252. Dürfen die Kurse nicht
-  abgelegt werden, genügt eine Datei mit Datum und Log-Rendite in Prozent (die dritte Spalte
-  des Exports); daraus wird eine gleichwertige Kursreihe gebildet. Die Datei liegt wegen der
-  Bloomberg-Lizenz nicht im Repository.
-  Fehlt sie, greifen 13-Wochen-T-Bills (`^IRX`), danach 0 %. Welche Quelle tatsächlich gilt,
-  zeigen die Startmeldung von `app.py`, die Fußnote unter der Kennzahlentabelle und die Spalte
-  `risk_off_source` im Excel-Export. `python scripts/check_risk_off.py` rechnet beide
-  Varianten und beziffert den Unterschied.
-* **SHY ETF als Vergleichsreihe:** Das Risk-Off-Bein der Strategie erscheint zusätzlich als
-  Spalte in der Kennzahlentabelle und als Linie in Vermögens-, Drawdown- und Vorsprung-Chart,
-  also SHY ab 07/2002 und davor dieselbe Näherung wie im Backtest (Bloomberg-Treasury-Index,
-  sonst T-Bills). Die Fußnote nennt Datum und Quelle der Näherung.
-* **Managementgebühr:** 0,2 % p.a., täglich abgegrenzt.
-* **Performancegebühr (`spy3/fees.py`):** 10 % auf den Wertzuwachs über max(High-Water-Mark,
-  Hurdle). Die Hurdle ist die HWM, fortgeschrieben mit dem SPY Total Return seit der letzten
-  Gebührenzahlung. Tägliche Abgrenzung, Kristallisierung zum Quartalsende, Minderperformance wird
-  vorgetragen. Modelliert ist ein Anteil, der zum Backtest-Start gezeichnet wurde.
-* **Sharpe Ratio:** geometrisch, also CAGR geteilt durch annualisierte Volatilität, rf = 0 %.
-  Damit passt sie zur CAGR-Zeile der Tabelle. Die klassische arithmetische Variante liegt bei
-  volatilen Reihen höher (S&P 500: 0,51 statt 0,43). Beta und Jensen's Alpha über SHY bzw. Treasury-Index.
-
-## Audit
-
-`python scripts/audit.py` rechnet die Robustheitsprüfungen auf den geladenen Daten:
-Ausführungsverzögerung, Kostensensitivität, Faktor-Ablation, Zufalls-Timing,
-Parameter-Landschaft mit zufälligen Parametersätzen, Walk-Forward, Deflated Sharpe Ratio,
-Attribution. Ergebnisse und Einordnung siehe `AUDIT.md`.
-
-## Wie man die Ergebnisse gegenüber dem Manager liest
-
-* **Attribution → „Außerhalb aller Krisen“** ≈ 0 oder negativ ⇒ sein Punkt stimmt: die Rendite-Outperformance
-  stammt aus wenigen Crash-Phasen.
-* **Relative-Chart (SPY3 / S&P 500)** waagerecht nach 2009 ⇒ derselbe Befund visuell.
-* **60/40-Portfolio**: Liegt SPY3 bei Rendite, Sharpe und Drawdown über dem klassischen 60/40,
-  liefert das Timing Mehrwert gegenüber einer statischen defensiven Allokation.
-* **Zufalls-Timing-Test**: p-Wert < 5 % ⇒ das Timing ist nicht durch Quote und Regime-Längen erklärbar.
-* **Rollierende 5J-Trefferquote**: ehrlichere Kennzahl als ein über 26 Jahre annualisiertes Alpha.
-
-Bekannte Einschränkungen: 1 Pfad (SPY), Parameter aus v1 übernommen (nicht out-of-sample kalibriert),
-Krisenfenster manuell definiert (`spy3/robustness.py::CRISES`).
+© 2026 SINTRO Asset Management GmbH. All rights reserved. Proprietary — not for redistribution.

@@ -1,10 +1,8 @@
-"""Export: PDF-Report mit SINTRO-Logo und Excel-Mappe mit den Rohdaten.
+"""Exports: PDF report with SINTRO branding and an Excel file with all daily data.
 
-Charts werden mit matplotlib gezeichnet (kein Browser nötig), das PDF mit reportlab
-gesetzt. Beides läuft serverseitig, der Download liefert reine Bytes.
-
-matplotlib, reportlab und XlsxWriter werden erst beim Export importiert. Fehlt eines
-davon, bleibt das übrige Dashboard lauffähig; `missing_packages()` sagt, was fehlt.
+Charts are drawn with matplotlib and the PDF is typeset with reportlab, both server-side.
+matplotlib, reportlab and XlsxWriter are imported only when an export is requested; if one
+is missing the dashboard keeps running and `missing_packages()` reports what is needed.
 """
 from __future__ import annotations
 
