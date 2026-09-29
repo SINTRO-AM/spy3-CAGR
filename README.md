@@ -97,7 +97,7 @@ What investors see:
 
 - **Today's signal**, with a plain-English explanation of each factor, its current value
   and what would flip it — updated from the latest close
-- **Performance** since 2000, since inception, or over 1, 3, 5 and 10 yrs — log or linear
+- **Performance** since 2000, since inception, or over 1, 3, 5 and 10 yrs — linear or log
   scale, with adjustable fees
 - **Key figures** net and gross, drawdowns, lead over the S&P 500, calendar-year returns
 - **Inside the SPY3 Model** — price, MAs, mean-reversion trigger and VaR with all thresholds,
