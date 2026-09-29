@@ -105,7 +105,8 @@ What investors see:
 - **Risk** — stress tests, VaR & expected shortfall, Monte Carlo, correlations with other
   asset classes
 - **Downloads** — branded PDF report and an Excel file with every daily data point
-- English & German, desktop & mobile
+- English & German, desktop & mobile — on phones every explanation opens with a tap, charts
+  scroll with the page instead of zooming, and legends and labels stay readable
 
 ---
 
