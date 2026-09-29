@@ -49,7 +49,7 @@ if "risk_off_source" in BT:
 LAST = BT.index[-1]
 # Zeitraum: Anzahl Jahre bis zum Datenende oder festes Startdatum ("si" = seit Auflage)
 INCEPTION = "2023-09-01"
-PERIODS = {"all": None, "10": 10, "5": 5, "3": 3, "1": 1, "si": INCEPTION}
+PERIODS = {"all": None, "10": 10, "5": 5, "3": 3, "1": 1, "ytd": "YTD", "si": INCEPTION}
 STATE_CLS = {ON: "on", OFF: "off"}
 PERSIST = dict(persistence=True, persistence_type="session")
 KPI_ORDER = ["Total Return", "CAGR", "Volatilität p.a.", "Sharpe Ratio", "Calmar", "Beta",
@@ -71,6 +71,8 @@ def slice_bt(period: str, lang: str):
     p = PERIODS.get(period)
     if p is None:
         start = BT.index[0]
+    elif p == "YTD":                                  # seit Jahresbeginn des letzten Datenjahres
+        start = pd.Timestamp(year=LAST.year, month=1, day=1)
     elif isinstance(p, str):
         start = pd.Timestamp(p)
     else:
@@ -366,9 +368,9 @@ def page(lang: str) -> list:
                                      for k in PERIODS], "all")]),
             html.Div([html.Span([t("scale", lang), info("scale_tip", lang)],
                                 className="ctl-lbl"),
-                      seg("scale-sel", [{"label": t("log", lang), "value": "log"},
-                                        {"label": t("linear", lang), "value": "linear"}],
-                          "log"),
+                      seg("scale-choice", [{"label": t("linear", lang), "value": "linear"},
+                                           {"label": t("log", lang), "value": "log"}],
+                          "linear"),
                       scale_hint(lang)], className="ctl ctl--scale"),
             html.Div([html.Span([t("mgmt_fee", lang), html.B(id="mgmt-fee-val"),
                                  info("fee_tip", lang)], className="ctl-lbl"),
@@ -523,7 +525,7 @@ def net_series(mgmt_pct: float, perf_pct: float) -> pd.Series:
               Output("mini-vol-val", "children"),
               Output("fees-note", "children"), Output("lede-defs", "children"),
               Output("mgmt-fee-val", "children"), Output("perf-fee-val", "children"),
-              Input("period", "value"), Input("scale-sel", "value"),
+              Input("period", "value"), Input("scale-choice", "value"),
               Input("mgmt-fee", "value"), Input("perf-fee", "value"),
               Input("lang-pref", "data"), Input("viewport", "data"))
 def update_main(period, scale, mgmt, perf, lang, vw):
