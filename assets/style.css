@@ -521,8 +521,3 @@ p { margin: 0; }
   .graph-box--tab { height: 300px; }
   .graph-box--side { height: 290px; }
 }
-
-/* Smartphone: letzte Zeitraum-Option („Seit Auflage“) über die ganze Zeile */
-@media (max-width: 640px) {
-  #period label:last-child:nth-child(3n + 1) { grid-column: 1 / -1; }
-}
