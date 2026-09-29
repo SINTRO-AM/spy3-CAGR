@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 import plotly.io as pio
 
 from . import metrics as m
+from .formatting import dec
 from .i18n import t, term
 from .robustness import CRISES, excess_log, rolling_excess
 
@@ -57,13 +58,18 @@ def _base(fig: go.Figure, lang: str, compact: bool = False, **kw) -> go.Figure:
             elif tr.name in short:
                 tr.name = short[tr.name]
         fig.update_layout(font=dict(size=13),
-                          legend=dict(font=dict(size=10.5), orientation="h", x=-0.02,
+                          legend=dict(font=dict(size=11.5), orientation="h", x=-0.02,
                                       xanchor="left", y=1.02, yanchor="bottom",
-                                      entrywidth=88, entrywidthmode="pixels",
+                                      entrywidth=100, entrywidthmode="pixels",
                                       itemwidth=30, tracegroupgap=0),
                           margin=dict(l=4, r=4, t=22, b=4),
-                          xaxis=dict(tickfont=dict(size=11), nticks=5),
-                          yaxis=dict(tickfont=dict(size=11), nticks=6))
+                          xaxis=dict(tickfont=dict(size=11.5), nticks=5),
+                          yaxis=dict(tickfont=dict(size=11.5), nticks=6))
+        # Touch: Charts nicht zoom- oder verschiebbar, damit die Seite beim Wischen scrollt;
+        # Antippen zeigt weiterhin die Werte.
+        fig.update_layout(dragmode=False, hoverlabel=dict(font=dict(size=13)))
+        fig.update_xaxes(fixedrange=True)
+        fig.update_yaxes(fixedrange=True)
         if "yaxis2" in fig.layout:              # zweite Achse nur, wenn vorhanden
             fig.update_layout(yaxis2=dict(tickfont=dict(size=11), title=None, nticks=5))
     return fig
@@ -255,11 +261,31 @@ def mc_fan(paths: pd.DataFrame, lang: str = "de", compact: bool = False) -> go.F
                     hovertemplate="%{y:,.2f}x")
     fig.add_hline(y=1, line=dict(color=INK, width=1))
     fig.update_yaxes(tickformat=",.2f", ticksuffix="x")
-    fig.update_xaxes(title=t("mc_x", lang))
+    fig.update_xaxes(title=dict(text=t("mc_x", lang), font=dict(size=12 if compact else 14)))
     return _base(fig, lang, compact, height=320)
 
 
+def corr_bars(c: pd.DataFrame, lang: str = "de") -> go.Figure:
+    """Smartphone: Korrelation der ersten Reihe (SPY3) mit allen anderen, sortiert."""
+    col = c.columns[0]
+    s = c[col].drop(col).dropna().sort_values()
+    colors = [NET if v < 0.3 else (MIX if v < 0.7 else SLATE) for v in s]
+    # Werte rechts neben positiven Balken, bei negativen rechts der Nulllinie -> nie über den Namen
+    fig = go.Figure(go.Bar(x=s.values, y=list(s.index), orientation="h", marker_color=colors,
+                           hovertemplate="%{y}: %{x:.2f}<extra></extra>"))
+    for name, v in s.items():
+        fig.add_annotation(x=max(v, 0), y=name, text=dec(v, lang=lang), showarrow=False,
+                           xanchor="left", xshift=4, font=dict(size=11, color=INK))
+    fig.update_xaxes(range=[min(-0.2, float(s.min()) - 0.05), 1.2], tickformat=".1f",
+                     zeroline=True, zerolinecolor=INK)
+    fig.update_yaxes(tickmode="array", tickvals=list(s.index), tickfont=dict(size=11))
+    return _base(fig, lang, True, showlegend=False, hovermode="closest",
+                 height=max(260, 30 * len(s) + 60), margin=dict(l=4, r=4, t=10, b=4))
+
+
 def corr_heatmap(c: pd.DataFrame, lang: str = "de", compact: bool = False) -> go.Figure:
+    if compact and len(c) > 3:
+        return corr_bars(c, lang)
     z = c.to_numpy(dtype=float)
     txt = [[("–" if not np.isfinite(v) else
              (f"{v:,.2f}".replace(".", ",") if lang == "de" else f"{v:,.2f}"))
@@ -283,10 +309,12 @@ def return_hist(r: pd.Series, var95: float, var99: float, lang: str = "de",
     sp = "" if lang == "en" else " "
     fig = go.Figure(go.Histogram(x=r, nbinsx=90, marker_color=NAVY, opacity=0.8,
                                  hovertemplate="%{x:.2%}: %{y}<extra></extra>"))
-    for v, name, col in ((-var95, f"VaR 95{sp}%", MIX), (-var99, f"VaR 99{sp}%", "#C53A30")):
-        fig.add_vline(x=v, line=dict(color=col, width=1.4, dash="dash"),
-                      annotation_text=name, annotation_position="top left",
-                      annotation_font=dict(size=12, color=col))
+    for (v, name, col), ypos in zip(((-var95, f"VaR 95{sp}%", MIX), (-var99, f"VaR 99{sp}%", "#C53A30")),
+                                    (0.98, 0.84)):
+        fig.add_vline(x=v, line=dict(color=col, width=1.4, dash="dash"))
+        fig.add_annotation(x=v, y=ypos, yref="paper", text=name, showarrow=False, xanchor="right",
+                           xshift=-4, bgcolor="rgba(255,255,255,0.85)",
+                           font=dict(size=11 if compact else 12, color=col))
     fig.update_xaxes(tickformat=".0%", range=[r.quantile(0.002), r.quantile(0.998)])
     fig.update_yaxes(title=None)
     return _base(fig, lang, compact, height=300, showlegend=False, hovermode="closest")
@@ -302,9 +330,11 @@ def stress_bars(st: pd.DataFrame, lang: str = "de", compact: bool = False) -> go
                     orientation="h", marker_color=colors.get(i, SLATE),
                     hovertemplate="%{x:+.1%}<extra></extra>")
     fig.update_xaxes(tickformat="+.0%", zeroline=True, zerolinecolor=INK, zerolinewidth=1)
-    fig.update_yaxes(autorange="reversed")
+    fig.update_yaxes(autorange="reversed", tickmode="array",
+                     tickvals=[term(i2, lang) for i2 in st.index],
+                     tickfont=dict(size=11 if compact else 13))
     return _base(fig, lang, compact, barmode="group", bargap=0.25,
-                 height=max(280, 34 * len(st) + 80), hovermode="closest")
+                 height=max(280, (40 if compact else 34) * len(st) + 80), hovermode="closest")
 
 
 MR_COLOR = "#B8860B"

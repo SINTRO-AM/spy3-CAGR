@@ -303,6 +303,10 @@ TXT: dict[str, tuple[str, str]] = {
                    "Correlations with indices and asset classes"),
     "corr_note": ("Monatsrenditen über den gewählten Zeitraum.",
                   "Monthly returns over the selected period."),
+    "corr_note_mob": ("Korrelation von SPY3 netto mit jedem Index, Monatsrenditen über den "
+                      "gewählten Zeitraum.",
+                      "Correlation of SPY3 net with each index, monthly returns over the "
+                      "selected period."),
     "corr_missing": ("Für weitere Anlageklassen fehlen die Kursdaten. Einmalig laden mit: "
                      "python -c \"from spy3.data import load_assets; load_assets(refresh=True)\"",
                      "Price data for the additional asset classes is missing. Load it once "

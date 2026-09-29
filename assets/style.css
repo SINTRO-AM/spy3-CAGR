@@ -482,3 +482,42 @@ p { margin: 0; }
   .graph-box--main { height: 340px; }
   .graph-box--model { height: 330px; }
 }
+
+/* ---------- Touch: Haptik und Lesbarkeit ---------- */
+* { -webkit-tap-highlight-color: transparent; }
+.touch-tip { position: absolute; z-index: 60; background: var(--paper); color: var(--ink);
+             border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+             font-size: .86rem; line-height: 1.45; box-shadow: 0 8px 24px rgba(27,38,56,.16); }
+.graph-box--stress { height: 400px; }
+
+@media (hover: none), (max-width: 640px) {
+  /* Mindestens ca. 40 px Tippfläche */
+  .seg label { min-height: 40px; }
+  .chip { min-height: 34px; padding: 6px 12px; }
+  .chip-wrap, .btn-wrap { padding: 3px 0; }
+  .dl-btn { min-height: 42px; }
+  .lang-btn { min-height: 40px; }
+  .lang-opt { min-height: 44px; }
+  .hint-close { width: 36px; height: 36px; top: 2px; right: 2px; font-size: 1.3rem; }
+  .info { width: 20px; height: 20px; font-size: .78rem; position: relative; }
+  .info::before { content: ""; position: absolute; inset: -12px; }      /* unsichtbare Tippfläche */
+  .meth-sum { min-height: 48px; }
+  .tabs .tab, .tabs .tab--on { min-height: 44px; }
+  .rc-slider { padding: 12px 0; }
+  .rc-slider-handle { width: 26px !important; height: 26px !important; margin-top: -11px !important; }
+
+  /* Rückmeldung beim Antippen */
+  .seg label:active, .dl-btn:active, .chip:active, .lang-btn:active, .sig-btn:active,
+  .meth-sum:active, .tabs .tab:active { transform: scale(.97); opacity: .85; }
+  .seg label, .dl-btn, .chip, .sig-btn { transition: transform .08s ease, opacity .08s ease,
+                                                   background .15s, color .15s; }
+
+  /* Charts: senkrechtes Wischen scrollt die Seite */
+  .js-plotly-plot, .js-plotly-plot .plotly, .js-plotly-plot .main-svg { touch-action: pan-y; }
+}
+@media (max-width: 640px) {
+  .graph-box--stress { height: 460px; }
+  .graph-box--corr { height: 500px; }
+  .graph-box--tab { height: 300px; }
+  .graph-box--side { height: 290px; }
+}

@@ -619,7 +619,7 @@ def risk_tab(b: pd.DataFrame, lang: str, compact: bool) -> html.Div:
 
     parts = [
         section(t("stress_title", lang), t("stress_note", lang),
-                graph(plots.stress_bars(stress, lang, compact)),
+                graph_box("stress", fig=plots.stress_bars(stress, lang, compact)),
                 table(stress, lang, fmt=lambda i_, v: pct(v, lang=lang),
                       row_label=t("phase", lang), highlight=(t("net", lang),))),
         section(t("var_title", lang), t("var_note", lang),
@@ -631,7 +631,8 @@ def risk_tab(b: pd.DataFrame, lang: str, compact: bool) -> html.Div:
         section(t("mc_title", lang), t("mc_note", lang),
                 graph_box("mc", fig=plots.mc_fan(rk.monte_carlo(net), lang, compact)),
                 table(mc_tbl, lang, fmt=lambda i_, v: pct(v, lang=lang), wrap_cls="narrow")),
-        section(t("corr_title", lang), t("corr_note", lang), *corr_block),
+        section(t("corr_title", lang),
+                t("corr_note_mob" if compact and len(corr) > 3 else "corr_note", lang), *corr_block),
         section(t("var_bt_title", lang), t("var_bt_note", lang),
                 table(bt_tbl, lang, fmt=lambda i_, v: v, wrap_cls="narrow")),
     ]
