@@ -121,12 +121,16 @@ def load_prices(
     px = None
     if cache.exists() and not rebuild:
         px = pd.read_csv(cache, index_col=0, parse_dates=True)
-        if "tbill_yield" not in px:          # alter Cache ohne T-Bill-Daten
-            px = None
+        if "tbill_yield" not in px or px["risk_on"].notna().sum() == 0:
+            px = None                        # alter oder leerer Cache -> neu laden
     if px is None:
         raw = _download([risk_on, risk_off, TBILL], start=start, end=end)
         px = raw.rename(columns={risk_on: "risk_on", risk_off: "risk_off", TBILL: "tbill_yield"})
         px = _completed_sessions(px)
+        if px.get("risk_on", pd.Series(dtype=float)).notna().sum() < 20:
+            # nie einen leeren oder unvollständigen Download als Cache speichern
+            raise RuntimeError("Price download from Yahoo Finance returned no usable data; "
+                               "the cache was not written. Check the network and retry.")
         _write_atomic(px, cache)
     elif refresh:
         try:

@@ -177,7 +177,8 @@ def test_pdf_and_xlsx_export(tmp_path):
     f = tmp_path / "x.xlsx"
     f.write_bytes(xlsx)
     sheets = pd.read_excel(f, sheet_name=None)
-    assert set(sheets) == {"KPIs", "Daily data", "Calendar years", "Attribution", "Notes"}
+    assert set(sheets) == {"Analysis", "KPIs", "Daily data", "Calendar years", "Attribution",
+                           "Notes", "Chart data"}
     daily = sheets["Daily data"]
     assert len(daily) == len(bt)
     # Rohdaten müssen zum Backtest passen
@@ -435,3 +436,51 @@ def test_refresh_without_network_keeps_cache(tmp_path, monkeypatch):
     with pytest.warns(UserWarning):
         px = data.load_prices(start="2024-01-01", refresh=True, cache=cache)
     assert len(px) == len(_cache_frame())
+
+
+def test_failed_first_download_writes_no_cache(tmp_path, monkeypatch):
+    from spy3 import data
+    cache = tmp_path / "prices.csv"
+    monkeypatch.setattr(data, "_download",
+                        lambda *a, **k: pd.DataFrame(columns=["SPY", "SHY", "^IRX"]))
+    with pytest.raises(RuntimeError):
+        data.load_prices(cache=cache)
+    assert not cache.exists()
+
+
+def test_xlsx_analysis_sheet(tmp_path):
+    """Analysis sheet: first sheet, native charts, monthly matrix consistent with daily data."""
+    import zipfile
+    import openpyxl
+    from spy3 import report as rp
+    from spy3.data import prepare_returns
+    idx = pd.bdate_range("2014-01-01", "2020-12-31")
+    rng = np.random.default_rng(8)
+    px = pd.DataFrame({"risk_on": 100 * np.exp(np.cumsum(rng.normal(0.0004, 0.011, len(idx)))),
+                       "risk_off": 80 * np.exp(np.cumsum(np.full(len(idx), 6e-5))),
+                       "tbill_yield": 1.5}, index=idx)
+    bt = backtest(prepare_returns(px), px["risk_on"], StrategyParams())
+    bt = bt.assign(ret_pf_net=bt.ret_pf * 0.999)
+    mixes = {"60/40": 0.6 * bt.ret_bm + 0.4 * bt.ret_off}
+    f = tmp_path / "a.xlsx"
+    f.write_bytes(rp.build_xlsx(bt, mixes, "en", 10, 0.002, 0.10))
+
+    with zipfile.ZipFile(f) as z:
+        charts = [n for n in z.namelist() if n.startswith("xl/charts/chart")]
+    assert len(charts) == 7                      # value, drawdown, Sharpe, excess, alpha, vol, years
+
+    wb = openpyxl.load_workbook(f, data_only=True)
+    assert wb.sheetnames[0] == "Analysis"
+    ws = wb["Analysis"]
+    r2016 = next(r for r in range(1, ws.max_row + 1)    # first occurrence = SPY3 net matrix
+                 if ws.cell(r, 1).value == "2016")
+    months = [ws.cell(r2016, c).value for c in range(2, 14)]
+    net = bt.ret_pf_net.loc["2016"]
+    exp_months = (1 + net).resample("ME").prod() - 1
+    assert np.allclose(months, exp_months.to_numpy())
+    assert ws.cell(r2016, 14).value == pytest.approx((1 + net).prod() - 1)        # Total
+    spy = (1 + bt.ret_bm.loc["2016"]).prod() - 1
+    assert ws.cell(r2016, 15).value == pytest.approx(spy)                          # S&P 500
+    assert ws.cell(r2016, 16).value == pytest.approx((1 + net).prod() - 1 - spy)   # Difference
+    formulas = openpyxl.load_workbook(f)["Analysis"]
+    assert formulas.cell(r2016, 14).value.startswith("=EXP(SUMPRODUCT(LN(1+")

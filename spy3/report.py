@@ -305,7 +305,9 @@ def build_pdf(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str = "en",
 
 
 # ---------- Excel -----------------------------------------------------------
-def build_xlsx(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str = "en") -> bytes:
+def build_xlsx(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str = "en",
+               cost_bps: float | None = None, mgmt: float | None = None,
+               perf: float | None = None) -> bytes:
     daily = pd.DataFrame({
         "date": bt.index, "signal": bt.signal.values, "position": bt.position.values,
         "risk_off_source": (bt["risk_off_source"].values if "risk_off_source" in bt
@@ -361,13 +363,24 @@ def build_xlsx(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str = "en") 
     if "XlsxWriter" in missing:
         raise ModuleNotFoundError("Fehlende Pakete für den Export: XlsxWriter")
     buf = io.BytesIO()
+    from .excel_analysis import chart_data, write_analysis
     with pd.ExcelWriter(buf, engine="xlsxwriter", datetime_format="yyyy-mm-dd") as xl:
+        analysis = xl.book.add_worksheet("Analysis")          # first sheet, opens on start
+        xl.sheets["Analysis"] = analysis
         kpi.to_excel(xl, sheet_name="KPIs")
         daily.to_excel(xl, sheet_name="Daily data", index=False)
         yearly.to_excel(xl, sheet_name="Calendar years")
         att.to_excel(xl, sheet_name="Attribution")
         notes.to_excel(xl, sheet_name="Notes", index=False)
+        cd, _ = chart_data(bt, mixes)
+        cd.index.name = "date"
+        cd.to_excel(xl, sheet_name="Chart data")
         book = xl.book
+        xl.sheets["Chart data"].set_column(0, 0, 12)
+        xl.sheets["Chart data"].set_column(1, len(cd.columns), 13)
+        fees = None if mgmt is None else {"cost_bps": cost_bps if cost_bps is not None else 10,
+                                          "mgmt": mgmt, "perf": perf or 0.0}
+        write_analysis(book, analysis, "Chart data", bt, mixes, lang, fees)
         pctf = book.add_format({"num_format": "0.00%"})
         numf = book.add_format({"num_format": "#,##0.00"})
         xl.sheets["Daily data"].set_column("A:A", 12)

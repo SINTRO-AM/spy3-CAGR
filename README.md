@@ -104,7 +104,10 @@ What investors see:
   plus rolling Sharpe, Calmar and vol
 - **Risk** — stress tests, VaR & expected shortfall, Monte Carlo, correlations with other
   asset classes
-- **Downloads** — branded PDF report and an Excel file with every daily data point
+- **Downloads** — branded PDF report and an Excel file with an *Analysis* sheet (key
+  figures, native Excel charts for value, drawdown, rolling Sharpe, excess return, rolling
+  alpha, volatility and calendar years, plus a month × year return matrix) and every daily
+  data point
 - English & German, desktop & mobile — on phones every explanation opens with a tap, charts
   scroll with the page instead of zooming, and legends and labels stay readable
 

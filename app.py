@@ -801,7 +801,7 @@ def download_xlsx(_n, period, mgmt, perf, lang):
         return no_update
     lang = lang if lang in LANGS else "en"
     b, mixes, mgmt, perf = _export_frame(period, mgmt, perf, lang)
-    xlsx = rp.build_xlsx(b, mixes, lang)
+    xlsx = rp.build_xlsx(b, mixes, lang, PARAMS.cost_bps, mgmt / 100, perf / 100)
     name = f"SPY3-data-{b.index[-1]:%Y-%m-%d}.xlsx"
     return dcc.send_bytes(lambda buf: buf.write(xlsx), name)
 
