@@ -5,9 +5,13 @@ Local: `python app.py` (http://127.0.0.1:8050). Production: `gunicorn app:server
 from __future__ import annotations
 
 import base64
+import importlib.util
+import threading
+import time
 
 import pandas as pd
 from dash import Dash, Input, Output, State, ctx, dcc, html, no_update
+from flask import Response, request
 
 from scripts.run_report import build
 from functools import lru_cache
@@ -27,7 +31,29 @@ PARAMS = StrategyParams()
 
 R = build(load_prices(), PARAMS.cost_bps)
 BT = R["bt"]
-ASSET_RETURNS = load_assets()
+
+# Weitere Anlageklassen (nur Korrelationen im Risk-Reiter): beim Start nur aus dem lokalen
+# Cache; fehlt er, lädt ein Hintergrund-Thread nach (höchstens alle 6 Stunden ein Versuch).
+_ASSETS = {"df": load_assets(download=False), "tried": 0.0, "busy": False}
+_ASSETS_LOCK = threading.Lock()
+
+
+def _fetch_assets() -> None:
+    try:
+        df = load_assets()
+        if not df.empty:
+            _ASSETS["df"] = df
+    finally:
+        _ASSETS["busy"] = False
+
+
+def asset_returns() -> pd.DataFrame:
+    with _ASSETS_LOCK:
+        if (_ASSETS["df"].empty and not _ASSETS["busy"]
+                and time.time() - _ASSETS["tried"] > 6 * 3600):
+            _ASSETS.update(busy=True, tried=time.time())
+            threading.Thread(target=_fetch_assets, daemon=True, name="spy3-assets").start()
+    return _ASSETS["df"]
 
 
 def shy_benchmark() -> tuple[pd.Series, dict]:
@@ -293,13 +319,24 @@ def download_buttons() -> html.Div:
     off = bool(EXPORT_MISSING)
     hint = ("Fehlende Pakete: " + ", ".join(EXPORT_MISSING) +
             " – pip install -r requirements.txt") if off else None
+    # Normale Links: Der Browser lädt die Datei direkt (mit Fortschritt), unabhängig von den
+    # Dash-Callbacks – funktioniert auch auf iOS/Android und hinter Proxys zuverlässig.
+    dis = " is-disabled" if off else ""
     return html.Div([
-        html.Button([html.Span("↓", className="dl-ico"), html.Span(id="dl-pdf-lbl")],
-                    id="btn-pdf", n_clicks=0, disabled=off, title=hint,
-                    className="dl-btn dl-btn--primary"),
-        html.Button([html.Span("↓", className="dl-ico"), html.Span(id="dl-xlsx-lbl")],
-                    id="btn-xlsx", n_clicks=0, disabled=off, title=hint, className="dl-btn"),
+        html.A([html.Span("↓", className="dl-ico"), html.Span(id="dl-pdf-lbl")],
+               id="btn-pdf", href=None if off else download_url("pdf"), title=hint,
+               className="dl-btn dl-btn--primary" + dis, rel="nofollow"),
+        html.A([html.Span("↓", className="dl-ico"), html.Span(id="dl-xlsx-lbl")],
+               id="btn-xlsx", href=None if off else download_url("xlsx"), title=hint,
+               className="dl-btn" + dis, rel="nofollow"),
     ], className="downloads")
+
+
+def download_url(kind: str, period: str = "all", mgmt: float | None = None,
+                 perf: float | None = None, lang: str = "en") -> str:
+    mgmt = PARAMS.mgmt_fee * 100 if mgmt is None else mgmt
+    perf = PARAMS.perf_fee * 100 if perf is None else perf
+    return f"/download/{kind}?period={period}&mgmt={mgmt:g}&perf={perf:g}&lang={lang}"
 
 
 def lang_menu() -> html.Details:
@@ -422,8 +459,10 @@ def page(lang: str) -> list:
     ]
 
 
+# gzip für alle Antworten, wenn flask-compress installiert ist (Charts: ~80 % kleiner)
+COMPRESS = importlib.util.find_spec("flask_compress") is not None
 app = Dash(__name__, title="SPY3 Dashboard · SINTRO", external_stylesheets=[FONTS],
-           update_title=None, suppress_callback_exceptions=True)
+           update_title=None, suppress_callback_exceptions=True, compress=COMPRESS)
 server = app.server
 
 app.layout = html.Div([
@@ -438,7 +477,6 @@ app.layout = html.Div([
                className="logo-link", title="www.sintro.eu"),
         html.Div([html.Div(id="signal"), download_buttons(), lang_menu()],
                  className="top-right"),
-        dcc.Download(id="dl-pdf"), dcc.Download(id="dl-xlsx"),
     ], className="topbar"),
     html.Div(t("dl_missing", "en", pkgs=", ".join(EXPORT_MISSING)) if EXPORT_MISSING else "",
              id="dl-warn", className="dl-warn" if EXPORT_MISSING else ""),
@@ -527,9 +565,17 @@ def net_series(mgmt_pct: float, perf_pct: float) -> pd.Series:
               Input("mgmt-fee", "value"), Input("perf-fee", "value"),
               Input("lang-pref", "data"), Input("viewport", "data"))
 def update_main(period, scale, mgmt, perf, lang, vw):
-    compact = vw == "compact"
     mgmt = PARAMS.mgmt_fee * 100 if mgmt is None else float(mgmt)
     perf = PARAMS.perf_fee * 100 if perf is None else float(perf)
+    lang = lang if lang in LANGS else "en"
+    return _main_outputs(period or "all", scale or "linear", round(mgmt, 4), round(perf, 4),
+                         lang, vw == "compact")
+
+
+@lru_cache(maxsize=48)
+def _main_outputs(period, scale, mgmt, perf, lang, compact):
+    """Alle Inhalte der Hauptansicht; je Einstellung nur einmal berechnet (die Daten
+    ändern sich erst mit dem nächsten Server-Start)."""
     b, mixes = slice_bt(period, lang)
     b = b.assign(ret_pf_net=net_series(mgmt, perf).loc[b.index])
     fee_txt = t("fees_note", lang, mgmt=pct(mgmt / 100, 1, lang=lang),
@@ -609,8 +655,9 @@ def risk_tab(b: pd.DataFrame, lang: str, compact: bool) -> html.Div:
     mc_tbl = pd.DataFrame({"SPY3": {mc_lbl[k][i]: v for k, v in mc.items()}})
 
     assets = {}
-    if not ASSET_RETURNS.empty:
-        sl = ASSET_RETURNS.loc[b.index[0]:b.index[-1]]
+    extra = asset_returns()
+    if not extra.empty:
+        sl = extra.loc[b.index[0]:b.index[-1]]
         assets = {c: sl[c] for c in sl.columns if sl[c].notna().sum() > 60}
     corr = rk.correlation({**series, **assets})
     corr_block = [graph_box("corr", fig=plots.corr_heatmap(corr, lang, compact))]
@@ -778,32 +825,56 @@ def _export_frame(period, mgmt, perf, lang):
     return b, mixes, mgmt, perf
 
 
-@app.callback(Output("dl-pdf", "data"), Input("btn-pdf", "n_clicks"),
-              State("period", "value"), State("mgmt-fee", "value"),
-              State("perf-fee", "value"), State("lang-pref", "data"),
-              prevent_initial_call=True)
-def download_pdf(_n, period, mgmt, perf, lang):
-    if EXPORT_MISSING:
-        return no_update
-    lang = lang if lang in LANGS else "en"
-    b, mixes, mgmt, perf = _export_frame(period, mgmt, perf, lang)
-    pdf = rp.build_pdf(b, mixes, lang, PARAMS.cost_bps, mgmt / 100, perf / 100)
-    name = f"SPY3-report-{b.index[-1]:%Y-%m-%d}.pdf"
-    return dcc.send_bytes(lambda buf: buf.write(pdf), name)
+MIME = {"pdf": "application/pdf",
+        "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}
 
 
-@app.callback(Output("dl-xlsx", "data"), Input("btn-xlsx", "n_clicks"),
-              State("period", "value"), State("mgmt-fee", "value"),
-              State("perf-fee", "value"), State("lang-pref", "data"),
-              prevent_initial_call=True)
-def download_xlsx(_n, period, mgmt, perf, lang):
-    if EXPORT_MISSING:
-        return no_update
-    lang = lang if lang in LANGS else "en"
+@lru_cache(maxsize=8)
+def build_export(kind: str, period: str, mgmt: float, perf: float, lang: str) -> tuple[bytes, str]:
+    """Datei je Einstellung einmal erzeugen; erneute Downloads kommen aus dem Speicher."""
     b, mixes, mgmt, perf = _export_frame(period, mgmt, perf, lang)
-    xlsx = rp.build_xlsx(b, mixes, lang, PARAMS.cost_bps, mgmt / 100, perf / 100)
-    name = f"SPY3-data-{b.index[-1]:%Y-%m-%d}.xlsx"
-    return dcc.send_bytes(lambda buf: buf.write(xlsx), name)
+    if kind == "pdf":
+        data = rp.build_pdf(b, mixes, lang, PARAMS.cost_bps, mgmt / 100, perf / 100)
+        return data, f"SPY3-report-{b.index[-1]:%Y-%m-%d}.pdf"
+    data = rp.build_xlsx(b, mixes, lang, PARAMS.cost_bps, mgmt / 100, perf / 100)
+    return data, f"SPY3-data-{b.index[-1]:%Y-%m-%d}.xlsx"
+
+
+def _arg(name: str, default: float, lo: float, hi: float) -> float:
+    try:
+        v = float(request.args.get(name, default))
+    except (TypeError, ValueError):
+        v = default
+    return round(min(max(v, lo), hi), 4)
+
+
+@server.route("/download/<kind>")
+def download_file(kind: str):
+    if kind not in MIME or EXPORT_MISSING:
+        return Response("Export not available", status=404, mimetype="text/plain")
+    period = request.args.get("period", "all")
+    period = period if period in PERIODS else "all"
+    lang = request.args.get("lang", "en")
+    lang = lang if lang in LANGS else "en"
+    mgmt = _arg("mgmt", PARAMS.mgmt_fee * 100, 0.0, 5.0)
+    perf = _arg("perf", PARAMS.perf_fee * 100, 0.0, 50.0)
+    data, name = build_export(kind, period, mgmt, perf, lang)
+    return Response(data, mimetype=MIME[kind], headers={
+        "Content-Disposition": f'attachment; filename="{name}"',
+        "Content-Length": str(len(data)), "Cache-Control": "no-store"})
+
+
+
+def _prewarm() -> None:
+    """Standardansicht im Hintergrund vorberechnen, damit der erste Besucher nicht wartet."""
+    for vw in ("wide", "compact"):
+        try:
+            update_main("all", "linear", None, None, "en", vw)
+        except Exception:                       # Vorberechnung ist nur eine Beschleunigung
+            pass
+
+
+threading.Thread(target=_prewarm, daemon=True, name="spy3-prewarm").start()
 
 
 if __name__ == "__main__":

@@ -44,8 +44,61 @@ pio.templates["sintro"] = go.layout.Template(layout=dict(
 TEMPLATE = "sintro"
 
 
+# Höchstzahl Punkte je Zeitreihe im Browser. Ein Chart ist 350–900 px breit; mehr Punkte
+# machen ihn nicht genauer, nur langsamer (26 Jahre täglich = 6.700 Punkte je Linie).
+MAX_POINTS, MAX_POINTS_COMPACT = 1400, 700
+
+
+def _decimate(y: np.ndarray, n_max: int) -> np.ndarray:
+    """Min-Max-Ausdünnung: je Abschnitt bleiben Tiefst- und Höchstwert erhalten, damit
+    Spitzen und Tiefpunkte (z. B. der maximale Drawdown) exakt sichtbar bleiben."""
+    n = len(y)
+    if n <= n_max:
+        return np.arange(n)
+    edges = np.linspace(0, n, n_max // 2 + 1).astype(int)
+    keep = [0, n - 1]
+    for a, b in zip(edges[:-1], edges[1:]):
+        seg = y[a:b]
+        if seg.size == 0:
+            continue
+        if np.isnan(seg).all():
+            keep.append(a)                           # Lücke bleibt Lücke
+        else:
+            keep += [a + int(np.nanargmin(seg)), a + int(np.nanargmax(seg))]
+    return np.unique(keep)
+
+
+def _round(a: np.ndarray) -> list:
+    """Sechs signifikante Stellen relativ zum größten Wert; NaN -> None (JSON null)."""
+    finite = np.abs(a[np.isfinite(a)])
+    big = finite.max() if finite.size else 1.0
+    dec = max(0, 5 - int(np.floor(np.log10(big)))) if big > 0 else 6
+    r = np.round(a, dec)
+    return [None if not np.isfinite(v) else float(v) for v in r]
+
+
+def _slim(fig: go.Figure, n_max: int) -> go.Figure:
+    """Zeitreihen für den Browser verschlanken: ausdünnen, Datum als 'YYYY-MM-DD',
+    Werte gerundet. Verringert die übertragene Datenmenge um rund 90 %."""
+    for tr in fig.data:
+        if tr.type != "scatter" or tr.x is None or tr.y is None or len(tr.x) < 50:
+            continue
+        x = np.asarray(tr.x)
+        if not np.issubdtype(x.dtype, np.datetime64):
+            try:
+                x = pd.to_datetime(x).to_numpy()
+            except (ValueError, TypeError):
+                continue
+        y = np.asarray(tr.y, dtype=float)
+        idx = _decimate(y, n_max)
+        tr.x = pd.DatetimeIndex(x[idx]).strftime("%Y-%m-%d").tolist()
+        tr.y = _round(y[idx])
+    return fig
+
+
 def _base(fig: go.Figure, lang: str, compact: bool = False, **kw) -> go.Figure:
     """compact=True: kleinere Schrift, engere Ränder, weniger Ticks – für Smartphones."""
+    _slim(fig, MAX_POINTS_COMPACT if compact else MAX_POINTS)
     fig.update_layout(template=TEMPLATE, separators=SEP.get(lang, ",."), **kw)
     if compact:
         short = {t("gross", lang): t("gross_s", lang), t("net", lang): t("net_s", lang),

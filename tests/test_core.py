@@ -368,12 +368,26 @@ def test_live_signal_matches_backtest_and_caches():
         return px
 
     live.reset_cache()
-    s1 = live.current_signal(loader)
+    s1 = live.current_signal(loader)              # sofort aus dem lokalen Cache ...
+    live.wait_idle()                              # ... neue Kurse im Hintergrund
     exp = compute_signal(px["risk_on"]).iloc[-1]
     assert s1.asof == idx[-1] and int(s1.row["signal"]) == int(exp["signal"])
     assert s1.reasons["risk_ok"] == bool(exp["var_1d"] < StrategyParams().var_high)
     live.current_signal(loader)                   # zweiter Aufruf: aus dem Cache
-    assert calls == [True]
+    live.wait_idle()
+    assert calls == [False, True]                 # kein blockierender Abruf, einmal Hintergrund
+
+    def slow(refresh):
+        if refresh:
+            import time as _t
+            _t.sleep(2)
+        return px
+    live.reset_cache()
+    import time as _t
+    t0 = _t.time()
+    live.current_signal(slow)
+    assert _t.time() - t0 < 1.0                   # Seitenaufbau wartet nicht auf den Abruf
+    live.wait_idle()
 
     def broken(refresh):
         raise ConnectionError("offline")

@@ -42,8 +42,9 @@ TXT = {
         "partial": "Partial years: {y}. Year totals are the compounded monthly returns.",
         "alpha_note": "Alpha and beta measured against SHY (short-term Treasuries) as the "
                       "risk-free asset.",
-        "src": "Source: SINTRO SPY3 backtest engine. Daily data in 'Daily data', chart series "
-               "in 'Chart data'.",
+        "src": "Source: SINTRO SPY3 backtest engine. Key figures and monthly returns from daily "
+               "data ('Daily data'); chart series in 'Chart data' (weekly for periods over three "
+               "years, drawdown as weekly low).",
         "1y": "1-year", "3y": "3-year", "3m": "3-month",
         "date": "Date", "yr": "Year",
     },
@@ -71,8 +72,9 @@ TXT = {
         "partial": "Unvollständige Jahre: {y}. Jahreswerte sind die verketteten Monatsrenditen.",
         "alpha_note": "Alpha und Beta gegenüber SHY (kurzlaufende Staatsanleihen) als risikofreie "
                       "Anlage.",
-        "src": "Quelle: SINTRO SPY3 Backtest-Engine. Tagesdaten im Blatt 'Daily data', "
-               "Chartreihen im Blatt 'Chart data'.",
+        "src": "Quelle: SINTRO SPY3 Backtest-Engine. Kennzahlen und Monatsrenditen aus "
+               "Tagesdaten ('Daily data'); Chartreihen im Blatt 'Chart data' (bei Zeiträumen über "
+               "drei Jahren Wochenwerte, Drawdown als Wochentief).",
         "1y": "1-Jahres-", "3y": "3-Jahres-", "3m": "3-Monats-",
         "date": "Datum", "yr": "Jahr",
     },
@@ -130,7 +132,18 @@ def chart_data(bt: pd.DataFrame, mixes: dict[str, pd.Series]) -> tuple[pd.DataFr
     d["alpha_net"] = _rolling_alpha(net, bm, rf, long_w)
     d["vol_net"] = net.rolling(vol_w).std() * np.sqrt(TD)
     d["vol_spy"] = bm.rolling(vol_w).std() * np.sqrt(TD)
-    return d, {"long": long_k, "vol": vol_k}
+    weekly = len(d) > 800
+    if weekly:
+        # Für die Diagramme genügen Wochenwerte (letzter Handelstag der Woche); Drawdowns
+        # nehmen das Wochentief, damit der maximale Drawdown exakt erhalten bleibt.
+        wk = d.index.to_period("W-FRI")
+        g = d.groupby(wk)
+        out = g.last()
+        for c in ("dd_net", "dd_spy"):
+            out[c] = g[c].min()
+        out.index = pd.DatetimeIndex(d.index.to_series().groupby(wk).last().values)
+        d = out
+    return d, {"long": long_k, "vol": vol_k, "weekly": weekly}
 
 
 def _date_axis(span_days: int) -> dict:

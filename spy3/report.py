@@ -305,6 +305,42 @@ def build_pdf(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str = "en",
 
 
 # ---------- Excel -----------------------------------------------------------
+def _write_daily(book, daily: pd.DataFrame) -> None:
+    """Blatt 'Daily data' spaltenweise schreiben (NaN bleibt leer)."""
+    ws = book.add_worksheet("Daily data")
+    head = book.add_format({"bold": True, "bottom": 1})
+    datef = book.add_format({"num_format": "yyyy-mm-dd"})
+    pctf = book.add_format({"num_format": "0.00%"})
+    numf = book.add_format({"num_format": "#,##0.00"})
+    logf = book.add_format({"num_format": "0.000000"})
+    for j, c in enumerate(daily.columns):
+        ws.write(0, j, c, head)
+        s = daily[c]
+        if c == "date":
+            ws.set_column(j, j, 12)
+            for i, v in enumerate(pd.to_datetime(s)):
+                ws.write_datetime(i + 1, j, v.to_pydatetime(), datef)
+            continue
+        if c.startswith("wealth_"):
+            ws.set_column(j, j, 14, numf)
+        elif c.startswith(("log_ret_", "cum_log_")):
+            ws.set_column(j, j, 14, logf)
+        elif c.startswith(("ret_", "var_", "drawdown_", "cost", "perf_fee")):
+            ws.set_column(j, j, 13, pctf)
+        else:
+            ws.set_column(j, j, 10)
+        if pd.api.types.is_numeric_dtype(s):
+            vals = s.to_numpy(dtype=float)
+            ok = np.isfinite(vals)
+            for i in np.flatnonzero(ok):
+                ws.write_number(int(i) + 1, j, float(vals[i]))
+        else:
+            for i, v in enumerate(s.astype(object)):
+                if v is not None and not (isinstance(v, float) and np.isnan(v)):
+                    ws.write_string(i + 1, j, str(v))
+    ws.freeze_panes(1, 1)
+
+
 def build_xlsx(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str = "en",
                cost_bps: float | None = None, mgmt: float | None = None,
                perf: float | None = None) -> bytes:
@@ -368,7 +404,7 @@ def build_xlsx(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str = "en",
         analysis = xl.book.add_worksheet("Analysis")          # first sheet, opens on start
         xl.sheets["Analysis"] = analysis
         kpi.to_excel(xl, sheet_name="KPIs")
-        daily.to_excel(xl, sheet_name="Daily data", index=False)
+        _write_daily(xl.book, daily)            # direkt geschrieben: ~10x schneller als to_excel
         yearly.to_excel(xl, sheet_name="Calendar years")
         att.to_excel(xl, sheet_name="Attribution")
         notes.to_excel(xl, sheet_name="Notes", index=False)
@@ -381,21 +417,6 @@ def build_xlsx(bt: pd.DataFrame, mixes: dict[str, pd.Series], lang: str = "en",
         fees = None if mgmt is None else {"cost_bps": cost_bps if cost_bps is not None else 10,
                                           "mgmt": mgmt, "perf": perf or 0.0}
         write_analysis(book, analysis, "Chart data", bt, mixes, lang, fees)
-        pctf = book.add_format({"num_format": "0.00%"})
-        numf = book.add_format({"num_format": "#,##0.00"})
-        xl.sheets["Daily data"].set_column("A:A", 12)
-        xl.sheets["Daily data"].set_column("B:C", 9)
-        cols = list(daily.columns)
-        from xlsxwriter.utility import xl_col_to_name as cn
-        logf = book.add_format({"num_format": "0.000000"})
-        for i, c in enumerate(cols):
-            if c.startswith("wealth_"):
-                xl.sheets["Daily data"].set_column(i, i, 14, numf)
-            elif c.startswith("log_ret_") or c.startswith("cum_log_"):
-                xl.sheets["Daily data"].set_column(i, i, 14, logf)
-            elif c.startswith(("ret_", "var_", "drawdown_", "cost", "perf_fee")):
-                xl.sheets["Daily data"].set_column(i, i, 13, pctf)
-        del cn
         xl.sheets["KPIs"].set_column("A:A", 24)
         xl.sheets["Notes"].set_column("A:A", 110)
     return buf.getvalue()

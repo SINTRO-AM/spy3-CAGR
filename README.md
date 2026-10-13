@@ -123,7 +123,10 @@ python scripts/run_report.py --refresh   # append new closes, write reports/
 python scripts/audit.py                  # rerun the validation suite
 ```
 
-In production we run `gunicorn app:server` (see `Procfile`).
+In production we run gunicorn with one worker and 8 threads (see `Procfile`), so a slow
+export never blocks the page. Keep `flask-compress` installed — it gzips the chart data.
+Downloads are plain links (`/download/pdf|xlsx?period=…&mgmt=…&perf=…&lang=…`); finished
+files stay in memory, so a second click with the same settings is instant.
 
 **About the data.** Prices are Yahoo Finance closes, adjusted for dividends and splits, cached
 in `data/prices.csv`. The history is frozen: updates only append completed trading days, so

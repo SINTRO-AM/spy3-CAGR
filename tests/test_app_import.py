@@ -58,3 +58,30 @@ def test_since_inception_period(monkeypatch, synthetic_prices):
     assert b.index[0] >= pd.Timestamp("2023-09-01") and b.index[0] <= pd.Timestamp("2023-09-05")
     out = app.update_main("si", "linear", 0.2, 10, "en", "wide")
     assert out[0].data
+
+
+def test_download_route(monkeypatch, synthetic_prices):
+    """Downloads laufen über eine normale HTTP-Route (keine Dash-Callbacks)."""
+    import spy3.data as d
+    monkeypatch.setattr(d, "load_prices", lambda **k: synthetic_prices)
+    monkeypatch.setattr(d, "load_assets", lambda **k: pd.DataFrame())
+    monkeypatch.setattr(d, "load_short_treasury_returns", lambda: pd.Series(dtype=float))
+    sys.modules.pop("app", None)
+    app = importlib.import_module("app")
+    if app.EXPORT_MISSING:
+        pytest.skip("Exportpakete fehlen")
+    c = app.server.test_client()
+    r = c.get("/download/xlsx?period=all&mgmt=0.2&perf=10&lang=en")
+    assert r.status_code == 200 and r.data[:2] == b"PK"
+    assert "attachment" in r.headers["Content-Disposition"]
+    assert r.headers["Content-Disposition"].endswith('.xlsx"')
+    r = c.get("/download/pdf?period=3&mgmt=0&perf=0&lang=de")
+    assert r.status_code == 200 and r.data[:5] == b"%PDF-"
+    # ungültige Eingaben werden bereinigt statt Fehler zu werfen
+    r = c.get("/download/xlsx?period=../../etc&mgmt=abc&perf=999&lang=xx")
+    assert r.status_code == 200 and r.data[:2] == b"PK"
+    assert c.get("/download/exe").status_code == 404
+    # zweiter Abruf derselben Einstellung kommt aus dem Speicher
+    n0 = app.build_export.cache_info().hits
+    c.get("/download/xlsx?period=all&mgmt=0.2&perf=10&lang=en")
+    assert app.build_export.cache_info().hits == n0 + 1

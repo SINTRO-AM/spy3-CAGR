@@ -521,3 +521,11 @@ p { margin: 0; }
   .graph-box--tab { height: 300px; }
   .graph-box--side { height: 290px; }
 }
+
+/* Download-Links (statt Buttons) und Rückmeldung während der Erstellung */
+a.dl-btn { text-decoration: none; color: inherit; cursor: pointer; }
+a.dl-btn--primary, a.dl-btn--primary:visited { color: #fff; }
+.dl-btn.is-busy { pointer-events: none; opacity: .75; }
+.dl-btn.is-busy .dl-ico { display: inline-block; animation: dl-bounce .9s ease-in-out infinite; }
+@keyframes dl-bounce { 0%, 100% { transform: translateY(-2px); } 50% { transform: translateY(2px); } }
+.dl-btn.is-disabled { opacity: .45; cursor: not-allowed; pointer-events: none; }

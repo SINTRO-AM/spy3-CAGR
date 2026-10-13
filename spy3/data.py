@@ -344,11 +344,17 @@ ASSET_CACHE = CACHE.parent / "assets.csv"
 
 
 def load_assets(start: str = "2000-01-01", refresh: bool = False,
-                cache: Path = ASSET_CACHE) -> pd.DataFrame:
-    """Tagesrenditen weiterer Anlageklassen. Ohne Netz und ohne Cache: leerer Frame."""
+                cache: Path = ASSET_CACHE, download: bool = True) -> pd.DataFrame:
+    """Tagesrenditen weiterer Anlageklassen. Ohne Netz und ohne Cache: leerer Frame.
+
+    download=False liest nur den lokalen Cache (schnell, ohne Netz)."""
     px = None
     if cache.exists() and not refresh:
         px = pd.read_csv(cache, index_col=0, parse_dates=True)
+        if px.dropna(how="all").empty:
+            px = None                                  # leerer Cache aus einem Fehlversuch
+    if px is None and not download:
+        return pd.DataFrame()
     if px is None:
         try:
             import yfinance as yf
@@ -360,6 +366,11 @@ def load_assets(start: str = "2000-01-01", refresh: bool = False,
             return pd.DataFrame()
         px = raw.rename(columns={v: k for k, v in ASSETS.items()})
         px.index = pd.to_datetime(px.index).tz_localize(None)
+        px = px.dropna(axis=1, how="all")
+        if px.empty or len(px) < 20:
+            warnings.warn("Anlageklassen: keine Daten erhalten, Cache nicht geschrieben.",
+                          stacklevel=2)
+            return pd.DataFrame()
         cache.parent.mkdir(parents=True, exist_ok=True)
         px.to_csv(cache)
     return px.pct_change().iloc[1:]
